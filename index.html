@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cracked GTM | Zero-to-one go-to-market operators</title>
+<meta name="description" content="Two proven zero-to-one operators. One team to build and run your entire go-to-market engine.">
+<meta property="og:title" content="Cracked GTM">
+<meta property="og:description" content="Two proven zero-to-one operators. One team to build and run your entire go-to-market engine.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://crackedgtm.ai">
+<meta name="theme-color" content="#FDFCF7">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;600;700&family=Bangers&family=Caveat:wght@600&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#111111;--paper:#FDFCF7;--red:#D7191F;--yellow:#FFD60A;--band:#F4F2EA;--muted:#555555}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:'Archivo',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:var(--ink)}
+img{display:block;max-width:100%}
+.display{font-family:'Archivo Black',sans-serif}
+.comic{font-family:'Bangers',cursive;font-weight:400}
+.wrap{width:100%;max-width:1080px;margin:0 auto}
+section{border-bottom:2px solid var(--ink);padding:104px 24px}
+.hl{background:var(--yellow);padding:0 6px;box-decoration-break:clone;-webkit-box-decoration-break:clone}
+
+/* hero */
+.hero{border-bottom:none;padding:72px 24px 80px;display:flex;flex-direction:column;align-items:center;gap:28px;text-align:center}
+.burst{position:relative;width:230px;height:230px}
+.burst svg{position:absolute;inset:0;width:100%;height:100%}
+.burst span{position:absolute;left:0;right:0;top:30%;font-family:'Bangers',cursive;font-size:31px;line-height:.95;letter-spacing:2px;color:#fff;transform:rotate(-9deg);text-shadow:3px 3px 0 var(--ink)}
+.hero h1{margin:8px 0 0;max-width:1060px;font-family:'Archivo Black',sans-serif;font-size:clamp(48px,7vw,92px);line-height:.96;letter-spacing:-.035em}
+.hero p{margin:0;max-width:820px;font-size:clamp(20px,2.2vw,26px);line-height:1.4;font-weight:500}
+.hero p strong{font-weight:700}
+.btn{display:inline-flex;align-items:center;justify-content:center;min-height:60px;padding:0 34px;font-family:'Archivo Black',sans-serif;font-size:18px;text-decoration:none;border:3px solid var(--ink);transition:transform .12s ease,box-shadow .12s ease}
+.btn:hover{transform:translate(-2px,-2px)}
+.btn-dark{background:var(--ink);color:var(--paper);box-shadow:6px 6px 0 var(--red)}
+.btn-dark:hover{box-shadow:8px 8px 0 var(--red);color:var(--paper)}
+.btn-light{background:var(--paper);color:var(--ink);box-shadow:8px 8px 0 var(--ink);min-height:68px;padding:0 44px;font-size:21px}
+.btn-light:hover{box-shadow:10px 10px 0 var(--ink);color:var(--ink)}
+
+/* logos */
+.logos{border-top:2px solid var(--ink);background:var(--band);padding:48px 24px 56px;display:flex;flex-direction:column;align-items:center;gap:24px}
+.label{margin:0;font-size:24px;letter-spacing:3px;color:var(--muted)}
+.logo-grid{width:100%;max-width:1180px;display:flex;flex-wrap:wrap;justify-content:center;gap:12px}
+.logo-grid div{flex:0 0 calc((100% - 72px) / 7)}
+.logo-grid div{min-height:64px;padding:8px;display:flex;align-items:center;justify-content:center;text-align:center;background:#fff;border:2px solid var(--ink);border-radius:6px;font-family:'Archivo Black',sans-serif;font-size:17px;color:#2B2B2B}
+
+/* team */
+.team{display:flex;flex-direction:column;align-items:center;gap:56px}
+.team h2{margin:0;font-family:'Archivo Black',sans-serif;font-size:clamp(36px,4.5vw,56px);line-height:1.02;letter-spacing:-.035em;text-align:center}
+.people{display:flex;flex-direction:column;gap:40px}
+.person{display:flex;align-items:center;gap:48px;padding:32px 40px;background:#fff;border:3px solid var(--ink);box-shadow:8px 8px 0 var(--ink)}
+.person img{width:230px;height:230px;flex-shrink:0;object-fit:cover;mix-blend-mode:multiply}
+.person-body{flex:1;display:flex;flex-direction:column;gap:22px}
+.person h3{margin:0;font-family:'Archivo Black',sans-serif;font-size:34px;letter-spacing:-.015em}
+.stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
+.stat{padding:18px 20px;background:var(--paper);border:2px solid var(--ink);display:flex;flex-direction:column;gap:6px}
+.stat.y{background:var(--yellow)}
+.stat b{font-family:'Archivo Black',sans-serif;font-weight:400;font-size:36px;line-height:1}
+.stat span{font-size:16px;line-height:1.4;font-weight:600}
+.team-foot{margin:0;max-width:820px;font-size:24px;line-height:1.5;text-align:center}
+
+/* note */
+.note{display:flex;justify-content:center;padding:104px 24px 112px}
+.note .col{width:100%;max-width:760px;display:flex;flex-direction:column;gap:24px;font-size:22px;line-height:1.6}
+.note p{margin:0}
+.pull{margin:16px 0!important;font-family:'Archivo Black',sans-serif;font-size:clamp(30px,3.6vw,42px);line-height:1.12;letter-spacing:-.025em}
+.note h2{margin:16px 0 0;font-family:'Archivo Black',sans-serif;font-size:34px;line-height:1.12;letter-spacing:-.03em}
+.chips{display:flex;flex-wrap:wrap;gap:12px;font-size:17px;font-weight:700}
+.chips span{padding:10px 16px;background:#fff;border:2px solid var(--ink);box-shadow:3px 3px 0 var(--ink)}
+.chips span.y{background:var(--yellow)}
+.closer{margin-top:16px!important;font-family:'Archivo Black',sans-serif;font-size:clamp(28px,3vw,36px);line-height:1.15;letter-spacing:-.028em}
+.sigs{display:flex;gap:48px;margin-top:4px;font-family:'Caveat',cursive;font-size:48px;line-height:1}
+
+/* case studies */
+.work{display:flex;flex-direction:column;align-items:center;gap:48px;padding:96px 24px 104px}
+.work h2{margin:0;font-family:'Archivo Black',sans-serif;font-size:clamp(40px,4.5vw,56px);line-height:1;letter-spacing:-.035em}
+.case-link{min-height:130px;padding:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;text-align:center;background:var(--yellow);color:var(--ink);text-decoration:none;border:3px solid var(--ink);box-shadow:6px 6px 0 var(--red);transition:transform .12s ease,box-shadow .12s ease}
+.case-link:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--red);color:var(--ink)}
+.case-link .tag{padding:2px 8px;background:var(--red);color:#fff;font-family:'Bangers',cursive;font-size:15px;letter-spacing:1px}
+.case-link .nm{font-family:'Archivo Black',sans-serif;font-size:23px}
+.case-link .rd{font-size:14px;font-weight:700;text-decoration:underline}
+.case-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:24px}
+.case-grid div{min-height:130px;padding:12px;display:flex;align-items:center;justify-content:center;text-align:center;background:#fff;border:3px solid var(--ink);box-shadow:6px 6px 0 var(--red);font-family:'Archivo Black',sans-serif;font-size:23px}
+
+/* featured case */
+.case{width:100%;max-width:1080px;background:#fff;border:3px solid var(--ink);box-shadow:10px 10px 0 var(--red);display:flex;flex-direction:column}
+.case-top{background:var(--ink);color:var(--paper);padding:36px 44px;display:flex;justify-content:space-between;align-items:flex-end;gap:32px}
+.case-top .kicker{display:inline-block;margin-bottom:14px;padding:4px 12px;background:var(--yellow);color:var(--ink);font-family:'Bangers',cursive;font-size:20px;letter-spacing:2px}
+.case-top h3{margin:0;font-family:'Archivo Black',sans-serif;font-size:44px;line-height:1;letter-spacing:-.03em}
+.case-top .sub{margin:8px 0 0;font-size:17px;color:#CFCBC0}
+.case-top .before{max-width:340px;margin:0;padding:14px 18px;border:2px solid #4A4A4A;font-size:16px;line-height:1.45;color:#E8E5DC}
+.case-top .before b{color:var(--yellow);font-weight:700}
+.case-body{padding:40px 44px 44px;display:flex;flex-direction:column;gap:32px}
+.case-body .headline{margin:0;font-family:'Archivo Black',sans-serif;font-size:clamp(28px,3.2vw,40px);line-height:1.1;letter-spacing:-.025em}
+.case-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
+.case-stats div{padding:18px;border:2px solid var(--ink);background:var(--paper);display:flex;flex-direction:column;gap:6px}
+.case-stats div.y{background:var(--yellow)}
+.case-stats b{font-family:'Archivo Black',sans-serif;font-weight:400;font-size:38px;line-height:1;letter-spacing:-.02em}
+.case-stats span{font-size:15px;line-height:1.4;font-weight:600}
+.case-did{display:flex;flex-direction:column;gap:14px}
+.case-did h4{margin:0;font-family:'Bangers',cursive;font-weight:400;font-size:24px;letter-spacing:2px;color:var(--red)}
+.case-did ul{margin:0;padding:0;list-style:none;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 32px;font-size:17px;line-height:1.45}
+.case-did li{display:flex;gap:10px}
+.case-did li::before{content:"";flex-shrink:0;width:10px;height:10px;margin-top:7px;background:var(--red);border:2px solid var(--ink)}
+.more-label{margin:8px 0 0;font-family:'Bangers',cursive;font-weight:400;font-size:24px;letter-spacing:3px;color:var(--muted)}
+
+/* cta */
+.cta{background:var(--red);color:#fff;padding:120px 24px;display:flex;flex-direction:column;align-items:center;gap:32px;text-align:center}
+.cta h2{margin:0;max-width:1000px;font-family:'Archivo Black',sans-serif;font-size:clamp(48px,6vw,84px);line-height:.98;letter-spacing:-.035em;text-shadow:6px 6px 0 var(--ink)}
+.cta p{margin:0;max-width:640px;font-size:22px;line-height:1.5;font-weight:600}
+
+footer{background:var(--ink);color:var(--paper);padding:36px 80px;display:flex;align-items:center;justify-content:space-between;gap:24px;font-size:15px}
+footer a{color:var(--paper)}
+
+@media (max-width:1100px){
+  .logo-grid div{flex-basis:calc((100% - 36px) / 4)}
+}
+@media (max-width:820px){
+  section{padding:72px 20px}
+  .hero{padding:48px 20px 64px}
+  .burst{width:180px;height:180px}
+  .burst span{font-size:24px}
+  .logo-grid div{flex-basis:calc((100% - 24px) / 3)}
+  .logo-grid div{font-size:14px}
+  .person{flex-direction:column;align-items:flex-start;gap:20px;padding:24px}
+  .person img{width:180px;height:180px;align-self:center}
+  .stats{grid-template-columns:1fr}
+  .stat b{font-size:30px}
+  .team-foot{font-size:20px}
+  .note .col{font-size:19px}
+  .note h2{font-size:28px}
+  .case-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+  .case-grid div{font-size:18px;min-height:100px}
+  .case-link .nm{font-size:19px}
+  .case-link .tag{font-size:12px}
+  .case-top{flex-direction:column;align-items:flex-start;padding:28px 24px}
+  .case-top h3{font-size:34px}
+  .case-body{padding:28px 24px 32px}
+  .case-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .case-stats b{font-size:25px}
+  .case-stats div{padding:14px}
+  .case-did ul{grid-template-columns:1fr}
+  .cta{padding:88px 20px}
+  .cta p{font-size:19px}
+  footer{flex-direction:column;padding:32px 20px;text-align:center}
+}
+@media (max-width:420px){
+  .logo-grid div{flex-basis:calc((100% - 12px) / 2)}
+}
+</style>
+</head>
+<body>
+
+<header class="hero" id="top">
+  <div class="burst" role="img" aria-label="Cracked GTM logo">
+    <svg viewBox="0 0 300 300" aria-hidden="true">
+      <polygon points="150,5 178,70 240,25 225,100 295,90 245,145 300,185 230,195 260,265 190,230 170,295 140,235 90,285 90,215 15,235 60,170 5,130 75,110 40,45 110,70" fill="#111111" transform="translate(8,8)"/>
+      <polygon points="150,5 178,70 240,25 225,100 295,90 245,145 300,185 230,195 260,265 190,230 170,295 140,235 90,285 90,215 15,235 60,170 5,130 75,110 40,45 110,70" fill="#D7191F" stroke="#111111" stroke-width="4" stroke-linejoin="round"/>
+    </svg>
+    <span>CRACKED<br>GTM<br>OPERATORS</span>
+  </div>
+  <h1>Hey, we're Khaled and Priyanka.</h1>
+  <p>Two proven zero-to-one operators. <strong>One team to build and run your entire go-to-market engine.</strong></p>
+  <a class="btn btn-dark" href="https://calendly.com/d/dtd7-vd3-fhw/discovery-call" target="_blank" rel="noopener">Let's Talk</a>
+</header>
+
+<section class="logos" aria-labelledby="logos-label">
+  <h2 class="label comic" id="logos-label">OPERATORS BEHIND GTM AT 10+ STARTUPS</h2>
+  <div class="logo-grid">
+    <div>Securitize</div><div>World Bank</div><div>AI Collective</div><div>Waldium</div>
+    <div>Revamp</div><div>Just AI</div><div>Blueberry</div><div>Handled</div><div>Wildcard</div><div>Gigit</div>
+    <div>Hue</div><div>Scout</div><div>Proprise</div><div>Nuanced</div><div>Neatsy</div><div>UTR</div>
+  </div>
+</section>
+
+<section class="team" id="team">
+  <h2>We've been the first GTM hire. Over and over.</h2>
+  <div class="wrap people">
+    <article class="person">
+      <img src="priyanka.jpg" alt="Sketch portrait of Priyanka Sundhar" width="230" height="230">
+      <div class="person-body">
+        <h3>Priyanka Sundhar</h3>
+        <div class="stats">
+          <div class="stat y"><b>IPO</b><span>Founding AE at Securitize</span></div>
+          <div class="stat"><b>Acquired</b><span>Growth lead at Structured Labs (YC)</span></div>
+        </div>
+      </div>
+    </article>
+    <article class="person">
+      <img src="khaled.jpg" alt="Sketch portrait of Khaled Alameldin" width="230" height="230">
+      <div class="person-body">
+        <h3>Khaled Alameldin</h3>
+        <div class="stats">
+          <div class="stat y"><b>$0 to $3M</b><span>Revenue at Revamp (YC)</span></div>
+          <div class="stat"><b>3 YC startups</b><span>Running growth for them today</span></div>
+        </div>
+      </div>
+    </article>
+  </div>
+  <p class="team-foot">Between us, we've sold Figma diagrams, delivered donuts, built outbound from scratch and hired the reps who came after us.</p>
+</section>
+
+<section class="note" id="note">
+  <div class="col">
+    <p>There's a strange stretch after launch that nobody talks about. You have five, maybe ten customers, and people seem to want what you're building. But you don't have product market fit and you're not ready for a full-time hire.</p>
+    <p>So you're doing everything: demos, fundraising, positioning, the website, outbound, content. And somehow, the product.</p>
+    <p class="pull">You're not at zero anymore. <span class="hl">But you haven't figured out how to scale.</span></p>
+    <p>That's where we do our best work. No strategy decks or growth frameworks. Just two operators who get their hands dirty and figure it out alongside you.</p>
+    <h2>We come in and do the work.</h2>
+    <div class="chips">
+      <span>Outbound engine</span><span>Campaigns</span><span>Paid acquisition</span><span>Founder Content</span><span>SEO and GEO</span><span>Website and positioning</span><span>Sales process</span><span class="y">Relentless experiments</span>
+    </div>
+    <p>You stay in the process, but we drive it, helping you find repeatable ways to win customers and building the foundation for your next growth hire.</p>
+    <p class="closer">You build the product. <span class="hl">We'll help you get it off the ground.</span></p>
+    <div class="sigs"><span>Priyanka</span><span>Khaled</span></div>
+  </div>
+</section>
+
+<section class="work" id="work">
+  <h2>Case studies</h2>
+  <div class="wrap case-grid">
+    <a class="case-link" href="waldium.html"><span class="tag">ACQUIRED BY SALESFORCE</span><span class="nm">Waldium</span><span class="rd">Read the case study &rarr;</span></a><div>Revamp</div><div>Handled</div><div>Neatsy</div>
+    <div>Just AI</div><div>Gigit AI</div><div>Wildcard</div><div>Nuanced</div>
+  </div>
+</section>
+
+<section class="cta" id="book">
+  <h2>Ready to go from zero to one?</h2>
+  <p>Two senior operators for less than one full-time growth hire. No long contracts, no hiring risk.</p>
+  <a class="btn btn-light" href="https://calendly.com/d/dtd7-vd3-fhw/discovery-call" target="_blank" rel="noopener">Book a call with us</a>
+</section>
+
+<footer>
+  <span class="display" style="font-size:19px">Cracked GTM</span>
+  <span>crackedgtm.ai</span>
+  <span>San Francisco</span>
+</footer>
+
+</body>
+</html>

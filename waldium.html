@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Waldium case study | Cracked GTM</title>
+<meta name="description" content="How we got Waldium (Structured Labs, YC) a new customer in week one, raised pricing to $1K a month, and lifted outbound response 38%. Later acquired by Salesforce.">
+<meta property="og:title" content="Waldium case study | Cracked GTM">
+<meta property="og:description" content="A new customer in week one. Then we fixed the pricing. Later acquired by Salesforce.">
+<meta property="og:type" content="article">
+<meta name="theme-color" content="#FDFCF7">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;600;700&family=Bangers&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#111111;--paper:#FDFCF7;--red:#D7191F;--yellow:#FFD60A;--muted:#555555}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:'Archivo',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:var(--ink)}
+.wrap{width:100%;max-width:1080px;margin:0 auto}
+.hl{background:var(--yellow);padding:0 6px;box-decoration-break:clone;-webkit-box-decoration-break:clone}
+
+nav{height:84px;padding:0 80px;display:flex;align-items:center;justify-content:space-between;border-bottom:2px solid var(--ink)}
+.brand{display:flex;align-items:center;gap:12px;text-decoration:none;font-family:'Archivo Black',sans-serif;font-size:20px}
+.back{font-weight:700;font-size:16px}
+
+header{padding:88px 24px 72px;display:flex;flex-direction:column;align-items:center;gap:22px;text-align:center}
+.kicker{padding:6px 14px;background:var(--ink);color:var(--yellow);font-family:'Bangers',cursive;font-size:22px;letter-spacing:3px;transform:rotate(-2deg)}
+h1{margin:0;font-family:'Archivo Black',sans-serif;font-size:clamp(60px,8vw,96px);line-height:.95;letter-spacing:-.035em}
+.parent{margin:0;font-size:20px;font-weight:600;color:var(--muted)}
+.stamp{margin-top:10px;padding:16px 30px;background:var(--red);color:#fff;border:4px solid var(--ink);box-shadow:8px 8px 0 var(--ink);transform:rotate(-2deg);display:flex;align-items:center;gap:16px;font-family:'Archivo Black',sans-serif;font-size:clamp(22px,3vw,34px);letter-spacing:-.015em}
+.headline{margin:34px 0 0;max-width:900px;font-family:'Archivo Black',sans-serif;font-size:clamp(32px,4vw,46px);line-height:1.08;letter-spacing:-.03em}
+
+.stats-sec{padding:0 24px 96px}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:20px}
+.stats div{padding:24px;background:#fff;border:3px solid var(--ink);box-shadow:6px 6px 0 var(--ink);display:flex;flex-direction:column;gap:8px}
+.stats div.y{background:var(--yellow)}
+.stats b{font-family:'Archivo Black',sans-serif;font-weight:400;font-size:38px;line-height:1;letter-spacing:-.02em}
+.stats span{font-size:16px;line-height:1.4;font-weight:600}
+
+.before{padding:96px 24px;background:var(--ink);color:var(--paper);border-top:2px solid var(--ink);border-bottom:2px solid var(--ink)}
+.before .wrap{display:flex;gap:72px;align-items:flex-start}
+.before h2{width:300px;flex-shrink:0;margin:0;font-family:'Bangers',cursive;font-weight:400;font-size:40px;letter-spacing:2px;color:var(--yellow)}
+.before .txt{display:flex;flex-direction:column;gap:20px;font-size:22px;line-height:1.6}
+.before .big{margin:0;font-family:'Archivo Black',sans-serif;font-size:34px;line-height:1.2;letter-spacing:-.015em}
+.before .sm{margin:0;color:#DAD6CC}
+
+.work{padding:104px 24px}
+.work .wrap{display:flex;flex-direction:column;gap:48px}
+.work h2{margin:0;font-family:'Archivo Black',sans-serif;font-size:clamp(40px,4.5vw,56px);line-height:1;letter-spacing:-.035em}
+.cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:28px}
+.card{padding:32px;background:#fff;border:3px solid var(--ink);box-shadow:8px 8px 0 var(--red);display:flex;flex-direction:column;gap:14px}
+.card .n{font-family:'Bangers',cursive;font-size:26px;letter-spacing:2px;color:var(--red)}
+.card h3{margin:0;font-family:'Archivo Black',sans-serif;font-size:26px;line-height:1.2}
+.card p{margin:0;font-size:18px;line-height:1.55}
+
+.pull{padding:88px 24px;border-top:2px solid var(--ink);border-bottom:2px solid var(--ink);background-color:var(--yellow);background-image:radial-gradient(rgba(17,17,17,.14) 2px,transparent 2.5px);background-size:18px 18px;display:flex;justify-content:center}
+.pull p{width:100%;max-width:1000px;margin:0;padding:40px 48px;background:var(--paper);border:3px solid var(--ink);box-shadow:10px 10px 0 var(--ink);font-family:'Archivo Black',sans-serif;font-size:clamp(26px,3vw,36px);line-height:1.2;letter-spacing:-.025em;text-align:center;transform:rotate(-1deg)}
+.pull .r{color:var(--red)}
+
+.cta{background:var(--red);color:#fff;padding:120px 24px;display:flex;flex-direction:column;align-items:center;gap:30px;text-align:center;border-bottom:2px solid var(--ink)}
+.cta h2{margin:0;max-width:1000px;font-family:'Archivo Black',sans-serif;font-size:clamp(44px,5.5vw,76px);line-height:.98;letter-spacing:-.035em;text-shadow:6px 6px 0 var(--ink)}
+.cta p{margin:0;max-width:640px;font-size:22px;line-height:1.5;font-weight:600}
+.btn{display:inline-flex;align-items:center;justify-content:center;min-height:68px;padding:0 44px;background:var(--paper);color:var(--ink);font-family:'Archivo Black',sans-serif;font-size:21px;text-decoration:none;border:3px solid var(--ink);box-shadow:8px 8px 0 var(--ink);transition:transform .12s ease,box-shadow .12s ease}
+.btn:hover{transform:translate(-2px,-2px);box-shadow:10px 10px 0 var(--ink);color:var(--ink)}
+
+footer{background:var(--ink);color:var(--paper);padding:36px 80px;display:flex;align-items:center;justify-content:space-between;gap:24px;font-size:15px}
+footer a{color:var(--paper)}
+
+@media (max-width:820px){
+  nav{padding:0 20px;height:72px}
+  .brand span{font-size:17px}
+  header{padding:56px 20px 56px}
+  .stamp{padding:12px 18px;gap:10px}
+  .stamp svg{width:22px;height:22px}
+  .stats-sec{padding:0 20px 72px}
+  .stats{grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+  .stats div{padding:16px}
+  .stats b{font-size:26px}
+  .stats span{font-size:14px}
+  .before{padding:72px 20px}
+  .before .wrap{flex-direction:column;gap:20px}
+  .before h2{width:auto;font-size:32px}
+  .before .big{font-size:26px}
+  .before .txt{font-size:19px}
+  .work{padding:72px 20px}
+  .cards{grid-template-columns:1fr;gap:20px}
+  .card{padding:24px}
+  .card h3{font-size:22px}
+  .card p{font-size:17px}
+  .pull{padding:64px 20px}
+  .pull p{padding:28px 22px}
+  .cta{padding:88px 20px}
+  .cta p{font-size:19px}
+  footer{flex-direction:column;padding:32px 20px;text-align:center}
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <a class="brand" href="/">
+    <svg viewBox="0 0 300 300" width="46" height="46" aria-hidden="true"><polygon points="150,5 178,70 240,25 225,100 295,90 245,145 300,185 230,195 260,265 190,230 170,295 140,235 90,285 90,215 15,235 60,170 5,130 75,110 40,45 110,70" fill="#D7191F" stroke="#111111" stroke-width="12" stroke-linejoin="round"/></svg>
+    <span>Cracked GTM</span>
+  </a>
+  <a class="back" href="/">&larr; Back to home</a>
+</nav>
+
+<header>
+  <span class="kicker">CASE STUDY</span>
+  <h1>Waldium</h1>
+  <p class="parent">Structured Labs (YC)</p>
+  <div class="stamp">
+    <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+    <span>Acquired by Salesforce</span>
+  </div>
+  <p class="headline">A new customer in week one. <span class="hl">Then we fixed the pricing.</span></p>
+</header>
+
+<section class="stats-sec" aria-label="Results">
+  <div class="wrap stats">
+    <div class="y"><b>1 week</b><span>to land their next customer</span></div>
+    <div><b>+38%</b><span>outbound response rate</span></div>
+    <div><b>$1K/mo</b><span>first deal at new pricing, up from the $100s</span></div>
+    <div><b>2 podcasts</b><span>for the founder, in front of buyers</span></div>
+  </div>
+</section>
+
+<section class="before">
+  <div class="wrap">
+    <h2>WHERE THEY WERE</h2>
+    <div class="txt">
+      <p class="big">5 to 10 customers. Founders running growth themselves.</p>
+      <p class="sm">A real product people wanted, priced in the hundreds a month, and no repeatable way to find the next customer. The classic zero-to-one stretch.</p>
+    </div>
+  </div>
+</section>
+
+<section class="work">
+  <div class="wrap">
+    <h2>How we Work</h2>
+    <div class="cards">
+      <article class="card">
+        <span class="n">01 &middot; POSITIONING</span>
+        <h3>Repositioned Waldium as a blog agency</h3>
+        <p>A story buyers understood instantly, backed by new sales assets built from scratch.</p>
+      </article>
+      <article class="card">
+        <span class="n">02 &middot; PRICING</span>
+        <h3>Raised pricing from the $100s to $1K a month</h3>
+        <p>Then closed the first deal at the new price, proving the market would pay for it.</p>
+      </article>
+      <article class="card">
+        <span class="n">03 &middot; OUTBOUND</span>
+        <h3>Turned competitor posts into pipeline</h3>
+        <p>We built an n8n scraper that turned competitor posts into targeted outbound, run through Cardinal (YC). Response rates went up 38%.</p>
+      </article>
+      <article class="card">
+        <span class="n">04 &middot; DEMAND</span>
+        <h3>Put the founder in front of buyers</h3>
+        <p>A podcast campaign landed founder Amrutha on two shows, while paid ads ran through Ema (YC).</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section class="pull">
+  <p>From founder-led hustle to a repeatable growth engine. <span class="r">Then Salesforce came calling.</span></p>
+</section>
+
+<section class="cta">
+  <h2>Want this for your startup?</h2>
+  <p>Two senior operators for less than one full-time growth hire.</p>
+  <a class="btn" href="https://calendly.com/d/dtd7-vd3-fhw/discovery-call" target="_blank" rel="noopener">Book a call with us</a>
+</section>
+
+<footer>
+  <span style="font-family:'Archivo Black',sans-serif;font-size:19px">Cracked GTM</span>
+  <span>crackedgtm.ai</span>
+  <span>San Francisco</span>
+</footer>
+
+</body>
+</html>

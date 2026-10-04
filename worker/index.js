@@ -69,6 +69,16 @@ function timingSafeEqual(a, b) {
   let r = 0; for (let i = 0; i < a.length; i++) r |= a.charCodeAt(i) ^ b.charCodeAt(i);
   return r === 0;
 }
+const arr2 = v => Array.isArray(v) ? v : [];
+// app.acme.com -> acme.com, shop.acme.co.uk -> acme.co.uk; returns "" for anything that isn't a hostname
+function rootDomain(s) {
+  s = String(s || "").trim().toLowerCase().replace(/^https?:\/\//, "").replace(/^www\./, "").split(/[\/?#:\s]/)[0];
+  if (!/^([a-z0-9-]+\.)+[a-z]{2,24}$/.test(s)) return "";
+  const parts = s.split(".");
+  const sld = parts[parts.length - 2];
+  const keep = parts[parts.length - 1].length === 2 && ["co", "com", "org", "net", "ac", "gov", "edu"].includes(sld) ? 3 : 2;
+  return parts.slice(-keep).join(".");
+}
 const safeId = s => /^[a-z0-9][a-z0-9-]{0,80}$/.test(String(s || ""));
 
 function extractJSON(text) {
@@ -274,7 +284,7 @@ export default {
         if (env.PROSPEO_API_KEY) {
           try {
             const d = await prospeoSearch(env, { page: 1, filters: {
-              company: { websites: { include: [domain] } },
+              company: { websites: { include: [rootDomain(domain) || domain] } },
               person_seniority: { include: ["Founder/Owner", "C-Suite", "Partner", "Vice President", "Head", "Director"] },
             } });
             out.people = (d.results || []).slice(0, 25);
@@ -306,21 +316,43 @@ export default {
         if (!env.PROSPEO_API_KEY) return fail(503, "PROSPEO_API_KEY is not set on the Worker.");
         const body = await req.json();
         const filters = { ...(body.filters || {}) };
+        // Prospeo wants registrable domains (acme.com, not app.acme.com); drop anything malformed up front
+        const cleanSites = list => [...new Set(arr2(list).map(rootDomain).filter(Boolean))];
+        if (filters.company?.websites) {
+          const w = filters.company.websites;
+          filters.company = { websites: { ...(w.include ? { include: cleanSites(w.include) } : {}), ...(w.exclude ? { exclude: cleanSites(w.exclude) } : {}) } };
+          if (!filters.company.websites.include?.length && !filters.company.websites.exclude?.length) delete filters.company;
+        }
         const order = [null, "company_funding", "company_location_search", "company_industry", "person_job_title", "company_headcount_range", "person_department", "person_seniority"];
         const attempts = [];
-        for (const drop of order) {
-          if (drop) { if (!filters[drop]) continue; delete filters[drop]; }
-          const sent = { page: body.page || 1, filters: { ...filters } };
-          const r = await fetch("https://api.prospeo.io/search-person", {
-            method: "POST", headers: { "X-KEY": env.PROSPEO_API_KEY, "content-type": "application/json" }, body: JSON.stringify(sent),
-          });
-          const raw = await r.text();
-          let d = {}; try { d = JSON.parse(raw); } catch {}
+        const send = async () => {
+          const sent = { page: body.page || 1, filters: JSON.parse(JSON.stringify(filters)) };
+          if (attempts.length) await new Promise(r => setTimeout(r, 1500)); // stay under Prospeo's rate limit
+          const r = await fetch("https://api.prospeo.io/search-person", { method: "POST", headers: { "X-KEY": env.PROSPEO_API_KEY, "content-type": "application/json" }, body: JSON.stringify(sent) });
+          const raw = await r.text(); let d = {}; try { d = JSON.parse(raw); } catch {}
+          return { r, d, raw, sent };
+        };
+        let k = 0, badSiteFixes = 0;
+        while (k < order.length && attempts.length < 8) {
+          const drop = order[k];
+          if (drop && !filters[drop]) { k++; continue; }
+          if (drop) delete filters[drop];
+          const { r, d, raw, sent } = await send();
           const ok = r.ok && !d.error;
           attempts.push({ dropped: drop, status: r.status, ok, error_code: d.error_code || "", filter_error: d.filter_error || "", message: d.message || (ok ? "" : raw.slice(0, 300)), filters: Object.keys(sent.filters) });
           if (ok) return json({ ...d, attempts });
           if (d.error_code === "NO_RESULTS") return json({ results: [], pagination: { total_count: 0 }, attempts });
-          if (["INVALID_API_KEY", "INSUFFICIENT_CREDITS"].includes(d.error_code) || r.status === 429) break;
+          if (["INVALID_API_KEY", "INSUFFICIENT_CREDITS"].includes(d.error_code) || r.status === 429 || /rate limit/i.test(d.error_code || "")) break;
+          // A bad website in the include/exclude list: remove just that site and retry, keep every other filter
+          const bad = /website format:\s*(\S+)/i.exec(d.filter_error || "");
+          if (bad && filters.company?.websites && badSiteFixes < 5) {
+            badSiteFixes++;
+            const w = filters.company.websites; const b = bad[1].toLowerCase();
+            for (const key of ["include", "exclude"]) if (w[key]) w[key] = w[key].filter(x => x.toLowerCase() !== b);
+            attempts[attempts.length - 1].dropped = (drop ? drop + " + " : "") + "website " + b;
+            continue; // same k, so no filter is dropped
+          }
+          k++;
         }
         const last = attempts[attempts.length - 1] || {};
         return json({ error: "Prospeo said: " + ([last.error_code, last.filter_error, last.message].filter(Boolean).join(" · ") || "HTTP " + last.status), attempts }, 502);

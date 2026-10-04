@@ -11,7 +11,7 @@ import { DurableObject } from "cloudflare:workers";
 
 const DEFAULT_MODEL = "claude-sonnet-5-5";
 const COOKIE = "cgtm_session";
-const SESSION_DAYS = 30;
+const SESSION_DAYS = 90;
 
 /* ---------------- storage: one Durable Object with SQLite ---------------- */
 export class Store extends DurableObject {
@@ -282,6 +282,20 @@ export default {
           } catch (e) { out.peopleError = e.error || "Prospeo search failed"; }
         } else out.peopleError = "PROSPEO_API_KEY is not set, so team members can't be looked up.";
         return json(out);
+      }
+      if (path === "/api/enrich-buyer" && req.method === "POST") {
+        // Full buyer profile from a LinkedIn URL: title, seniority, departments, location, job history.
+        const { linkedin } = await req.json();
+        if (!/linkedin\.com\/in\//i.test(linkedin || "")) return fail(400, "Use a LinkedIn profile URL like linkedin.com/in/name.");
+        if (!env.PROSPEO_API_KEY) return fail(503, "PROSPEO_API_KEY is not set on the Worker.");
+        const r = await fetch("https://api.prospeo.io/enrich-person", {
+          method: "POST",
+          headers: { "X-KEY": env.PROSPEO_API_KEY, "content-type": "application/json" },
+          body: JSON.stringify({ data: { linkedin_url: linkedin.trim() } }),
+        });
+        const d = await r.json().catch(() => ({}));
+        if (!r.ok || d.error) return fail(502, d.error_code === "NO_MATCH" ? "Prospeo couldn't find that LinkedIn profile." : "Prospeo said: " + (d.error_code || d.message || r.status));
+        return json({ person: d.person || null, company: d.company || null });
       }
       if (path === "/api/pull-stripe" && req.method === "POST") {
         const { key } = await req.json(); return json(await pullStripe(key));

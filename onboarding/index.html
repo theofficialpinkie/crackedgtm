@@ -232,6 +232,33 @@ table.leads{border-collapse:collapse;width:100%;font-size:13px;min-width:760px}
 .guide .gbar{height:8px;border:2px solid var(--line);margin:10px 12px 0}
 .guide .gbar i{display:block;height:100%;background:var(--good)}
 @media (max-width:760px){.bt-grid{grid-template-columns:1fr}}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.dchip{display:inline-flex;align-items:center;gap:6px;padding:3px 4px 3px 10px;border:2px solid var(--line);background:var(--paper);font-size:13px;font-weight:700}
+.dchip i{font-style:normal;color:var(--red)}
+.dchip button{all:unset;cursor:pointer;padding:0 6px;font-size:15px;line-height:1}
+.dchip button:focus-visible{outline:2px solid var(--red)}
+.field textarea.ctx,.ctx{width:100%;min-height:110px;padding:10px;border:2px solid var(--line);background:var(--paper);resize:vertical;line-height:1.5}
+.sub-h{font-family:var(--f-display);font-size:16px;letter-spacing:-.01em;margin:0}
+.buyers{display:flex;flex-direction:column;gap:12px;border-top:2px solid var(--line);padding-top:14px}
+.infog{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px}
+.infog h4{margin:0 0 6px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.bars{display:flex;flex-direction:column;gap:5px}
+.bar-row{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr) auto;gap:8px;align-items:center;font-size:12.5px}
+.bl{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+.bt{height:10px;border:1.5px solid var(--line);background:var(--paper)}
+.bt i{display:block;height:100%;background:var(--red)}
+.bv{font-family:var(--f-mono);font-size:11px;font-variant-numeric:tabular-nums}
+.pipe-wrap{display:flex;flex-direction:column;gap:10px}
+.pipe{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}
+.pnode{all:unset;cursor:pointer;min-width:0;padding:10px;border:2px solid var(--line);background:var(--paper);display:flex;flex-direction:column;gap:3px}
+.pnode b{font-family:var(--f-display);font-size:13px}
+.pnode span{font-size:12px;color:var(--muted)}
+.pnode.on{background:var(--ink);color:var(--paper)}
+.pnode.on span{color:var(--paper);opacity:.8}
+.pnode:focus-visible{outline:3px solid var(--red)}
+.arrow{align-self:center;font-weight:700}
+.raw{margin:0;max-height:300px;overflow:auto;font-family:var(--f-mono);font-size:12px;white-space:pre-wrap}
+@media (max-width:760px){.pipe{grid-template-columns:minmax(0,1fr)}}
 @media (max-width:980px){
   .brain,.email{grid-template-columns:minmax(0,1fr)}
 }
@@ -324,6 +351,7 @@ let selected = null;
 let tab = "brain";
 let promptView = "mega";
 let busy = {};
+const autosaveTimers = {};
 const drafts = {};          // unsaved textarea text, survives live re-renders              // clientId -> true while sharpening
 
 const $ = s => document.querySelector(s);
@@ -394,7 +422,7 @@ async function refresh(){
   try {
     const list = await api("/api/clients");
     // keep local-only fields (errors, results) when the server copy comes back
-    clients = list.sort((a,b) => String(b.createdAt).localeCompare(String(a.createdAt))).map(c => { const old = clients.find(x => x.id === c.id); return old ? {...c, _err: old._err, _results: old._results, _bt: old._bt} : c; });
+    clients = list.sort((a,b) => String(b.createdAt).localeCompare(String(a.createdAt))).map(c => { const old = clients.find(x => x.id === c.id); if (!old) return c; const keep = {}; for (const k in old) if (k.startsWith("_")) keep[k] = old[k]; return {...c, ...keep}; });
     if (!selected && clients.length) selected = clients[0].id;
     if (selected && !clients.find(c => c.id === selected)) selected = clients[0]?.id || null;
   } catch(e){ $("#storeNote").textContent = e.error || "Couldn't load clients."; }
@@ -411,10 +439,10 @@ async function boot(){
   setInterval(async () => { if (document.hidden || Object.keys(drafts).length || Object.values(busy).some(Boolean)) return; await refresh(); render(); }, 20000);
 }
 function strip(c){ const out = {}; for (const [k,v] of Object.entries(c)) if (!k.startsWith("_") && k !== "id" && k !== "updatedAt") out[k] = v; return out; }
-async function saveClient(id, patch){
+async function saveClient(id, patch, quiet = false){
   const c = clients.find(x => x.id === id); if (!c) return;
   Object.assign(c, patch);
-  render();
+  if (!quiet) render();
   try { const saved = await api("/api/clients/" + id, {method:"PUT", body: strip(c)}); c.updatedAt = saved.updatedAt; }
   catch(e){ toast("Save failed: " + e.error); }
 }
@@ -433,6 +461,20 @@ function filled(c){ return INPUTS.filter(i => String(c.inputs?.[i.k]||"").trim()
 const custDomains = c => customerDigest(c.inputs?.customers).domains.filter(d => d !== domainOf(c.website)).slice(0, 40);
 const researched = c => custDomains(c).filter(d => c.research?.[d]);
 const buyerCount = c => Object.values(c.buyers || {}).reduce((n, xs) => n + arr(xs).length, 0);
+// Every ticked buyer with the richest data we have: an enriched profile when there is one, else the search result.
+function buyerList(c){
+  const out = [];
+  for (const d of custDomains(c)){
+    const r = c.research?.[d]; const picks = arr(c.buyers?.[d]);
+    for (const k of picks){
+      const base = arr(r?.people).find(p => p.key === k) || {};
+      const prof = c.profiles?.[k] || {};
+      out.push({domain: d, companyName: r?.company?.name || d, companyIndustry: r?.company?.industry || "", companySize: r?.company?.headcount || "", ...base, ...prof, key: k});
+    }
+  }
+  return out;
+}
+const enrichedCount = c => buyerList(c).filter(b => c.profiles?.[b.key]).length;
 function stageOf(c){
   const ch = c.checks || {};
   if (ch.campaignLive) return 5;
@@ -454,6 +496,8 @@ CLIENT: ${c.company} (${c.website || domainOf(c.email)})
 
 Weighting rules:
 - The CUSTOMER PATTERN ANALYSIS is the strongest evidence. Build archetypes from its strong patterns, buyer personas from its buyer pattern, and disqualifiers from its anti-patterns. Outliers are not archetypes unless they share a pattern.
+- The BUYER PATTERN ANALYSIS decides personas: use its prospeo titles, seniority and departments unless they conflict with clear evidence.
+- TEAM CONTEXT is what we believe. Use it to fill gaps and to break ties, but where it contradicts the customer or buyer evidence, follow the evidence and say so in "changelog".
 - Won-deal notes are next. Lost-deal notes tell us who to disqualify.
 - The NEW website copy is our intended positioning. When it conflicts with the current site, the new copy wins. Website copy says what they sell; it does not prove who buys.
 - Never invent facts about named customers. If a domain is unfamiliar, treat it as unknown.
@@ -464,6 +508,12 @@ ${cut(prev, 12000)}
 
 === CUSTOMER PATTERN ANALYSIS (${c.patterns ? c.patterns.n + " customers, " + c.patterns.buyers + " confirmed buyers" : "not run yet"}) ===
 ${c.patterns ? cut(JSON.stringify(stripMeta(c.patterns)), 14000) : "(not run yet)"}
+
+=== BUYER PATTERN ANALYSIS (${c.buyerPatterns ? c.buyerPatterns.n + " buyers" : "not run yet"}) ===
+${c.buyerPatterns ? cut(JSON.stringify(stripMeta(c.buyerPatterns)), 8000) : "(not run yet)"}
+
+=== TEAM CONTEXT (free-form notes from us) ===
+${cut(c.inputs?.context, 6000) || "(none)"}
 
 === CURRENT WEBSITE COPY ===
 ${cut(c.inputs?.site, 9000) || "(not provided)"}
@@ -531,8 +581,62 @@ async function sharpen(id){
 }
 
 /* ---------- customer research + pattern recognition ---------- */
-const stripMeta = o => { const {at, n, buyers, ...rest} = o || {}; return rest; };
-function personOf(r){ const l = normalizeLead(r); const p = r.person || r; return {...l, seniority: p.seniority || p.job_seniority || "", department: arr(p.departments || p.job_departments).join(", ") || p.department || ""}; }
+const stripMeta = o => { const {at, n, buyers, enriched, ...rest} = o || {}; return rest; };
+function personOf(r){
+  const l = normalizeLead(r); const p = r.person || r;
+  const cur = arr(p.job_history).find(h => h.current) || arr(p.job_history)[0] || {};
+  return {...l, seniority: cur.seniority || p.seniority || "", department: arr(cur.departments || p.departments).join(", ") || p.department || ""};
+}
+function profileOf(person, company, domain){
+  const p = person || {}; const co = company || {};
+  const hist = arr(p.job_history); const cur = hist.find(h => h.current) || hist[0] || {};
+  const loc = p.location || {};
+  return {
+    key: p.person_id || p.linkedin_url, domain, enriched: true,
+    name: p.full_name || [p.first_name, p.last_name].filter(Boolean).join(" "),
+    title: p.current_job_title || cur.title || "", headline: p.headline || "", linkedin: p.linkedin_url || "",
+    seniority: cur.seniority || "", departments: arr(cur.departments),
+    location: [loc.city, loc.state, loc.country].filter(Boolean).join(", "), country: loc.country || "",
+    tenure: Number(cur.duration_in_months) || null,
+    history: hist.slice(0, 6).map(h => ({title: h.title || "", company: h.company_name || "", months: Number(h.duration_in_months) || null, current: !!h.current, seniority: h.seniority || ""})),
+    skills: arr(p.skills).slice(0, 12).map(String),
+    companyName: co.name || "", companyIndustry: co.industry || "", companySize: co.employee_range || co.employee_count || "",
+  };
+}
+async function enrichBuyer(c, domain, linkedin, alsoTick = true){
+  try {
+    const r = await api("/api/enrich-buyer", {body: {linkedin}});
+    if (!r.person) throw {error: "Prospeo returned no profile."};
+    const prof = profileOf(r.person, r.company, domain);
+    const research = {...(c.research || {})};
+    const rd = research[domain] || {at: now(), site: "", people: [], company: {}};
+    if (!arr(rd.people).some(p => p.key === prof.key || (prof.linkedin && p.linkedin === prof.linkedin))) rd.people = [{key: prof.key, name: prof.name, title: prof.title, linkedin: prof.linkedin, location: prof.location, seniority: prof.seniority, department: prof.departments.join(", ")}, ...arr(rd.people)];
+    const key = arr(rd.people).find(p => p.linkedin && p.linkedin === prof.linkedin)?.key || prof.key;
+    research[domain] = rd;
+    const buyers = {...(c.buyers || {})};
+    if (alsoTick) buyers[domain] = [...new Set([...arr(buyers[domain]), key])];
+    await saveClient(c.id, {research, buyers, profiles: {...(c.profiles || {}), [key]: {...prof, key}}});
+    return true;
+  } catch(e){ toast(e.error || "Couldn't enrich that profile"); return false; }
+}
+// Buyer infographic: plain counts across ticked buyers.
+function buyerStats(c){
+  const bs = buyerList(c);
+  const tally = xs => { const m = new Map(); xs.filter(Boolean).forEach(x => m.set(x, (m.get(x) || 0) + 1)); return [...m.entries()].sort((a,b) => b[1] - a[1]); };
+  const fn = t => { t = String(t || "").toLowerCase();
+    if (/founder|owner/.test(t)) return "Founder"; if (/\bceo\b|chief executive/.test(t)) return "CEO";
+    if (/\b(cro|chief revenue)\b|revenue/.test(t)) return "Revenue"; if (/sales|account exec|business development|\bbd\b/.test(t)) return "Sales";
+    if (/market|growth|demand/.test(t)) return "Marketing / growth"; if (/\bcto\b|engineer|technolog|developer/.test(t)) return "Engineering";
+    if (/product/.test(t)) return "Product"; if (/operat|\bcoo\b/.test(t)) return "Operations"; if (/financ|\bcfo\b/.test(t)) return "Finance";
+    return t ? "Other" : ""; };
+  const bg = b => { const past = arr(b.history).filter(h => !h.current).map(h => String(h.title).toLowerCase()).join(" | ");
+    return [/founder/.test(past) && "Ex-founder", /sales|account exec|business development/.test(past) && "Ex-sales", /engineer|developer/.test(past) && "Ex-engineer", /consult/.test(past) && "Ex-consultant", /product/.test(past) && "Ex-product"].filter(Boolean); };
+  const ten = bs.map(b => b.tenure).filter(Number.isFinite);
+  return {n: bs.length, enriched: bs.filter(b => b.enriched).length,
+    fn: tally(bs.map(b => fn(b.title))), seniority: tally(bs.map(b => b.seniority)), dept: tally(bs.flatMap(b => arr(b.departments).length ? b.departments : String(b.department || "").split(", "))),
+    country: tally(bs.map(b => b.country || String(b.location || "").split(", ").pop())), background: tally(bs.flatMap(bg)),
+    tenure: ten.length ? Math.round(ten.reduce((a,b) => a + b, 0) / ten.length) : null, list: bs};
+}
 async function researchCustomers(c, force = false){
   const todo = custDomains(c).filter(d => force || !c.research?.[d]);
   if (!todo.length){ toast(custDomains(c).length ? "All customers already researched" : "Add customer URLs first"); return; }
@@ -577,6 +681,8 @@ Website excerpt: ${r.site ? cut(r.site, 2200) : "(couldn't read site: " + (r.sit
 THE STARTUP: ${c.company} (${c.website})
 What they sell, from their site: ${cut(c.inputs?.site, 3000) || "(site not pulled)"}
 
+TEAM CONTEXT (from us, treat as hypotheses to test, not facts): ${cut(c.inputs?.context, 3000) || "(none)"}
+
 THEIR CUSTOMERS (${ds.length}):
 ${blocks}
 
@@ -616,8 +722,62 @@ async function findPatterns(c){
     return true;
   } catch(e){ busy[c.id + ":patterns"] = false; c._err = e.error; render(); return false; }
 }
-async function patternsThenICP(c){ if (await findPatterns(c)) sharpen(c.id); }
-function patternsStale(c){ const p = c.patterns; return !p || p.n !== researched(c).length || p.buyers !== buyerCount(c); }
+function buyerPatternPrompt(c){
+  const bs = buyerList(c);
+  const lines = bs.map((b, n) => `### Buyer ${n+1}: ${b.title || "(title unknown)"} at ${b.companyName}${b.companyIndustry ? " (" + b.companyIndustry + (b.companySize ? ", " + b.companySize + " people" : "") + ")" : ""}
+Seniority: ${b.seniority || "unknown"} | Department: ${arr(b.departments).join(", ") || b.department || "unknown"} | Location: ${b.location || "unknown"} | In current role: ${b.tenure ? b.tenure + " months" : "unknown"}
+Headline: ${b.headline || "(none)"}
+Previous roles: ${arr(b.history).filter(h => !h.current).slice(0, 5).map(h => `${h.title} @ ${h.company}${h.months ? " (" + h.months + "mo)" : ""}`).join("; ") || "(not enriched)"}
+Skills: ${arr(b.skills).slice(0, 8).join(", ") || "(none)"}`).join("\n\n");
+  return `You are a GTM analyst doing pattern recognition across the people who actually bought from a startup. The goal: describe the buyer precisely enough to find more of them in a B2B contact database.
+
+THE STARTUP: ${c.company} (${c.website})
+What they sell: ${String(c.inputs?.site || "").slice(0, 1500) || "(site not pulled)"}
+TEAM CONTEXT (hypotheses, not facts): ${String(c.inputs?.context || "").slice(0, 2000) || "(none)"}
+
+CONFIRMED BUYERS (${bs.length}):
+${lines}
+
+How to analyze:
+1. Use only what's shown. Unknown stays unknown. A pattern needs at least 2 buyers; report it as a count over ${bs.length} and name the buyers by number.
+2. Dimensions: title (cluster near-identical titles), function, seniority, company size and stage at the time they bought, tenure in role (new in seat vs long-tenured), career path (ex-founder, ex-AE, ex-engineer, consultant), geography, skills or headline themes.
+3. Separate who SIGNS from who CHAMPIONS when the data shows both.
+4. Translate the pattern into contact-database filters. Titles must be full phrases (they're substring-matched, so never bare acronyms like "cto").
+5. Allowed seniority values: ${SENIORITY.join(" | ")}. Allowed departments: ${DEPARTMENTS.join(" | ")}. Use only these exact strings.
+
+Reply with only one JSON object:
+{
+ "persona": "2 sentences describing the buyer",
+ "title_clusters": [{"cluster":"", "titles":[""], "count":0, "of":${bs.length}}],
+ "patterns": [{"dimension":"", "finding":"", "count":0, "of":${bs.length}, "buyers":[1], "strength":"strong|moderate|weak"}],
+ "signer_vs_champion": "",
+ "career_paths": ["recurring background, with count"],
+ "prospeo": {"titles_include":[""], "titles_exclude":[""], "seniority":[""], "departments":[""]},
+ "outliers": [{"buyer":1, "why":""}],
+ "confidence": "low|medium|high, with one-line reason"
+}`;
+}
+async function findBuyerPatterns(c){
+  if (buyerList(c).length < 2) return false;
+  busy[c.id + ":bpatterns"] = true; render();
+  try {
+    const {data} = await api("/api/claude", {body: {prompt: buyerPatternPrompt(c), maxTokens: 6000}});
+    if (!data || !data.persona) throw {error: "The buyer analysis came back incomplete. Try again."};
+    data.at = now(); data.n = buyerList(c).length; data.enriched = enrichedCount(c);
+    busy[c.id + ":bpatterns"] = false;
+    await saveClient(c.id, {buyerPatterns: data});
+    return true;
+  } catch(e){ busy[c.id + ":bpatterns"] = false; c._err = e.error; render(); return false; }
+}
+async function patternsThenICP(c){
+  const runs = [findPatterns(c)]; if (buyerList(c).length >= 2) runs.push(findBuyerPatterns(c));
+  const res = await Promise.all(runs);
+  if (res[0]) sharpen(c.id);
+}
+function patternsStale(c){
+  const p = c.patterns, b = c.buyerPatterns;
+  return !p || p.n !== researched(c).length || p.buyers !== buyerCount(c) || (buyerList(c).length >= 2 && (!b || b.n !== buyerList(c).length || b.enriched !== enrichedCount(c)));
+}
 
 /* ---------- prompt + payload builders ---------- */
 const pct = c => Math.max(40, Math.min(95, Number(c.threshold) || 70));
@@ -637,7 +797,7 @@ ${i.summary || ""}
 
 ${c.patterns ? `# WHAT ${c.company.toUpperCase()}'S CURRENT CUSTOMERS HAVE IN COMMON (${c.patterns.n} customers analyzed)
 ${arr(c.patterns.patterns).filter(x => x.strength !== "weak").map(x => `- ${x.finding} (${x.count}/${x.of}, ${x.strength})`).join("\n")}
-Buyer: ${c.patterns.buyer_pattern?.finding || "(unknown)"}
+Buyer: ${c.buyerPatterns?.persona || c.patterns.buyer_pattern?.finding || "(unknown)"}
 Sharpest hypothesis: ${c.patterns.hypothesis || ""}
 Find lookalikes: ${c.patterns.lookalike_brief || ""}
 
@@ -658,7 +818,12 @@ ${arr(i.disqualification).map(q => `- ${q.criterion}\n    Check: ${q.how_to_chec
 # BUYING SIGNALS (problem is live right now; prioritize these)
 ${bullet(i.buying_signals)}
 
-# TARGET PEOPLE
+${c.buyerPatterns ? `# WHO ACTUALLY BUYS (${c.buyerPatterns.n} confirmed buyers)
+${c.buyerPatterns.persona}
+${arr(c.buyerPatterns.patterns).filter(x => x.strength !== "weak").map(x => `- ${x.finding} (${x.count}/${x.of})`).join("\n")}
+${c.buyerPatterns.signer_vs_champion ? "Signer vs champion: " + c.buyerPatterns.signer_vs_champion : ""}
+
+` : ""}# TARGET PEOPLE
 Titles to include: ${arr(i.personas?.titles_include).join(", ") || "(see archetypes)"}
 Titles to exclude: ${arr(i.personas?.titles_exclude).join(", ") || "(none)"}
 Seniority: ${arr(i.personas?.seniority).join(", ") || "(any)"}
@@ -771,15 +936,18 @@ function clientView(c){
   <div class="chead"><h1>${esc(c.company)}</h1><div class="sub">${esc(c.first)} · ${esc(c.email)} · ${esc(c.website || "")}</div></div>
   ${c._err ? `<div class="banner" role="alert">${esc(c._err)} <button class="x" id="clearErr" type="button" aria-label="Dismiss">×</button></div>` : ""}
   ${step(1, "Their website", flags[0], next === 0, inputCard(c, INPUTS[0], false, !flags[0]))}
-  ${step(2, "Customer URLs", flags[1], next === 1, inputCard(c, INPUTS[1], false, !flags[1]), ds.length ? ds.length + " customers" : "")}
-  ${step(3, "Team members + buyers", flags[2], next === 2, researchBlock(c), buyerCount(c) ? buyerCount(c) + " buyers ticked" : "")}
+  ${step(2, "Customer URLs", flags[1], next === 1, customersBlock(c), ds.length ? ds.length + " customers" : "")}
+  ${step(3, "Team members + buyers", flags[2], next === 2, researchBlock(c) + buyerPanel(c), buyerCount(c) ? buyerCount(c) + " buyers · " + enrichedCount(c) + " full profiles" : "")}
   ${step(4, "Patterns and ICP", flags[3], next === 3, `
+    <div class="field"><label for="in-context">Additional context (free form)</label>
+      <textarea id="in-context" class="ctx" placeholder="Anything we know that the data won't show: who the founder says their dream customer is, deals in flight, who to avoid, why customers churned, pricing, competitors…">${esc(drafts[c.id + ":context"] ?? (c.inputs?.context || ""))}</textarea>
+      <span class="hint" id="save-context">${c.inputs?.context ? "Saved. Used in the patterns and the ICP." : "Saves as you type. Used in the patterns and the ICP."}</span></div>
     <div class="row">
       <button class="btn ${stale || !c.patterns ? "red" : ""}" id="patternsBtn" type="button" ${busy[c.id + ":patterns"] || busy[c.id] || researched(c).length < 2 ? "disabled" : ""}>${c.patterns && stale ? "Re-find patterns" : "Find patterns + build ICP"}</button>
       <button class="btn" id="sharpenBtn" type="button" ${busy[c.id] ? "disabled" : ""}>${c.icp ? "Sharpen ICP only" : "Build ICP without patterns"}</button>
     </div>
-    ${researched(c).length < 2 ? '<p class="hint">Research at least 2 customers to find patterns.</p>' : stale && c.patterns ? '<p class="hint">Customers or buyers changed since the last analysis.</p>' : ""}
-    ${patternsCard(c)}${icpCard(c)}`, c.icp ? "ICP v" + c.icp.version + " · " + (c.icp.confidence ?? "?") + "%" : "")}
+    ${researched(c).length < 2 ? '<p class="hint">Research at least 2 customers to find patterns.</p>' : stale && c.patterns ? '<p class="hint">Customers, buyers or buyer profiles changed since the last analysis.</p>' : ""}
+    ${patternsCard(c)}${buyerPatternsCard(c)}${icpCard(c)}`, c.icp ? "ICP v" + c.icp.version + " · " + (c.icp.confidence ?? "?") + "%" : "")}
   ${step(5, "Leads", flags[4], next === 4, prospeoPane(c), arr(c.leads).length ? arr(c.leads).filter(l => l.pass).length + " of " + arr(c.leads).length + " pass" : "")}
   ${step(6, "Onboarding email", flags[5], next === 5, emailPane(c))}
   <section class="extras">
@@ -804,12 +972,78 @@ function inputCard(c, i, auto, openIt){
       ${extra}
       ${i.k === "customers" ? `<div class="mini"><input id="stripeKey" type="password" autocomplete="off" placeholder="Or: client's Stripe restricted key (rk_live_…)" aria-label="Client's Stripe restricted key"><button class="btn sm ghost" id="pullStripe" type="button" ${busy[c.id + ":stripe"] ? "disabled" : ""}>${busy[c.id + ":stripe"] ? "Pulling…" : "Pull from Stripe"}</button></div>` : ""}
       <div class="row">
-        <button class="btn sm dark" data-save="${i.k}" type="button">Save${auto && !i.core ? " + sharpen" : ""}</button>
+        ${i.k === "customers" ? `<button class="btn sm dark" data-save="customers" type="button">Save + research new</button>` : `<span class="hint" id="save-${i.k}">${saved.trim() ? "Saved" : "Saves as you type"}</span>`}
         ${i.k === "site" ? `<button class="btn sm yellow" id="pullSite" type="button" ${busy[c.id + ":site"] ? "disabled" : ""}>${busy[c.id + ":site"] ? "Pulling…" : saved.trim() ? "Re-pull " + esc(c.website || "website") : "Pull " + esc(c.website || "website")}</button>` : ""}
         ${i.file ? `<span class="btn sm ghost file-btn">Upload file<input type="file" accept=".csv,.txt,.md,.tsv,.json" data-file="${i.k}" aria-label="Upload ${i.t}"></span>` : ""}
       </div>
     </div>
   </details>`;
+}
+function customersBlock(c){
+  const ds = custDomains(c);
+  return `<div class="mini"><input id="addCust" placeholder="Add customer URLs: acme.ai, beta.io" aria-label="Add customer URLs"><button class="btn sm red" id="addCustBtn" type="button" ${busy[c.id + ":research"] ? "disabled" : ""}>Add + research</button></div>
+    ${ds.length ? `<div class="chips">${ds.map(d => `<span class="dchip">${c.research?.[d] ? "" : '<i title="Not researched yet">•</i>'}${esc(d)}<button type="button" data-rmcust="${esc(d)}" aria-label="Remove ${esc(d)}">×</button></span>`).join("")}</div>` : '<p class="hint">One URL per customer. Add more any time; only new ones get researched.</p>'}
+    ${inputCard(c, INPUTS[1], false, false).replace('<span class="t">Current customers', '<span class="t">Edit full list, upload a CSV or pull from Stripe')}`;
+}
+function bars(rows, n){
+  if (!rows.length) return '<p class="hint">No data yet</p>';
+  return `<div class="bars">${rows.slice(0, 6).map(([k, v]) => `<div class="bar-row"><span class="bl">${esc(k)}</span><span class="bt"><i style="width:${Math.round(v / n * 100)}%"></i></span><span class="bv">${v}/${n}</span></div>`).join("")}</div>`;
+}
+function buyerPanel(c){
+  const st = buyerStats(c);
+  if (!st.n) return "";
+  return `<div class="buyers">
+    <div class="row" style="justify-content:space-between"><h3 class="sub-h">Buyer profile · ${st.n} buyers</h3><span class="hint">${st.enriched}/${st.n} full LinkedIn profiles${st.tenure ? " · avg " + st.tenure + " months in role" : ""}</span></div>
+    ${st.enriched < st.n && status.prospeo ? `<button class="btn sm" id="enrichAll" type="button" ${busy[c.id + ":enrich"] ? "disabled" : ""}>${busy[c.id + ":enrich"] ? "Pulling profiles…" : "Pull full profiles for " + (st.n - st.enriched) + " buyer" + (st.n - st.enriched > 1 ? "s" : "")}</button>` : ""}
+    <div class="infog">
+      <div><h4>Function</h4>${bars(st.fn, st.n)}</div>
+      <div><h4>Seniority</h4>${bars(st.seniority, st.n)}</div>
+      <div><h4>Department</h4>${bars(st.dept, st.n)}</div>
+      <div><h4>Background</h4>${bars(st.background, st.n)}</div>
+      <div><h4>Location</h4>${bars(st.country, st.n)}</div>
+    </div>
+    <div class="tablewrap"><table class="leads"><thead><tr><th>Buyer</th><th>Title</th><th>Company</th><th>Seniority</th><th>In role</th><th>Before this</th></tr></thead><tbody>
+      ${st.list.map(b => `<tr><td>${b.linkedin ? `<a href="${esc(b.linkedin)}" target="_blank" rel="noopener">${esc(b.name)}</a>` : esc(b.name)}</td><td>${esc(b.title)}</td><td>${esc(b.companyName)}</td><td>${esc(b.seniority || "")}</td><td class="num">${b.tenure ? b.tenure + " mo" : "–"}</td><td>${esc(arr(b.history).filter(h => !h.current).slice(0, 2).map(h => h.title + " @ " + h.company).join("; ")) || (b.enriched ? "–" : '<span class="hint">not pulled</span>')}</td></tr>`).join("")}
+    </tbody></table></div>
+  </div>`;
+}
+function buyerPatternsCard(c){
+  if (busy[c.id + ":bpatterns"]) return `<div class="icp"><div class="thinking"><span class="dot"></span>Comparing ${buyerList(c).length} buyers: titles, seniority, career paths…</div></div>`;
+  const b = c.buyerPatterns; if (!b) return buyerList(c).length < 2 ? '<p class="hint">Tick at least 2 buyers to get buyer patterns.</p>' : "";
+  return `<div class="icp">
+    <div class="icp-top"><div style="min-width:0;flex:1"><span class="k">BUYER PATTERNS · ${b.n} BUYERS · ${b.enriched ?? 0} FULL PROFILES</span><h3>${esc(b.persona)}</h3></div><div class="meter"><span>confidence</span><b style="font-size:18px">${esc(String(b.confidence || "").split(/[ ,.]/)[0])}</b></div></div>
+    <div class="icp-body">
+      ${arr(b.title_clusters).length ? `<div><h4>TITLE CLUSTERS</h4><ul class="crit">${arr(b.title_clusters).map(t => `<li><span><b>${esc(t.cluster)}</b><br><span class="hint">${esc(arr(t.titles).join(" · "))}</span></span><span class="w">${t.count}/${t.of}</span></li>`).join("")}</ul></div>` : ""}
+      <ul class="crit">${arr(b.patterns).map(x => `<li><span><b>${esc(x.finding)}</b><br><span class="hint">${esc(x.dimension)}</span></span><span class="w">${x.count}/${x.of} ${esc(x.strength || "")}</span></li>`).join("")}</ul>
+      ${b.signer_vs_champion ? `<div><h4>SIGNER VS CHAMPION</h4><p>${esc(b.signer_vs_champion)}</p></div>` : ""}
+      ${arr(b.career_paths).length ? `<div><h4>CAREER PATHS</h4><p>${arr(b.career_paths).map(esc).join(" · ")}</p></div>` : ""}
+      <div><h4>TITLES FOR PROSPEO</h4><p>${esc(arr(b.prospeo?.titles_include).join(", ")) || "–"}${arr(b.prospeo?.titles_exclude).length ? `<br><span class="hint">Exclude: ${esc(arr(b.prospeo.titles_exclude).join(", "))}</span>` : ""}</p></div>
+      <p class="hint">${esc(b.confidence || "")}</p>
+    </div>
+  </div>`;
+}
+function pipelineView(c){
+  const i = c.icp; const p = prospeoPayload(c);
+  const nodes = [
+    {k:"in", t:"Inputs", d:`${String(c.inputs?.site || "").length ? "Website ✓" : "No website"} · ${custDomains(c).length} customers · ${buyerList(c).length} buyers · ${c.inputs?.context ? "context ✓" : "no context"}`},
+    {k:"cp", t:"Company patterns", d: c.patterns ? `${arr(c.patterns.patterns).length} patterns across ${c.patterns.n}` : "Not run"},
+    {k:"bp", t:"Buyer patterns", d: c.buyerPatterns ? `${arr(c.buyerPatterns.title_clusters).length} title clusters across ${c.buyerPatterns.n}` : "Not run"},
+    {k:"icp", t:"ICP v" + (i?.version || "–"), d: i ? `${arr(i.qualification).length} qualify · ${arr(i.disqualification).length} disqualify` : "Not built"},
+    {k:"pr", t:"Prospeo search", d: p ? `${Object.keys(p.body.filters).length} filters · ${p.excluded} excluded` : "Needs ICP"},
+  ];
+  const texts = {
+    in: `WEBSITE (${String(c.inputs?.site || "").length.toLocaleString()} chars)\n${String(c.inputs?.site || "(none)").slice(0, 1500)}…\n\nCUSTOMERS\n${custDomains(c).join("\n") || "(none)"}\n\nBUYERS\n${buyerList(c).map(b => `${b.name}: ${b.title} @ ${b.companyName}`).join("\n") || "(none)"}\n\nCONTEXT\n${c.inputs?.context || "(none)"}`,
+    cp: researched(c).length >= 2 ? patternPrompt(c) : "(needs 2 researched customers)",
+    bp: buyerList(c).length >= 2 ? buyerPatternPrompt(c) : "(needs 2 ticked buyers)",
+    icp: icpPrompt(c),
+    pr: p ? "PROSPEO SEARCH-PERSON FILTERS\n" + JSON.stringify(p.body, null, 2) + "\n\n\nMEGA PROMPT (for Prospeo AI search, Clay or any research agent)\n\n" + megaPrompt(c) : "(build the ICP first)",
+  };
+  const open = c._pipe || "pr";
+  return `<div class="pipe-wrap">
+    <h3 class="sub-h">What goes into Prospeo</h3>
+    <div class="pipe">${nodes.map((n, k) => `<button type="button" class="pnode ${open === n.k ? "on" : ""}" data-pipe="${n.k}"><b>${k + 1} · ${n.t}</b><span>${esc(n.d)}</span></button>`).join("")}</div>
+    <div class="codebox"><div class="codebar"><b>${esc(nodes.find(n => n.k === open).t.toUpperCase())} · EXACT TEXT ${open === "in" ? "COLLECTED" : open === "pr" ? "SENT TO PROSPEO" : "SENT TO CLAUDE"}</b><button class="btn sm dark" id="copyPipe" type="button">Copy</button></div><pre id="pipeText">${esc(texts[open])}</pre></div>
+  </div>`;
 }
 function researchBlock(c){
   const ds = custDomains(c); const rb = busy[c.id + ":research"];
@@ -828,6 +1062,7 @@ function researchBlock(c){
         <div class="row">${r.site ? '<span class="chip ok">Site read</span>' : `<span class="chip miss" title="${esc(r.siteError)}">Site unreadable</span>`}${picks.length ? `<span class="chip y">${picks.length} buyer${picks.length > 1 ? "s" : ""} confirmed</span>` : r.people.length ? '<span class="chip miss">Tick the buyer</span>' : ""}</div>
         ${r.people.length ? `<div style="display:flex;flex-direction:column;gap:4px">${people.map(pp => `<label class="toggle" style="font-weight:500"><input type="checkbox" data-buyer="${esc(d)}" value="${esc(pp.key)}" ${picks.includes(pp.key) ? "checked" : ""}><span><b>${esc(pp.name)}</b> · ${esc(pp.title)}</span></label>`).join("")}</div>
           ${r.people.length > 6 ? `<button class="btn sm ghost" data-showall="${esc(d)}" type="button">${showAll ? "Show fewer" : "Show all " + r.people.length}</button>` : ""}` : `<span class="hint">${esc(r.peopleError || "No leaders found in Prospeo.")}</span>`}
+        <div class="mini"><input data-li="${esc(d)}" placeholder="Add the buyer's LinkedIn URL" aria-label="Buyer LinkedIn URL for ${esc(d)}"><button class="btn sm" data-liadd="${esc(d)}" type="button" ${busy[c.id + ":li:" + d] ? "disabled" : ""}>${busy[c.id + ":li:" + d] ? "Pulling…" : "Add buyer"}</button></div>
       </div>`;
     }).join("")}
   </div>`;
@@ -895,6 +1130,8 @@ function prospeoPane(c){
   const scored = leads.filter(l => l.score != null);
   const passing = scored.filter(l => l.pass).length;
   return `<div class="stack">
+    ${pipelineView(c)}
+    <h3 class="sub-h">Looks right? Pull leads</h3>
     <div class="row">
       <button class="btn red big" id="runSearch" type="button" ${busy[c.id + ":search"] ? "disabled" : ""}>${busy[c.id + ":search"] ? "Searching…" : leads.length ? "Pull next 25 leads" : "Pull 25 leads from Prospeo"}</button>
       <button class="btn yellow" id="scoreLeads" type="button" ${!leads.length || busy[c.id + ":score"] ? "disabled" : ""}>${busy[c.id + ":score"] ? "Scoring…" : "Score against ICP"}</button>
@@ -917,11 +1154,7 @@ function prospeoPane(c){
     </tbody></table></div>` : ""}
     <div class="row"><span class="chip">${Object.keys(p.body.filters).length} filters</span><span class="chip">${p.excluded} domains excluded</span>${p.body.filters.company_industry ? '<span class="chip y">Check industry names against Prospeo</span>' : ""}${p.body.filters.company_location_search ? '<span class="chip y">Locations must match dashboard spelling</span>' : ""}</div>
     ${dropped.length ? `<div class="note">Dropped values Prospeo won't accept: ${dropped.map(([k,v]) => `<b>${k}</b> ${esc(v.join(", "))}`).join(" · ")}</div>` : ""}
-    <details class="input-card"><summary><span class="t">Search filters sent to Prospeo<span class="h">Generated from the ICP. Copy them if you'd rather run the search in Prospeo directly.</span></span></summary><div class="body">
-      <div class="codebox"><div class="codebar"><b>SEARCH-PERSON BODY</b><button class="btn sm dark" id="copyBody" type="button">Copy JSON</button></div><pre>${esc(body)}</pre></div>
-      <div class="codebox"><div class="codebar"><b>CURL</b><button class="btn sm dark" id="copyCurl" type="button">Copy curl</button></div><pre id="curlText">${esc(curl)}</pre></div>
-      ${c.lastRaw ? `<div class="codebox"><div class="codebar"><b>LAST RAW RESPONSE (first result)</b></div><pre>${esc(c.lastRaw)}</pre></div>` : ""}
-    </div></details>
+    ${c.lastRaw ? `<details class="input-card"><summary><span class="t">Last raw Prospeo result<span class="h">For checking field mapping if names or titles come back blank.</span></span></summary><div class="body"><pre class="raw">${esc(c.lastRaw)}</pre></div></details>` : ""}
     <div class="row"><a class="btn" href="https://app.prospeo.io" target="_blank" rel="noopener">Open Prospeo</a><button class="btn yellow" id="markList" type="button">${c.checks?.listBuilt ? "List built ✓" : "Mark list built"}</button></div>
   </div>`;
 }
@@ -1133,7 +1366,6 @@ function bindClient(c){
   document.querySelectorAll("details[data-sec]").forEach(d => d.addEventListener("toggle", () => { if (d.open) c._open = d.dataset.sec; else if (c._open === d.dataset.sec) c._open = null; }));
   const ce = $("#clearErr"); if (ce) ce.onclick = () => { c._err = ""; render(); };
   {
-    const a = $("#autoSharpen"); if (a) a.onchange = () => saveClient(c.id, {autoSharpen: a.checked});
     document.querySelectorAll("[data-save]").forEach(b => b.onclick = async () => {
       const k = b.dataset.save; const v = $("#in-" + k).value;
       if (v.length > 200000){ toast("That's too long to store. Trim it under 200k characters."); return; }
@@ -1141,14 +1373,64 @@ function bindClient(c){
       await saveClient(c.id, {inputs: {...(c.inputs||{}), [k]: v}});
       if (k === "customers" && v.trim()) await setCheck(c, "customerList", true, false);
       toast("Saved");
-      if (k === "customers"){ if (custDomains(c).some(d => !c.research?.[d])) researchCustomers(c); }
-      else if (k !== "site" && c.autoSharpen !== false) sharpen(c.id);
+      if (custDomains(c).some(d => !c.research?.[d])) researchCustomers(c);
     });
-    document.querySelectorAll("textarea[id^='in-']").forEach(ta => ta.addEventListener("input", () => { drafts[c.id + ":" + ta.id.slice(3)] = ta.value; }));
+    // Autosave every text input 1s after typing stops, without re-rendering (keeps the cursor where it is)
+    document.querySelectorAll("textarea[id^='in-']").forEach(ta => ta.addEventListener("input", () => {
+      const k = ta.id.slice(3); drafts[c.id + ":" + k] = ta.value;
+      if (k === "customers") return; // customers save on the button so research runs once
+      const hint = $("#save-" + k); if (hint) hint.textContent = "Saving…";
+      clearTimeout(autosaveTimers[c.id + k]);
+      autosaveTimers[c.id + k] = setTimeout(async () => {
+        const v = drafts[c.id + ":" + k]; if (v == null) return;
+        if (v.length > 200000){ if (hint) hint.textContent = "Too long to save. Trim it under 200k characters."; return; }
+        delete drafts[c.id + ":" + k];
+        const cur = clients.find(x => x.id === c.id) || c;
+        await saveClient(c.id, {inputs: {...(cur.inputs || {}), [k]: v}}, true);
+        const h2 = $("#save-" + k); if (h2) h2.textContent = "Saved";
+      }, 1000);
+    }));
+    const addCust = async () => {
+      const box = $("#addCust"); const add = box.value.split(/[\s,;]+/).map(domainOf).filter(d => d && d.includes("."));
+      if (!add.length){ toast("Paste at least one customer URL"); return; }
+      const have = new Set(custDomains(c));
+      const fresh = add.filter(d => !have.has(d));
+      if (!fresh.length){ toast("Already in the list"); return; }
+      const list = String(c.inputs?.customers || "").trim();
+      delete drafts[c.id + ":customers"];
+      await saveClient(c.id, {inputs: {...(c.inputs || {}), customers: (list ? list + "\n" : "") + fresh.join("\n")}});
+      researchCustomers(clients.find(x => x.id === c.id) || c);
+    };
+    const acb = $("#addCustBtn"); if (acb) acb.onclick = addCust;
+    const acIn = $("#addCust"); if (acIn) acIn.onkeydown = e => { if (e.key === "Enter"){ e.preventDefault(); addCust(); } };
+    document.querySelectorAll("[data-rmcust]").forEach(b => b.onclick = () => {
+      const d = b.dataset.rmcust;
+      const lines = String(c.inputs?.customers || "").split("\n").filter(l => !customerDigest(l).domains.includes(d));
+      const buyers = {...(c.buyers || {})}; delete buyers[d];
+      saveClient(c.id, {inputs: {...(c.inputs || {}), customers: lines.join("\n")}, buyers});
+    });
+    document.querySelectorAll("[data-liadd]").forEach(b => b.onclick = async () => {
+      const d = b.dataset.liadd; const v = document.querySelector(`[data-li="${CSS.escape(d)}"]`).value.trim();
+      if (!/linkedin\.com\/in\//i.test(v)){ toast("Paste a LinkedIn profile URL (linkedin.com/in/…)"); return; }
+      busy[c.id + ":li:" + d] = true; render();
+      const ok = await enrichBuyer(c, d, v);
+      busy[c.id + ":li:" + d] = false; render();
+      if (ok) toast("Buyer added with full profile");
+    });
+    const ea = $("#enrichAll"); if (ea) ea.onclick = async () => {
+      busy[c.id + ":enrich"] = true; render();
+      const todo = buyerList(c).filter(b => !c.profiles?.[b.key] && b.linkedin);
+      let ok = 0; for (const b of todo){ if (await enrichBuyer(clients.find(x => x.id === c.id) || c, b.domain, b.linkedin, false)) ok++; }
+      busy[c.id + ":enrich"] = false; render();
+      const missing = buyerList(c).filter(b => !c.profiles?.[b.key] && !b.linkedin).length;
+      toast(`Pulled ${ok} profile${ok === 1 ? "" : "s"}${missing ? `. ${missing} buyer${missing > 1 ? "s have" : " has"} no LinkedIn URL; add it on their card.` : ""}`);
+    };
+    document.querySelectorAll("[data-pipe]").forEach(b => b.onclick = () => { c._pipe = b.dataset.pipe; render(); });
+    const cpp = $("#copyPipe"); if (cpp) cpp.onclick = () => copy($("#pipeText").textContent);
     document.querySelectorAll("[data-file]").forEach(inp => inp.onchange = () => {
       const f = inp.files?.[0]; if (!f) return;
       const r = new FileReader();
-      r.onload = () => { const ta = $("#in-" + inp.dataset.file); const prev = ta.value.trim(); ta.value = (prev ? prev + "\n\n" : "") + String(r.result); drafts[c.id + ":" + inp.dataset.file] = ta.value; ta.closest("details").open = true; toast("Loaded " + f.name + ". Hit Save."); };
+      r.onload = () => { const ta = $("#in-" + inp.dataset.file); const prev = ta.value.trim(); ta.value = (prev ? prev + "\n\n" : "") + String(r.result); drafts[c.id + ":" + inp.dataset.file] = ta.value; ta.closest("details").open = true; ta.dispatchEvent(new Event("input")); toast("Loaded " + f.name); };
       r.readAsText(f);
     });
     const sb = $("#sharpenBtn"); if (sb) sb.onclick = () => sharpen(c.id);

@@ -323,7 +323,7 @@ export default {
           filters.company = { websites: { ...(w.include ? { include: cleanSites(w.include) } : {}), ...(w.exclude ? { exclude: cleanSites(w.exclude) } : {}) } };
           if (!filters.company.websites.include?.length && !filters.company.websites.exclude?.length) delete filters.company;
         }
-        const order = [null, "company_funding", "company_location_search", "company_industry", "person_job_title", "company_headcount_range", "person_department", "person_seniority"];
+        const order = [null, "company_website_search", "company_job_posting_hiring_for", "company_headcount_growth", "person_job_change", "person_past_job_title", "company_type", "company_technology", "company_founded", "company_funding", "person_location_search", "company_location_search", "company_industry", "company_keywords", "person_time_in_current_role", "person_year_of_experience", "company_lookalike", "person_job_title", "company_headcount_range", "person_department", "person_seniority"];
         const attempts = [];
         const send = async () => {
           const sent = { page: body.page || 1, filters: JSON.parse(JSON.stringify(filters)) };
@@ -333,7 +333,7 @@ export default {
           return { r, d, raw, sent };
         };
         let k = 0, badSiteFixes = 0;
-        while (k < order.length && attempts.length < 8) {
+        while (k < order.length && attempts.length < 10) {
           const drop = order[k];
           if (drop && !filters[drop]) { k++; continue; }
           if (drop) delete filters[drop];

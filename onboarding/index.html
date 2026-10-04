@@ -249,7 +249,17 @@ table.leads{border-collapse:collapse;width:100%;font-size:13px;min-width:760px}
 .bt i{display:block;height:100%;background:var(--red)}
 .bv{font-family:var(--f-mono);font-size:11px;font-variant-numeric:tabular-nums}
 .pipe-wrap{display:flex;flex-direction:column;gap:10px}
-.pipe{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}
+.pipe{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px}
+.variants{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px}
+.variant{border:2px solid var(--line);background:var(--paper);padding:12px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.variant.best{border-width:3px;box-shadow:4px 4px 0 var(--good)}
+.variant.sel{background:var(--card);border-color:var(--red)}
+.variant h4{margin:0;font-family:var(--f-display);font-size:16px}
+.vmap{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:5px;font-size:12.5px}
+.vmap li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px;border-top:1px dashed var(--muted);padding-top:5px}
+.vmap code{font-family:var(--f-mono);font-size:11px;background:var(--band);padding:0 4px}
+.vstat{display:flex;gap:10px;flex-wrap:wrap;font-size:12.5px;font-weight:700}
+.vstat b{font-family:var(--f-display);font-size:20px}
 .pnode{all:unset;cursor:pointer;min-width:0;padding:10px;border:2px solid var(--line);background:var(--paper);display:flex;flex-direction:column;gap:3px}
 .pnode b{font-family:var(--f-display);font-size:13px}
 .pnode span{font-size:12px;color:var(--muted)}
@@ -616,6 +626,7 @@ async function enrichBuyer(c, domain, linkedin, alsoTick = true){
     const rd = research[domain] || {at: now(), site: "", people: [], company: {}};
     if (!arr(rd.people).some(p => p.key === prof.key || (prof.linkedin && p.linkedin === prof.linkedin))) rd.people = [{key: prof.key, name: prof.name, title: prof.title, linkedin: prof.linkedin, location: prof.location, seniority: prof.seniority, department: prof.departments.join(", ")}, ...arr(rd.people)];
     const key = arr(rd.people).find(p => p.linkedin && p.linkedin === prof.linkedin)?.key || prof.key;
+    if (r.company?.company_id && !rd.company?.id) rd.company = {...(rd.company || {}), id: r.company.company_id, name: rd.company?.name || r.company.name || ""};
     research[domain] = rd;
     const buyers = {...(c.buyers || {})};
     if (alsoTick) buyers[domain] = [...new Set([...arr(buyers[domain]), key])];
@@ -656,7 +667,7 @@ async function researchCustomers(c, force = false){
         const first = arr(r.people)[0] || {};
         const co = first.company || {};
         research[d] = {at: now(), site: r.site || "", siteError: r.siteError || "", peopleError: r.peopleError || "", total: r.total ?? people.length,
-          company: {name: co.name || people[0]?.company || "", industry: co.industry || "", headcount: co.employee_count || co.employee_range || co.headcount || "", location: typeof co.location === "string" ? co.location : [co.location?.city, co.location?.country].filter(Boolean).join(", "), funding: co.funding_stage || co.last_funding_stage || co.funding?.stage || "", description: String(co.description || "").slice(0, 400)},
+          company: {id: co.company_id || co.id || "", name: co.name || people[0]?.company || "", industry: co.industry || "", headcount: co.employee_count || co.employee_range || co.headcount || "", location: typeof co.location === "string" ? co.location : [co.location?.city, co.location?.country].filter(Boolean).join(", "), funding: co.funding_stage || co.last_funding_stage || co.funding?.stage || "", description: String(co.description || "").slice(0, 400)},
           people: people.map(({key, name, title, linkedin, location, seniority, department}) => ({key, name, title, linkedin, location, seniority, department}))};
       } catch(e){ research[d] = {at: now(), site: "", siteError: e.error, peopleError: e.error, people: [], company: {}}; }
       busy[c.id + ":research"].done++; c.research = research; render();
@@ -899,6 +910,149 @@ function prospeoPayload(c){
 }
 
 
+/* ---------- Prospeo translation layer ----------
+   Buyer and company patterns are rich text; Prospeo only understands filters. This step asks Claude
+   to map every strong pattern to the Prospeo filter that expresses it (incl. past titles, tenure,
+   keywords, hiring, funding recency, lookalikes of real customers), builds 3 variants from tight to
+   broad, and lists what filters can't express so the scorer checks it instead. */
+const PROSPEO_CATALOG = `PERSON
+- person_job_title: {"include":["head of growth"],"exclude":["assistant"],"match_mode":"CONTAINS"}  (substring match on current title)
+- person_past_job_title: {"include":["account executive"],"match_mode":"CONTAINS"}  (career path: titles held before)
+- person_seniority: {"include":[...]}  allowed: ${SENIORITY.join(" | ")}
+- person_department: {"include":[...]}  allowed: ${DEPARTMENTS.join(" | ")}
+- person_time_in_current_role: {"min":0,"max":24}  months (new-in-seat vs long-tenured)
+- person_year_of_experience: {"min":5,"max":20}
+- person_job_change: {"timeframe_days":90,"only_new_company":true}  (recently changed jobs)
+- person_location_search: {"include":["United States"]}  country names or "State, Country"
+COMPANY
+- company_industry: {"include":[...]}  allowed values only (see list)
+- company_headcount_range: ["11-20","21-50"]  plain array, allowed: ${HEADCOUNT.join(" | ")}
+- company_funding: {"stage":["Seed","Series A"],"funding_date":365}  stage allowed: ${FUNDING.join(" | ")}; funding_date = raised within N days
+- company_keywords: {"include":["developer tools"],"search_everywhere":false}  (company category / description keywords)
+- company_website_search: {"include_keywords":["SOC 2"],"match_mode":"any"}  (phrases on their website)
+- company_headcount_growth: {"timeframe_month":12,"min":10,"max":200}  percent growth
+- company_job_posting_hiring_for: {"include":["account executive"],"match_type":"contains"}  (currently hiring for)
+- company_founded: {"min":2018,"max":2025}
+- company_technology: {"include":["HubSpot"]}
+- company_type: {"status":"Private"}
+- company_location_search: {"include":["United States"]}
+- LOOKALIKE: set "use_lookalike": true on a variant to search companies similar to the customers (the tool adds the IDs)`;
+const VARIANT_KEYS = ["person_job_title","person_past_job_title","person_seniority","person_department","person_time_in_current_role","person_year_of_experience","person_job_change","person_location_search","company_industry","company_headcount_range","company_funding","company_keywords","company_website_search","company_headcount_growth","company_job_posting_hiring_for","company_founded","company_technology","company_type","company_location_search"];
+function translatorPrompt(c){
+  const cut = (s,n) => { s = String(s||""); return s.length > n ? s.slice(0,n) + " [...]" : s; };
+  const ids = lookalikeIds(c);
+  return `You translate a startup's customer and buyer research into Prospeo contact-database searches. Prospeo only understands the filters below. Your job is to carry as much of the research as possible into those filters without making the search so narrow it returns nothing.
+
+STARTUP: ${c.company} (${c.website})
+
+BUYER PATTERNS (most important; who actually signed):
+${c.buyerPatterns ? cut(JSON.stringify(stripMeta(c.buyerPatterns)), 7000) : "(not run)"}
+
+COMPANY PATTERNS (what their customers have in common):
+${c.patterns ? cut(JSON.stringify(stripMeta(c.patterns)), 7000) : "(not run)"}
+
+ICP:
+${c.icp ? cut(JSON.stringify({one_liner: c.icp.one_liner, archetypes: c.icp.archetypes, qualification: c.icp.qualification, disqualification: c.icp.disqualification, buying_signals: c.icp.buying_signals}), 5000) : "(not built)"}
+
+TEAM CONTEXT: ${cut(c.inputs?.context, 2000) || "(none)"}
+
+CUSTOMERS: ${custDomains(c).join(", ")}. Lookalike search is ${ids.length >= 1 ? "AVAILABLE (" + ids.length + " customer IDs)" : "NOT available"}.
+
+PROSPEO FILTERS (exact keys and formats; all filters are ANDed, so each one shrinks the pool):
+${PROSPEO_CATALOG}
+Allowed industries: ${INDUSTRIES.join(" | ")}
+
+Rules:
+1. Map every strong or moderate pattern to the filter that expresses it most directly. Career-path patterns -> person_past_job_title. Tenure patterns -> person_time_in_current_role. Category or language patterns -> company_keywords or company_website_search. "Just raised" -> company_funding.funding_date. Growth or hiring patterns -> company_headcount_growth or company_job_posting_hiring_for. Weak patterns go to not_expressible, not filters.
+2. Titles are substring-matched: use specific full phrases ("founder", "chief executive officer", "head of growth"), never bare acronyms, and add excludes for false positives ("assistant", "intern", "former", "advisor" when relevant).
+3. Don't stack redundant filters (titles + seniority + department saying the same thing). Prefer titles; use seniority only as a guard.
+4. Industry is coarse; only use it when a pattern is clearly industry-bound, otherwise prefer company_keywords.
+5. Build exactly 3 variants: "Tight" (most patterns, expect hundreds to low thousands), "Core" (the 3-5 strongest patterns), "Broad" (buyer title + size/stage only, plus lookalike if available). ${ids.length ? "Use lookalike in at least one variant." : ""}
+6. Never add company websites or exclusions; the tool adds existing customers as exclusions.
+7. Everything a filter can't express (signer vs champion, phrasing on their site that keywords can't capture, anti-patterns that aren't filterable) goes in not_expressible with how a reviewer should check it per lead.
+
+Reply with only one JSON object:
+{
+ "variants": [
+  {"name":"Tight", "intent":"one line", "use_lookalike": false,
+   "filters": { "person_job_title": {"include":[""],"exclude":[""],"match_mode":"CONTAINS"} },
+   "mapping": [{"pattern":"the pattern in plain words (count/of)", "filter":"filter key", "value":"what you set", "why":"one line"}]}
+ ],
+ "not_expressible": [{"pattern":"", "check":"how to check it on a lead"}],
+ "warnings": ["anything likely to make results bad, e.g. too few buyers to trust a title pattern"]
+}`;
+}
+function currentPayload(c){
+  if (c.translation && c.variantIdx != null && c.translation.variants[c.variantIdx]) return {...cleanVariant(c, c.translation.variants[c.variantIdx]), variant: c.translation.variants[c.variantIdx].name};
+  const p = prospeoPayload(c); return p ? {...p, variant: null} : null;
+}
+function lookalikeIds(c){ return [...new Set(custDomains(c).map(d => c.research?.[d]?.company?.id).filter(Boolean))].slice(0, 50); }
+function cleanVariant(c, v){
+  const keepE = (xs, allowed) => { const m = new Map(allowed.map(a => [a.toLowerCase(), a])); return arr(xs).map(x => m.get(String(x).toLowerCase())).filter(Boolean); };
+  const f = {}; const dropped = [];
+  for (const [k, val] of Object.entries(v.filters || {})){
+    if (!VARIANT_KEYS.includes(k)){ dropped.push(k); continue; }
+    let x = JSON.parse(JSON.stringify(val));
+    if (k === "person_seniority"){ x = {include: keepE(x.include, SENIORITY)}; if (!x.include.length) { dropped.push(k); continue; } }
+    if (k === "person_department"){ x = {include: keepE(x.include, DEPARTMENTS)}; if (!x.include.length) { dropped.push(k); continue; } }
+    if (k === "company_industry"){ x = {include: keepE(x.include, INDUSTRIES)}; if (!x.include.length) { dropped.push(k); continue; } }
+    if (k === "company_headcount_range"){ x = keepE(Array.isArray(x) ? x : x.include, HEADCOUNT); if (!x.length) { dropped.push(k); continue; } }
+    if (k === "company_funding"){ const st = keepE(x.stage || x.include, FUNDING); x = {...(st.length ? {stage: st} : {}), ...(Number(x.funding_date) ? {funding_date: Number(x.funding_date)} : {})}; if (!Object.keys(x).length) { dropped.push(k); continue; } }
+    if (k === "person_job_title" || k === "person_past_job_title"){
+      const ACR = {ceo:"chief executive officer",cto:"chief technology officer",cfo:"chief financial officer",coo:"chief operating officer",cmo:"chief marketing officer",cro:"chief revenue officer",cpo:"chief product officer",vp:"vice president"};
+      const fix = xs => [...new Set(arr(xs).map(t => String(t).toLowerCase().trim()).flatMap(t => ACR[t] ? [ACR[t]] : t.length >= 4 ? [t] : []))];
+      x = {include: fix(x.include), ...(arr(x.exclude).length ? {exclude: fix(x.exclude)} : {}), match_mode: "CONTAINS"};
+      if (!x.include.length) { dropped.push(k); continue; }
+    }
+    f[k] = x;
+  }
+  if (v.use_lookalike){ const ids = lookalikeIds(c); if (ids.length) f.company_lookalike = {company_oids: ids}; }
+  const excl = [...new Set([domainOf(c.website || c.email), ...customerDigest(c.inputs?.customers).domains].filter(Boolean))].slice(0, 500);
+  if (excl.length) f.company = {websites: {exclude: excl}};
+  return {body: {page: 1, filters: f}, dropped, excluded: excl.length};
+}
+async function translate(c){
+  if (!status.claude){ toast("Add ANTHROPIC_API_KEY to the Worker first"); return false; }
+  if (!c.icp){ toast("Build the ICP first"); return false; }
+  busy[c.id + ":translate"] = true; c._err = ""; render();
+  try {
+    const {data} = await api("/api/claude", {body: {prompt: translatorPrompt(c), maxTokens: 8000}});
+    if (!data || !arr(data.variants).length) throw {error: "The translation came back without search variants. Try again."};
+    data.at = now(); data.icpV = c.icp.version; data.bpAt = c.buyerPatterns?.at || null;
+    busy[c.id + ":translate"] = false;
+    await saveClient(c.id, {translation: data, variantStats: {}, variantIdx: null});
+    return true;
+  } catch(e){ busy[c.id + ":translate"] = false; c._err = e.error; render(); return false; }
+}
+function translationStale(c){ const t = c.translation; return !t || t.icpV !== c.icp?.version || t.bpAt !== (c.buyerPatterns?.at || null); }
+// Pull page 1 of every variant, score it, and report precision so the best one wins on evidence
+async function testVariants(c){
+  const t = c.translation; if (!t) return;
+  busy[c.id + ":variants"] = true; c._err = ""; render();
+  const stats = {}; let leads = arr(c.leads);
+  for (let k = 0; k < t.variants.length; k++){
+    const v = t.variants[k]; const p = cleanVariant(c, v);
+    stats[k] = {status: "running"}; c.variantStats = {...stats}; render();
+    try {
+      const res = await api("/api/prospeo/search", {body: {...p.body, page: 1}});
+      const raw = res.results || [];
+      const batch = raw.map(normalizeLead).map(l => ({...l, variant: v.name}));
+      const scored = batch.length ? await scoreRows(c, batch.map(leadRow)) : [];
+      const merged = batch.map((l, n) => ({...l, ...scored[n], icpV: c.icp.version}));
+      const seen = new Set(leads.map(l => l.key)); leads = [...leads, ...merged.filter(l => !seen.has(l.key))];
+      const passing = merged.filter(l => l.pass).length;
+      stats[k] = {status: "done", total: res.pagination?.total_count ?? null, pulled: merged.length, passing, rate: merged.length ? Math.round(passing / merged.length * 100) : 0,
+        avg: merged.length ? Math.round(merged.reduce((a, l) => a + (l.score || 0), 0) / merged.length * 10) / 10 : 0, attempts: res.attempts, dropped: arr(res.attempts).map(a => a.dropped).filter(Boolean)};
+    } catch(e){ stats[k] = {status: "error", error: e.error, attempts: e.attempts}; }
+    c.variantStats = {...stats}; render();
+  }
+  const ranked = Object.entries(stats).filter(([, s]) => s.status === "done" && s.pulled).sort((a, b) => b[1].rate - a[1].rate || b[1].passing - a[1].passing);
+  busy[c.id + ":variants"] = false;
+  await saveClient(c.id, {variantStats: stats, variantIdx: ranked.length ? Number(ranked[0][0]) : null, variantPages: Object.fromEntries(Object.keys(stats).map(k => [k, 1])), leads: leads.slice(0, 500), checks: {...(c.checks||{}), listBuilt: true}, checkedAt: {...(c.checkedAt||{}), listBuilt: c.checkedAt?.listBuilt || now()}});
+  toast(ranked.length ? `Best: ${t.variants[ranked[0][0]].name} (${ranked[0][1].rate}% pass)` : "No variant returned leads");
+}
+function leadRow(l){ return [l.name, l.title, l.headline && ("headline: " + l.headline), l.tenure && ("in role " + l.tenure + " mo"), l.past && ("before: " + l.past), l.company, l.domain, l.location, l.headcount && ("headcount " + l.headcount), l.industry, l.funding && ("funding " + l.funding), l.description].filter(Boolean).join(" | "); }
+
 const CRACKED_BAD = `salesforce.com - 70,000+ employees with a huge sales org
 duolingo.com - consumer app, B2C
 a pre-launch idea stage startup with no product and no customers
@@ -1027,20 +1181,46 @@ function buyerPatternsCard(c){
     </div>
   </div>`;
 }
+function translationBlock(c){
+  if (!c.icp) return "";
+  const t = c.translation; const stale = translationStale(c); const st = c.variantStats || {};
+  const testing = busy[c.id + ":variants"];
+  const best = Object.entries(st).filter(([, x]) => x.status === "done" && x.pulled).sort((a, b) => b[1].rate - a[1].rate || b[1].passing - a[1].passing)[0]?.[0];
+  return `<div class="stack" style="gap:12px">
+    <div class="row" style="justify-content:space-between"><h3 class="sub-h">Translate patterns into Prospeo searches</h3>
+      <div class="row">
+        <button class="btn ${!t || stale ? "red" : ""}" id="translateBtn" type="button" ${busy[c.id + ":translate"] ? "disabled" : ""}>${busy[c.id + ":translate"] ? "Translating…" : t ? (stale ? "Re-translate (ICP or buyers changed)" : "Re-translate") : "Translate"}</button>
+        ${t ? `<button class="btn yellow" id="testVariants" type="button" ${testing || !status.prospeo ? "disabled" : ""}>${testing ? "Testing…" : `Test all ${t.variants.length} (${t.variants.length} credits)`}</button>` : ""}
+      </div></div>
+    ${!t ? `<p class="hint">Maps each buyer and company pattern to the Prospeo filter that expresses it (past titles, time in role, company keywords, recent funding, hiring, lookalikes of your customers) and builds a tight, core and broad search. ${lookalikeIds(c).length ? lookalikeIds(c).length + " customers can seed a lookalike search." : "Re-research customers to enable lookalike search."}</p>` : `
+    <div class="variants">${t.variants.map((v, k) => { const x = st[k] || {}; const pv = cleanVariant(c, v); return `<div class="variant ${String(k) === String(best) ? "best" : ""} ${c.variantIdx === k ? "sel" : ""}">
+      <div class="row" style="justify-content:space-between"><h4>${esc(v.name)}</h4>${String(k) === String(best) ? '<span class="chip ok">Best</span>' : ""}</div>
+      <span class="hint">${esc(v.intent || "")}${pv.body.filters.company_lookalike ? " · lookalikes of " + lookalikeIds(c).length + " customers" : ""}</span>
+      ${x.status === "done" ? `<div class="vstat"><span><b>${x.rate}%</b> pass</span><span><b>${x.passing}/${x.pulled}</b> good</span><span><b>${x.total != null ? Number(x.total).toLocaleString() : "?"}</b> in pool</span></div>${arr(x.dropped).length ? `<span class="hint">Prospeo rejected: ${esc(x.dropped.join(", "))}</span>` : ""}` : x.status === "running" ? '<span class="hint">Pulling and scoring…</span>' : x.status === "error" ? `<span class="chip r">${esc(x.error)}</span>` : ""}
+      <ul class="vmap">${arr(v.mapping).map(m => `<li><span>${esc(m.pattern)}</span><code>${esc(m.filter)}</code></li>`).join("")}</ul>
+      ${pv.dropped.length ? `<span class="hint">Not sent (unsupported): ${esc(pv.dropped.join(", "))}</span>` : ""}
+      <button class="btn sm ${c.variantIdx === k ? "dark" : ""}" data-usevar="${k}" type="button">${c.variantIdx === k ? "Using this search" : "Use this search"}</button>
+    </div>`; }).join("")}</div>
+    ${arr(t.not_expressible).length ? `<div class="note"><b>Prospeo can't filter for these, so the scorer checks them on every lead:</b> ${t.not_expressible.map(x => esc(x.pattern)).join(" · ")}</div>` : ""}
+    ${arr(t.warnings).length ? `<p class="hint">Heads up: ${t.warnings.map(esc).join(" · ")}</p>` : ""}`}
+  </div>`;
+}
 function pipelineView(c){
-  const i = c.icp; const p = prospeoPayload(c);
+  const i = c.icp; const p = currentPayload(c);
   const nodes = [
     {k:"in", t:"Inputs", d:`${String(c.inputs?.site || "").length ? "Website ✓" : "No website"} · ${custDomains(c).length} customers · ${buyerList(c).length} buyers · ${c.inputs?.context ? "context ✓" : "no context"}`},
     {k:"cp", t:"Company patterns", d: c.patterns ? `${arr(c.patterns.patterns).length} patterns across ${c.patterns.n}` : "Not run"},
     {k:"bp", t:"Buyer patterns", d: c.buyerPatterns ? `${arr(c.buyerPatterns.title_clusters).length} title clusters across ${c.buyerPatterns.n}` : "Not run"},
     {k:"icp", t:"ICP v" + (i?.version || "–"), d: i ? `${arr(i.qualification).length} qualify · ${arr(i.disqualification).length} disqualify` : "Not built"},
-    {k:"pr", t:"Prospeo search", d: p ? `${Object.keys(p.body.filters).length} filters · ${p.excluded} excluded` : "Needs ICP"},
+    {k:"tr", t:"Translation", d: c.translation ? `${arr(c.translation.variants).length} variants · ${arr(c.translation.variants).reduce((n, v) => n + arr(v.mapping).length, 0)} patterns mapped` : "Not run"},
+    {k:"pr", t:"Prospeo search", d: p ? `${p.variant || "ICP filters"} · ${Object.keys(p.body.filters).length} filters` : "Needs ICP"},
   ];
   const texts = {
     in: `WEBSITE (${String(c.inputs?.site || "").length.toLocaleString()} chars)\n${String(c.inputs?.site || "(none)").slice(0, 1500)}…\n\nCUSTOMERS\n${custDomains(c).join("\n") || "(none)"}\n\nBUYERS\n${buyerList(c).map(b => `${b.name}: ${b.title} @ ${b.companyName}`).join("\n") || "(none)"}\n\nCONTEXT\n${c.inputs?.context || "(none)"}`,
     cp: researched(c).length >= 2 ? patternPrompt(c) : "(needs 2 researched customers)",
     bp: buyerList(c).length >= 2 ? buyerPatternPrompt(c) : "(needs 2 ticked buyers)",
     icp: icpPrompt(c),
+    tr: c.icp ? translatorPrompt(c) : "(build the ICP first)",
     pr: p ? "PROSPEO SEARCH-PERSON FILTERS\n" + JSON.stringify(p.body, null, 2) + "\n\n\nMEGA PROMPT (for Prospeo AI search, Clay or any research agent)\n\n" + megaPrompt(c) : "(build the ICP first)",
   };
   const open = c._pipe || "pr";
@@ -1126,17 +1306,18 @@ function promptPane(c){
 }
 
 function prospeoPane(c){
-  const p = prospeoPayload(c);
+  const p = currentPayload(c);
   if (!p) return `<div class="note"><b>Build the ICP first.</b> The Prospeo search is generated from its personas and firmographics.</div>`;
   const body = JSON.stringify(p.body, null, 2);
   const curl = `curl -X POST https://api.prospeo.io/search-person \\\n  -H "X-KEY: $PROSPEO_API_KEY" \\\n  -H "Content-Type: application/json" \\\n  -d '${JSON.stringify(p.body).replace(/'/g,"'\\''")}'`;
-  const dropped = Object.entries(p.dropped).filter(([,v]) => v.length);
+  const dropped = Array.isArray(p.dropped) ? (p.dropped.length ? [["unsupported filters", p.dropped]] : []) : Object.entries(p.dropped).filter(([,v]) => v.length);
   const leads = arr(c.leads);
   const scored = leads.filter(l => l.score != null);
   const passing = scored.filter(l => l.pass).length;
   return `<div class="stack">
+    ${translationBlock(c)}
     ${pipelineView(c)}
-    <h3 class="sub-h">Looks right? Pull leads</h3>
+    <h3 class="sub-h">Looks right? Pull leads${p.variant ? " · using " + esc(p.variant) : " · using ICP filters"}</h3>
     <div class="row">
       <button class="btn red big" id="runSearch" type="button" ${busy[c.id + ":search"] ? "disabled" : ""}>${busy[c.id + ":search"] ? "Searching…" : leads.length ? "Pull next 25 leads" : "Pull 25 leads from Prospeo"}</button>
       <button class="btn yellow" id="scoreLeads" type="button" ${!leads.length || busy[c.id + ":score"] ? "disabled" : ""}>${busy[c.id + ":score"] ? "Scoring…" : "Score against ICP"}</button>
@@ -1180,16 +1361,21 @@ function normalizeLead(r){
     linkedin: p.linkedin_url || p.linkedin || "",
     headcount: co.employee_count || co.headcount || co.employee_range || "",
     industry: co.industry || "",
-    description: String(co.description || co.short_description || "").slice(0, 300),
+    description: String(co.description || co.description_ai || co.short_description || "").slice(0, 300),
+    headline: p.headline || "",
+    tenure: Number((arr(p.job_history).find(h => h.current) || {}).duration_in_months) || null,
+    past: arr(p.job_history).filter(h => !h.current).slice(0, 3).map(h => `${h.title || ""} @ ${h.company_name || ""}`).join("; "),
+    funding: co.funding?.last_funding_stage || co.funding?.stage || "",
     key: p.person_id || p.id || p.linkedin_url || name + "|" + (co.name || ""),
   };
 }
 async function runSearch(c){
-  const p = prospeoPayload(c); if (!p) return;
+  const vi = c.translation && c.variantIdx != null ? c.variantIdx : null;
+  const p = vi != null ? cleanVariant(c, c.translation.variants[vi]) : prospeoPayload(c); if (!p) return;
   if (!status.prospeo){ toast("Add PROSPEO_API_KEY to the Worker first"); return; }
   busy[c.id + ":search"] = true; c._err = ""; render();
   try {
-    const page = (Number(c.prospeoPage) || 0) + 1;
+    const page = vi != null ? (Number(c.variantPages?.[vi]) || 0) + 1 : (Number(c.prospeoPage) || 0) + 1;
     // The server retries with fewer filters if Prospeo rejects the search and reports every attempt
     let res;
     try { res = await api("/api/prospeo/search", {body: {...p.body, page}}); }
@@ -1199,10 +1385,10 @@ async function runSearch(c){
     if (dropped.length){ const why = res.attempts.find(a => !a.ok); c._err = `Pulled without ${dropped.map(x => x.replace(/^(company|person)_/, "").replace(/_/g, " ")).join(", ")}. Prospeo's reason: ${[why?.error_code, why?.filter_error, why?.message].filter(Boolean).join(" · ")}`; }
     const raw = res.results || res.response?.results || res.data || [];
     const seen = new Set(arr(c.leads).map(l => l.key));
-    const fresh = raw.map(normalizeLead).filter(l => !seen.has(l.key));
+    const fresh = raw.map(normalizeLead).map(l => vi != null ? {...l, variant: c.translation.variants[vi].name} : l).filter(l => !seen.has(l.key));
     const total = res.pagination?.total_count ?? c.prospeoTotal;
     busy[c.id + ":search"] = false;
-    await saveClient(c.id, {leads: [...arr(c.leads), ...fresh].slice(0, 500), prospeoPage: page, prospeoTotal: total, lastRaw: raw[0] ? JSON.stringify(raw[0], null, 2).slice(0, 4000) : "", checks: {...(c.checks||{}), listBuilt: true}, checkedAt: {...(c.checkedAt||{}), listBuilt: c.checkedAt?.listBuilt || now()}});
+    await saveClient(c.id, {leads: [...arr(c.leads), ...fresh].slice(0, 500), ...(vi != null ? {variantPages: {...(c.variantPages || {}), [vi]: page}} : {prospeoPage: page}), prospeoTotal: total, lastRaw: raw[0] ? JSON.stringify(raw[0], null, 2).slice(0, 4000) : "", checks: {...(c.checks||{}), listBuilt: true}, checkedAt: {...(c.checkedAt||{}), listBuilt: c.checkedAt?.listBuilt || now()}});
     toast(fresh.length ? fresh.length + " new leads" : "No new leads on that page");
   } catch(e){ busy[c.id + ":search"] = false; c._err = e.error + (e.detail ? " · " + JSON.stringify(e.detail).slice(0, 300) : ""); render(); }
 }
@@ -1218,8 +1404,19 @@ ${arr(i.qualification).map((q,n) => `Q${n+1} [${Number(q.weight)||1}] ${q.criter
 
 Disqualify if any is true:
 ${arr(i.disqualification).map((q,n) => `D${n+1} ${q.criterion}`).join("\n")}
+${c.buyerPatterns ? `
+Who actually buys (from ${c.buyerPatterns.n} real buyers): ${c.buyerPatterns.persona}
+${arr(c.buyerPatterns.patterns).filter(x => x.strength !== "weak").map(x => "- " + x.finding + " (" + x.count + "/" + x.of + ")").join("\n")}
+Signer vs champion: ${c.buyerPatterns.signer_vs_champion || "unknown"}` : ""}
+${c.patterns ? `
+What their customers have in common: ${c.patterns.hypothesis}
+Anti-patterns: ${arr(c.patterns.anti_patterns).join("; ") || "none"}` : ""}
+${arr(c.translation?.not_expressible).length ? `
+Also check (the database search couldn't filter for these):
+${c.translation.not_expressible.map(x => "- " + x.pattern + ": " + x.check).join("\n")}` : ""}
 
 Rules:
+- Judge the PERSON against the buyer pattern as well as the company: wrong role or wrong career path means a low score even at a great company.
 - Award a criterion's points only when the row or well-established public knowledge of that company supports it. Unknown means 0. Never invent signals.
 - A disqualifier applies only when it is clearly true. Name it in "disqualifier", otherwise null.
 - "hook" is one specific line we could open an email with, grounded in the row. Empty string if nothing specific.
@@ -1250,7 +1447,7 @@ async function scoreLeads(c){
   busy[c.id + ":score"] = true; c._err = ""; render();
   try {
     const leads = arr(c.leads);
-    const rows = leads.map(l => [l.name, l.title, l.company, l.domain, l.location, l.headcount && ("headcount " + l.headcount), l.industry, l.description].filter(Boolean).join(" | "));
+    const rows = leads.map(leadRow);
     const res = await scoreRows(c, rows);
     busy[c.id + ":score"] = false;
     await saveClient(c.id, {leads: leads.map((l,n) => ({...l, ...res[n], icpV: c.icp.version}))});
@@ -1438,6 +1635,9 @@ function bindClient(c){
       toast(`Pulled ${ok} profile${ok === 1 ? "" : "s"}${missing ? `. ${missing} buyer${missing > 1 ? "s have" : " has"} no LinkedIn URL; add it on their card.` : ""}`);
     };
     document.querySelectorAll("[data-pipe]").forEach(b => b.onclick = () => { c._pipe = b.dataset.pipe; render(); });
+    const trb = $("#translateBtn"); if (trb) trb.onclick = () => translate(c);
+    const tvb = $("#testVariants"); if (tvb) tvb.onclick = () => testVariants(c);
+    document.querySelectorAll("[data-usevar]").forEach(b => b.onclick = () => saveClient(c.id, {variantIdx: Number(b.dataset.usevar)}));
     const cpp = $("#copyPipe"); if (cpp) cpp.onclick = () => copy($("#pipeText").textContent);
     document.querySelectorAll("[data-file]").forEach(inp => inp.onchange = () => {
       const f = inp.files?.[0]; if (!f) return;

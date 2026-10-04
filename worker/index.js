@@ -301,7 +301,29 @@ export default {
         const { key } = await req.json(); return json(await pullStripe(key));
       }
       if (path === "/api/prospeo/search" && req.method === "POST") {
-        return json(await prospeoSearch(env, await req.json()));
+        // Try the full search, then drop filters one at a time if Prospeo rejects it.
+        // Every attempt and Prospeo's exact reply comes back so the page can show what happened.
+        if (!env.PROSPEO_API_KEY) return fail(503, "PROSPEO_API_KEY is not set on the Worker.");
+        const body = await req.json();
+        const filters = { ...(body.filters || {}) };
+        const order = [null, "company_funding", "company_location_search", "company_industry", "person_job_title", "company_headcount_range", "person_department", "person_seniority"];
+        const attempts = [];
+        for (const drop of order) {
+          if (drop) { if (!filters[drop]) continue; delete filters[drop]; }
+          const sent = { page: body.page || 1, filters: { ...filters } };
+          const r = await fetch("https://api.prospeo.io/search-person", {
+            method: "POST", headers: { "X-KEY": env.PROSPEO_API_KEY, "content-type": "application/json" }, body: JSON.stringify(sent),
+          });
+          const raw = await r.text();
+          let d = {}; try { d = JSON.parse(raw); } catch {}
+          const ok = r.ok && !d.error;
+          attempts.push({ dropped: drop, status: r.status, ok, error_code: d.error_code || "", filter_error: d.filter_error || "", message: d.message || (ok ? "" : raw.slice(0, 300)), filters: Object.keys(sent.filters) });
+          if (ok) return json({ ...d, attempts });
+          if (d.error_code === "NO_RESULTS") return json({ results: [], pagination: { total_count: 0 }, attempts });
+          if (["INVALID_API_KEY", "INSUFFICIENT_CREDITS"].includes(d.error_code) || r.status === 429) break;
+        }
+        const last = attempts[attempts.length - 1] || {};
+        return json({ error: "Prospeo said: " + ([last.error_code, last.filter_error, last.message].filter(Boolean).join(" · ") || "HTTP " + last.status), attempts }, 502);
       }
       return fail(404, "Unknown endpoint");
     } catch (e) {

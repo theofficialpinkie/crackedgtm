@@ -310,6 +310,15 @@ export default {
       if (path === "/api/pull-stripe" && req.method === "POST") {
         const { key } = await req.json(); return json(await pullStripe(key));
       }
+      if (path === "/api/prospeo/suggest" && req.method === "POST") {
+        // Free Prospeo lookup that returns location names exactly as Prospeo stores them
+        if (!env.PROSPEO_API_KEY) return fail(503, "PROSPEO_API_KEY is not set on the Worker.");
+        const { location } = await req.json();
+        const r = await fetch("https://api.prospeo.io/search-suggestions", { method: "POST", headers: { "X-KEY": env.PROSPEO_API_KEY, "content-type": "application/json" }, body: JSON.stringify({ location_search: String(location || "").slice(0, 100) }) });
+        const d = await r.json().catch(() => ({}));
+        if (!r.ok || d.error) return fail(502, "Prospeo said: " + (d.error_code || r.status));
+        return json({ location_suggestions: d.location_suggestions || [] });
+      }
       if (path === "/api/prospeo/search" && req.method === "POST") {
         // Try the full search, then drop filters one at a time if Prospeo rejects it.
         // Every attempt and Prospeo's exact reply comes back so the page can show what happened.

@@ -233,6 +233,26 @@ table.leads{border-collapse:collapse;width:100%;font-size:13px;min-width:760px}
 .guide .gbar i{display:block;height:100%;background:var(--good)}
 @media (max-width:760px){.bt-grid{grid-template-columns:1fr}}
 .chips{display:flex;flex-wrap:wrap;gap:6px}
+.addloc{all:unset;cursor:pointer;display:inline-flex;gap:6px;align-items:center;padding:4px 10px;border:2px dashed var(--line);font-size:13px;font-weight:700}
+.addloc i{font-style:normal;font-weight:500;color:var(--muted)}
+.addloc:focus-visible{outline:2px solid var(--red)}
+.locbox{display:flex;flex-direction:column;gap:8px;border-top:2px solid var(--line);padding-top:12px}
+.leadbar{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+.lead-list{display:flex;flex-direction:column;border:2px solid var(--line);background:var(--card)}
+.lead{border-top:1px solid var(--line)}
+.lead:first-child{border-top:0}
+.lead summary{list-style:none;cursor:pointer;display:grid;grid-template-columns:56px minmax(0,1.2fr) minmax(0,1fr);gap:12px;align-items:center;padding:9px 12px}
+.lead summary::-webkit-details-marker{display:none}
+.lead summary:hover{background:var(--band)}
+.who,.co{display:flex;flex-direction:column;min-width:0}
+.who b,.co b{font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.who span,.co span{font-size:12.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pill{display:inline-block;text-align:center;padding:2px 0;border:2px solid var(--line);font-weight:700;font-size:13px;font-variant-numeric:tabular-nums}
+.pill.pass{background:var(--good);border-color:var(--good);color:#fff}
+.lead.fail .who b,.lead.fail .co b{color:var(--muted)}
+.lead-b{padding:0 12px 12px 80px;display:flex;flex-direction:column;gap:6px;font-size:14px}
+.lead-b p{margin:0}
+@media (max-width:760px){.lead summary{grid-template-columns:48px minmax(0,1fr)}.lead summary .co{grid-column:2}.lead-b{padding-left:12px}}
 .dchip{display:inline-flex;align-items:center;gap:6px;padding:3px 4px 3px 10px;border:2px solid var(--line);background:var(--paper);font-size:13px;font-weight:700}
 .dchip i{font-style:normal;color:var(--red)}
 .dchip button{all:unset;cursor:pointer;padding:0 6px;font-size:15px;line-height:1}
@@ -899,6 +919,7 @@ function prospeoPayload(c){
   const own = domainOf(c.website || c.email);
   const excl = [...new Set([own, ...cust].filter(Boolean))].slice(0,500);
   if (excl.length) f.company = {websites: {exclude: excl}};
+  applyLocation(c, f);
   const dropped = {
     seniority: arr(i.personas?.seniority).filter(x => !sen.includes(x)),
     departments: arr(i.personas?.departments).filter(x => !dep.includes(x)),
@@ -968,7 +989,7 @@ Rules:
 3. Don't stack redundant filters (titles + seniority + department saying the same thing). Prefer titles; use seniority only as a guard.
 4. Industry is coarse; only use it when a pattern is clearly industry-bound, otherwise prefer company_keywords.
 5. Build exactly 3 variants: "Tight" (most patterns, expect hundreds to low thousands), "Core" (the 3-5 strongest patterns), "Broad" (buyer title + size/stage only, plus lookalike if available). ${ids.length ? "Use lookalike in at least one variant." : ""}
-6. Never add company websites or exclusions; the tool adds existing customers as exclusions.
+6. Never add company websites or exclusions; the tool adds existing customers as exclusions.${arr(c.locations).length ? " Don't add any location filter: the team has set location to " + c.locations.join(", ") + " and the tool applies it to every variant." : ""}
 7. Everything a filter can't express (signer vs champion, phrasing on their site that keywords can't capture, anti-patterns that aren't filterable) goes in not_expressible with how a reviewer should check it per lead.
 
 Reply with only one JSON object:
@@ -981,6 +1002,13 @@ Reply with only one JSON object:
  "not_expressible": [{"pattern":"", "check":"how to check it on a lead"}],
  "warnings": ["anything likely to make results bad, e.g. too few buyers to trust a title pattern"]
 }`;
+}
+// The location you pick overrides whatever the ICP or translation chose
+function applyLocation(c, f){
+  const locs = arr(c.locations); if (!locs.length) return f;
+  delete f.person_location_search; delete f.company_location_search;
+  f[c.locationOn === "company" ? "company_location_search" : "person_location_search"] = {include: locs};
+  return f;
 }
 function currentPayload(c){
   if (c.translation && c.variantIdx != null && c.translation.variants[c.variantIdx]) return {...cleanVariant(c, c.translation.variants[c.variantIdx]), variant: c.translation.variants[c.variantIdx].name};
@@ -1009,6 +1037,7 @@ function cleanVariant(c, v){
   if (v.use_lookalike){ const ids = lookalikeIds(c); if (ids.length) f.company_lookalike = {company_oids: ids}; }
   const excl = [...new Set([domainOf(c.website || c.email), ...customerDigest(c.inputs?.customers).domains].filter(Boolean))].slice(0, 500);
   if (excl.length) f.company = {websites: {exclude: excl}};
+  applyLocation(c, f);
   return {body: {page: 1, filters: f}, dropped, excluded: excl.length};
 }
 async function translate(c){
@@ -1029,7 +1058,7 @@ function translationStale(c){ const t = c.translation; return !t || t.icpV !== c
 async function testVariants(c){
   const t = c.translation; if (!t) return;
   busy[c.id + ":variants"] = true; c._err = ""; render();
-  const stats = {}; let leads = arr(c.leads);
+  const stats = {}; let leads = arr(c.leads); const pulls = arr(c.pulls).slice();
   for (let k = 0; k < t.variants.length; k++){
     const v = t.variants[k]; const p = cleanVariant(c, v);
     stats[k] = {status: "running"}; c.variantStats = {...stats}; render();
@@ -1037,8 +1066,11 @@ async function testVariants(c){
       const res = await api("/api/prospeo/search", {body: {...p.body, page: 1}});
       const raw = res.results || [];
       const batch = raw.map(normalizeLead).map(l => ({...l, variant: v.name}));
-      const scored = batch.length ? await scoreRows(c, batch.map(leadRow)) : [];
-      const merged = batch.map((l, n) => ({...l, ...scored[n], icpV: c.icp.version}));
+      const pullId = "p" + Date.now().toString(36) + k;
+      const scored = batch.length ? (await scoreRows(c, batch.map(leadRow))).results : [];
+      const merged = batch.map((l, n) => ({...l, ...(scored[n] || {}), ...(scored[n] ? {icpV: c.icp.version} : {}), pullId}));
+      const newOnes = merged.filter(l => !leads.some(x => x.key === l.key));
+      if (newOnes.length) pulls.push({id: pullId, at: now(), label: v.name + " test", count: newOnes.length});
       const seen = new Set(leads.map(l => l.key)); leads = [...leads, ...merged.filter(l => !seen.has(l.key))];
       const passing = merged.filter(l => l.pass).length;
       stats[k] = {status: "done", total: res.pagination?.total_count ?? null, pulled: merged.length, passing, rate: merged.length ? Math.round(passing / merged.length * 100) : 0,
@@ -1048,7 +1080,7 @@ async function testVariants(c){
   }
   const ranked = Object.entries(stats).filter(([, s]) => s.status === "done" && s.pulled).sort((a, b) => b[1].rate - a[1].rate || b[1].passing - a[1].passing);
   busy[c.id + ":variants"] = false;
-  await saveClient(c.id, {variantStats: stats, variantIdx: ranked.length ? Number(ranked[0][0]) : null, variantPages: Object.fromEntries(Object.keys(stats).map(k => [k, 1])), leads: leads.slice(0, 500), checks: {...(c.checks||{}), listBuilt: true}, checkedAt: {...(c.checkedAt||{}), listBuilt: c.checkedAt?.listBuilt || now()}});
+  await saveClient(c.id, {variantStats: stats, variantIdx: ranked.length ? Number(ranked[0][0]) : null, variantPages: Object.fromEntries(Object.keys(stats).map(k => [k, 1])), leads: leads.slice(-500), pulls: pulls.slice(-30), _view: "latest", checks: {...(c.checks||{}), listBuilt: true}, checkedAt: {...(c.checkedAt||{}), listBuilt: c.checkedAt?.listBuilt || now()}});
   toast(ranked.length ? `Best: ${t.variants[ranked[0][0]].name} (${ranked[0][1].rate}% pass)` : "No variant returned leads");
 }
 function leadRow(l){ return [l.name, l.title, l.headline && ("headline: " + l.headline), l.tenure && ("in role " + l.tenure + " mo"), l.past && ("before: " + l.past), l.company, l.domain, l.location, l.headcount && ("headcount " + l.headcount), l.industry, l.funding && ("funding " + l.funding), l.description].filter(Boolean).join(" | "); }
@@ -1180,6 +1212,47 @@ function buyerPatternsCard(c){
       <p class="hint">${esc(b.confidence || "")}</p>
     </div>
   </div>`;
+}
+function locationBlock(c){
+  const locs = arr(c.locations); const sug = c._locSug || [];
+  return `<div class="locbox">
+    <div class="row" style="justify-content:space-between"><h3 class="sub-h">Location</h3>
+      <div class="seg"><button type="button" class="${c.locationOn !== "company" ? "on" : ""}" data-locon="person">Where the person is</button><button type="button" class="${c.locationOn === "company" ? "on" : ""}" data-locon="company">Where the company is</button></div></div>
+    <div class="mini"><input id="locIn" placeholder="Type a city or region, e.g. San Francisco" aria-label="Location"><button class="btn sm" id="locFind" type="button">Find</button></div>
+    ${sug.length ? `<div class="chips">${sug.map(x => `<button type="button" class="dchip addloc" data-addloc="${esc(x.name)}">+ ${esc(x.name)} <i>${esc(String(x.type || "").toLowerCase())}</i></button>`).join("")}</div>` : ""}
+    ${locs.length ? `<div class="chips">${locs.map(l => `<span class="dchip">${esc(l)}<button type="button" data-rmloc="${esc(l)}" aria-label="Remove ${esc(l)}">×</button></span>`).join("")}</div><span class="hint">Applied to every search, replacing any location the ICP picked.</span>` : '<span class="hint">No location set: searches use whatever the ICP picked.</span>'}
+  </div>`;
+}
+function leadList(c){
+  const leads = arr(c.leads); const pulls = arr(c.pulls);
+  const latest = pulls[pulls.length - 1];
+  const view = c._view || (latest ? "latest" : "all");
+  let rows = view === "latest" && latest ? leads.filter(l => l.pullId === latest.id) : leads;
+  if (c._passOnly) rows = rows.filter(l => l.pass);
+  rows = rows.slice().sort((a, b) => (b.score ?? -1) - (a.score ?? -1));
+  const tot = totalPts(c); const scored = rows.filter(l => l.score != null);
+  const q = arr(c.icp?.qualification);
+  return `<div class="leadbar">
+      <div class="seg">${latest ? `<button type="button" class="${view === "latest" ? "on" : ""}" data-view="latest">Latest pull · ${esc(latest.label)} (${leads.filter(l => l.pullId === latest.id).length})</button>` : ""}<button type="button" class="${view === "all" ? "on" : ""}" data-view="all">All (${leads.length})</button></div>
+      <label class="toggle"><input type="checkbox" id="passOnly" ${c._passOnly ? "checked" : ""}> Passing only</label>
+      <span class="hint">${scored.filter(l => l.pass).length} of ${scored.length} scored pass · pass mark ${pct(c)}%${c.prospeoTotal ? " · " + Number(c.prospeoTotal).toLocaleString() + " in pool" : ""}</span>
+    </div>
+    <div class="lead-list">${rows.length ? rows.map(l => {
+      const s = l.score == null ? null : Math.round(l.score / tot * 100);
+      return `<details class="lead ${l.score != null && !l.pass ? "fail" : ""}">
+        <summary>
+          <span class="pill ${s == null ? "" : l.pass ? "pass" : "no"}">${s == null ? "–" : s + "%"}</span>
+          <span class="who"><b>${esc(l.name)}</b><span>${esc(l.title)}</span></span>
+          <span class="co"><b>${esc(l.company)}</b><span>${esc([l.location, l.headcount && l.headcount + " ppl"].filter(Boolean).join(" · "))}</span></span>
+        </summary>
+        <div class="lead-b">
+          ${l.disqualifier ? `<span class="chip r">Disqualified: ${esc(l.disqualifier)}</span>` : ""}
+          ${l.reason ? `<p>${esc(l.reason)}</p>` : '<p class="hint">Not scored yet.</p>'}
+          ${l.hook ? `<p><b>Opener:</b> <em>${esc(l.hook)}</em></p>` : ""}
+          ${arr(l.hits).length ? `<p class="hint">Meets: ${arr(l.hits).map(h => { const n = Number(String(h).replace(/\D/g, "")) - 1; return q[n] ? esc(q[n].criterion) : esc(h); }).join(" · ")}</p>` : ""}
+          <p class="hint">${[l.domain, l.past && "Before: " + l.past, l.variant && "From: " + l.variant].filter(Boolean).map(esc).join(" · ")}${l.linkedin ? ` · <a href="${esc(l.linkedin)}" target="_blank" rel="noopener">LinkedIn</a>` : ""}</p>
+        </div>
+      </details>`; }).join("") : '<p class="hint">No leads match this view.</p>'}</div>`;
 }
 function translationBlock(c){
   if (!c.icp) return "";
@@ -1320,25 +1393,15 @@ function prospeoPane(c){
     <h3 class="sub-h">Looks right? Pull leads${p.variant ? " · using " + esc(p.variant) : " · using ICP filters"}</h3>
     <div class="row">
       <button class="btn red big" id="runSearch" type="button" ${busy[c.id + ":search"] ? "disabled" : ""}>${busy[c.id + ":search"] ? "Searching…" : leads.length ? "Pull next 25 leads" : "Pull 25 leads from Prospeo"}</button>
-      <button class="btn yellow" id="scoreLeads" type="button" ${!leads.length || busy[c.id + ":score"] ? "disabled" : ""}>${busy[c.id + ":score"] ? "Scoring…" : "Score against ICP"}</button>
+      <button class="btn yellow" id="scoreLeads" type="button" ${!leads.length || busy[c.id + ":score"] ? "disabled" : ""}>${busy[c.id + ":score"] ? `Scoring ${busy[c.id + ":score"].done || 0}/${busy[c.id + ":score"].of || ""}…` : "Score unscored leads"}</button>
       ${leads.length ? '<button class="btn" id="csvLeads" type="button">Download CSV</button><button class="btn sm ghost" id="clearLeads" type="button">Clear leads</button>' : ""}
     </div>
     ${arr(c._attempts).length ? `<div class="tablewrap"><table class="leads"><thead><tr><th>Try</th><th>Removed</th><th>Prospeo reply</th><th>Filters sent</th></tr></thead><tbody>${c._attempts.map((t, n) => `<tr><td class="num">${n + 1}</td><td>${esc(t.dropped || "nothing")}</td><td>${t.ok ? '<span class="chip ok">OK</span>' : `<b>${esc(t.error_code || "HTTP " + t.status)}</b> ${esc(t.filter_error || "")} ${esc(t.message || "")}`}</td><td class="hint">${esc(arr(t.filters).join(", "))}</td></tr>`).join("")}</tbody></table></div>` : ""}
     <p class="hint">${status.prospeo ? "Each pull is one Prospeo credit for up to 25 people. Search doesn't return emails; enrich the passing leads in Prospeo before sending." : "Add PROSPEO_API_KEY to the Worker to pull leads from here. Until then, copy the JSON below into Prospeo."}</p>
     
-    ${leads.length ? `<div class="stats">
-      <div><b>${leads.length}</b><span>leads pulled${c.prospeoTotal ? " of " + Number(c.prospeoTotal).toLocaleString() + " matching" : ""}</span></div>
-      <div><b>${scored.length}</b><span>scored against ICP v${c.icp.version}</span></div>
-      <div class="${scored.length ? "good" : ""}"><b>${passing}</b><span>pass at ${pct(c)}% (${passMark(c)}/${totalPts(c)} pts)</span></div>
-    </div>
-    <div class="tablewrap"><table class="leads"><thead><tr><th>Score</th><th>Name</th><th>Title</th><th>Company</th><th>Location</th><th>Archetype</th><th>Why / hook</th></tr></thead><tbody>
-      ${leads.slice().sort((a,b) => (b.score ?? -1) - (a.score ?? -1)).map(l => `<tr class="${l.score != null && !l.pass ? "fail" : ""}">
-        <td class="num">${l.score == null ? "–" : `<span class="score ${l.pass ? "pass" : "no"}">${l.score}</span>`}</td>
-        <td>${l.linkedin ? `<a href="${esc(l.linkedin)}" target="_blank" rel="noopener">${esc(l.name)}</a>` : esc(l.name)}</td>
-        <td>${esc(l.title)}</td><td>${esc(l.company)}${l.domain ? `<br><span class="hint">${esc(l.domain)}</span>` : ""}</td>
-        <td>${esc(l.location)}</td><td>${esc(l.archetype || "")}${l.disqualifier ? `<br><span class="chip r">${esc(l.disqualifier)}</span>` : ""}</td>
-        <td>${esc(l.reason || "")}${l.hook ? `<br><em>${esc(l.hook)}</em>` : ""}</td></tr>`).join("")}
-    </tbody></table></div>` : ""}
+    ${locationBlock(c)}
+    ${c._scoreErr ? `<div class="banner" role="alert">${esc(c._scoreErr)}</div>` : ""}
+    ${leads.length ? leadList(c) : ""}
     <div class="row"><span class="chip">${Object.keys(p.body.filters).length} filters</span><span class="chip">${p.excluded} domains excluded</span>${p.body.filters.company_location_search ? '<span class="chip y">Locations must match dashboard spelling</span>' : ""}</div>
     ${dropped.length ? `<div class="note">Dropped values Prospeo won't accept: ${dropped.map(([k,v]) => `<b>${k}</b> ${esc(v.join(", "))}`).join(" · ")}</div>` : ""}
     ${c.lastRaw ? `<details class="input-card"><summary><span class="t">Last raw Prospeo result<span class="h">For checking field mapping if names or titles come back blank.</span></span></summary><div class="body"><pre class="raw">${esc(c.lastRaw)}</pre></div></details>` : ""}
@@ -1385,11 +1448,13 @@ async function runSearch(c){
     if (dropped.length){ const why = res.attempts.find(a => !a.ok); c._err = `Pulled without ${dropped.map(x => x.replace(/^(company|person)_/, "").replace(/_/g, " ")).join(", ")}. Prospeo's reason: ${[why?.error_code, why?.filter_error, why?.message].filter(Boolean).join(" · ")}`; }
     const raw = res.results || res.response?.results || res.data || [];
     const seen = new Set(arr(c.leads).map(l => l.key));
-    const fresh = raw.map(normalizeLead).map(l => vi != null ? {...l, variant: c.translation.variants[vi].name} : l).filter(l => !seen.has(l.key));
+    const pullId = "p" + Date.now().toString(36);
+    const fresh = raw.map(normalizeLead).map(l => ({...l, pullId, ...(vi != null ? {variant: c.translation.variants[vi].name} : {})})).filter(l => !seen.has(l.key));
     const total = res.pagination?.total_count ?? c.prospeoTotal;
     busy[c.id + ":search"] = false;
-    await saveClient(c.id, {leads: [...arr(c.leads), ...fresh].slice(0, 500), ...(vi != null ? {variantPages: {...(c.variantPages || {}), [vi]: page}} : {prospeoPage: page}), prospeoTotal: total, lastRaw: raw[0] ? JSON.stringify(raw[0], null, 2).slice(0, 4000) : "", checks: {...(c.checks||{}), listBuilt: true}, checkedAt: {...(c.checkedAt||{}), listBuilt: c.checkedAt?.listBuilt || now()}});
-    toast(fresh.length ? fresh.length + " new leads" : "No new leads on that page");
+    await saveClient(c.id, {...(fresh.length ? {_view: "latest", pulls: [...arr(c.pulls), {id: pullId, at: now(), label: vi != null ? c.translation.variants[vi].name : "ICP filters", count: fresh.length}].slice(-30)} : {}), leads: [...arr(c.leads), ...fresh].slice(-500), ...(vi != null ? {variantPages: {...(c.variantPages || {}), [vi]: page}} : {prospeoPage: page}), prospeoTotal: total, lastRaw: raw[0] ? JSON.stringify(raw[0], null, 2).slice(0, 4000) : "", checks: {...(c.checks||{}), listBuilt: true}, checkedAt: {...(c.checkedAt||{}), listBuilt: c.checkedAt?.listBuilt || now()}});
+    toast(fresh.length ? fresh.length + " new leads. Scoring…" : "No new leads on that page");
+    if (fresh.length && status.claude) scoreLeads(clients.find(x => x.id === c.id) || c, [pullId]);
   } catch(e){ busy[c.id + ":search"] = false; c._err = e.error + (e.detail ? " · " + JSON.stringify(e.detail).slice(0, 300) : ""); render(); }
 }
 function scorePrompt(c, rows){
@@ -1417,7 +1482,7 @@ ${c.translation.not_expressible.map(x => "- " + x.pattern + ": " + x.check).join
 
 Rules:
 - Judge the PERSON against the buyer pattern as well as the company: wrong role or wrong career path means a low score even at a great company.
-- Award a criterion's points only when the row or well-established public knowledge of that company supports it. Unknown means 0. Never invent signals.
+- Never invent signals.
 - A disqualifier applies only when it is clearly true. Name it in "disqualifier", otherwise null.
 - "hook" is one specific line we could open an email with, grounded in the row. Empty string if nothing specific.
 
@@ -1425,34 +1490,52 @@ Rows:
 ${rows.map((r,n) => `#${n} ${r}`).join("\n")}
 
 Reply with only a JSON array, one object per row, in row order:
-[{"i": 0, "score": 0-${total}, "hits": ["Q1","Q3"], "archetype": "name or empty", "disqualifier": null, "reason": "one sentence", "hook": ""}]`;
+[{"i": 0, "hits": ["Q1","Q3"], "archetype": "name or empty", "disqualifier": null, "reason": "one sentence on fit, naming the strongest evidence", "hook": ""}]
+"hits" lists every qualification criterion (Q-number) the lead meets. Give credit when the row or well-known facts about the company clearly support it, including strong implication from title, company name and description; leave it out when unknown.`;
 }
-async function scoreRows(c, rows){
-  const out = [];
-  for (let k = 0; k < rows.length; k += 25){
-    const chunk = rows.slice(k, k + 25);
-    const {data} = await api("/api/claude", {body: {prompt: scorePrompt(c, chunk), maxTokens: 8000}});
-    const list = Array.isArray(data) ? data : arr(data?.results);
-    chunk.forEach((_, n) => {
-      const r = list.find(x => Number(x.i) === n) || list[n] || {};
-      const score = Math.max(0, Math.min(totalPts(c), Number(r.score) || 0));
-      const dq = r.disqualifier && String(r.disqualifier).toLowerCase() !== "null" ? String(r.disqualifier) : "";
-      out.push({score, pass: score >= passMark(c) && !dq, archetype: r.archetype || "", disqualifier: dq, reason: r.reason || "", hook: r.hook || "", hits: arr(r.hits)});
-    });
-  }
-  return out;
+// Claude marks which criteria each lead meets; the tool adds up the points itself so the scale can't drift
+function pointsFromHits(c, hits){
+  const q = arr(c.icp?.qualification);
+  return arr(hits).map(h => Number(String(h).replace(/\D/g, "")) - 1).filter(n => q[n]).reduce((sum, n) => sum + (Number(q[n].weight) || 1), 0);
 }
-async function scoreLeads(c){
+async function scoreRows(c, rows, onProgress){
+  const out = new Array(rows.length); const size = 15; const chunks = [];
+  for (let k = 0; k < rows.length; k += size) chunks.push(k);
+  let done = 0, failed = 0, lastErr = "";
+  const work = async start => {
+    const chunk = rows.slice(start, start + size);
+    try {
+      const {data} = await api("/api/claude", {body: {prompt: scorePrompt(c, chunk), maxTokens: 6000}});
+      const list = Array.isArray(data) ? data : arr(data?.results || data?.leads);
+      chunk.forEach((_, n) => {
+        const r = list.find(x => Number(x.i) === n) || list[n] || {};
+        const hits = arr(r.hits).map(String);
+        const score = hits.length ? pointsFromHits(c, hits) : Math.max(0, Math.min(totalPts(c), Number(r.score) || 0));
+        const dq = r.disqualifier && !/^(null|none|no|false)$/i.test(String(r.disqualifier)) ? String(r.disqualifier) : "";
+        out[start + n] = {score, pass: score >= passMark(c) && !dq, archetype: r.archetype || "", disqualifier: dq, reason: r.reason || "", hook: r.hook || "", hits};
+      });
+    } catch(e){ failed += chunk.length; lastErr = e.error || "Scoring failed"; }
+    done += chunk.length; onProgress && onProgress(done, rows.length);
+  };
+  for (let k = 0; k < chunks.length; k += 2) await Promise.all(chunks.slice(k, k + 2).map(work)); // 2 at a time
+  if (failed === rows.length) throw {error: lastErr};
+  return {results: out, failed, lastErr};
+}
+async function scoreLeads(c, onlyIds){
   if (!status.claude){ toast("Add ANTHROPIC_API_KEY to the Worker first"); return; }
-  busy[c.id + ":score"] = true; c._err = ""; render();
+  const leads = arr(c.leads);
+  const target = leads.map((l, n) => [l, n]).filter(([l]) => onlyIds ? onlyIds.includes(l.pullId) : (l.score == null || l.icpV !== c.icp.version));
+  if (!target.length){ toast("Every lead is already scored against ICP v" + c.icp.version); return; }
+  busy[c.id + ":score"] = {done: 0, of: target.length}; c._scoreErr = ""; render();
   try {
-    const leads = arr(c.leads);
-    const rows = leads.map(leadRow);
-    const res = await scoreRows(c, rows);
+    const {results, failed, lastErr} = await scoreRows(c, target.map(([l]) => leadRow(l)), (d, of) => { busy[c.id + ":score"] = {done: d, of}; render(); });
+    const next = leads.slice();
+    target.forEach(([l, n], k) => { if (results[k]) next[n] = {...l, ...results[k], icpV: c.icp.version}; });
     busy[c.id + ":score"] = false;
-    await saveClient(c.id, {leads: leads.map((l,n) => ({...l, ...res[n], icpV: c.icp.version}))});
-    toast(res.filter(r => r.pass).length + " of " + res.length + " pass");
-  } catch(e){ busy[c.id + ":score"] = false; c._err = e.error; render(); }
+    if (failed) c._scoreErr = `${failed} lead${failed > 1 ? "s" : ""} couldn't be scored (${lastErr}). Click Score again to retry them.`;
+    await saveClient(c.id, {leads: next});
+    toast(results.filter(r => r && r.pass).length + " of " + (target.length - failed) + " pass");
+  } catch(e){ busy[c.id + ":score"] = false; c._scoreErr = e.error; render(); }
 }
 function leadsCSV(c){
   const cols = ["score","pass","name","title","company","domain","location","linkedin","archetype","disqualifier","reason","hook"];
@@ -1635,6 +1718,18 @@ function bindClient(c){
       toast(`Pulled ${ok} profile${ok === 1 ? "" : "s"}${missing ? `. ${missing} buyer${missing > 1 ? "s have" : " has"} no LinkedIn URL; add it on their card.` : ""}`);
     };
     document.querySelectorAll("[data-pipe]").forEach(b => b.onclick = () => { c._pipe = b.dataset.pipe; render(); });
+    document.querySelectorAll("[data-view]").forEach(b => b.onclick = () => { c._view = b.dataset.view; render(); });
+    const po = $("#passOnly"); if (po) po.onchange = () => { c._passOnly = po.checked; render(); };
+    const findLoc = async () => {
+      const q = $("#locIn").value.trim(); if (!q) return;
+      try { const r = await api("/api/prospeo/suggest", {body: {location: q}}); c._locSug = arr(r.location_suggestions).slice(0, 8); if (!c._locSug.length) toast("No Prospeo locations match " + q); render(); const li = $("#locIn"); if (li) li.value = q; }
+      catch(e){ toast(e.error); }
+    };
+    const lf = $("#locFind"); if (lf) lf.onclick = findLoc;
+    const lin = $("#locIn"); if (lin) lin.onkeydown = e => { if (e.key === "Enter"){ e.preventDefault(); findLoc(); } };
+    document.querySelectorAll("[data-addloc]").forEach(b => b.onclick = () => { c._locSug = []; saveClient(c.id, {locations: [...new Set([...arr(c.locations), b.dataset.addloc])]}); });
+    document.querySelectorAll("[data-rmloc]").forEach(b => b.onclick = () => saveClient(c.id, {locations: arr(c.locations).filter(x => x !== b.dataset.rmloc)}));
+    document.querySelectorAll("[data-locon]").forEach(b => b.onclick = () => saveClient(c.id, {locationOn: b.dataset.locon}));
     const trb = $("#translateBtn"); if (trb) trb.onclick = () => translate(c);
     const tvb = $("#testVariants"); if (tvb) tvb.onclick = () => testVariants(c);
     document.querySelectorAll("[data-usevar]").forEach(b => b.onclick = () => saveClient(c.id, {variantIdx: Number(b.dataset.usevar)}));
@@ -1676,7 +1771,8 @@ function bindClient(c){
     const cc = $("#copyCurl"); if (cc) cc.onclick = () => copy($("#curlText").textContent);
     const rs = $("#runSearch"); if (rs) rs.onclick = () => runSearch(c);
     const sl = $("#scoreLeads"); if (sl) sl.onclick = () => scoreLeads(c);
-    const cl = $("#clearLeads"); if (cl) cl.onclick = () => saveClient(c.id, {leads: [], prospeoPage: 0, prospeoTotal: null, lastRaw: ""});
+
+    const cl = $("#clearLeads"); if (cl) cl.onclick = () => saveClient(c.id, {leads: [], pulls: [], prospeoPage: 0, variantPages: {}, prospeoTotal: null, lastRaw: ""});
     const cv = $("#csvLeads"); if (cv) cv.onclick = () => {
       const blob = new Blob([leadsCSV(c)], {type: "text/csv"}); const a = document.createElement("a");
       a.href = URL.createObjectURL(blob); a.download = c.company.replace(/\W+/g, "-").toLowerCase() + "-leads-icp-v" + c.icp.version + ".csv"; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);

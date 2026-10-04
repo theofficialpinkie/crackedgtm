@@ -1,0 +1,1258 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<link rel="icon" href="/favicon.svg">
+<title>Cracked GTM Onboarding Engine</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;600;700&family=Bangers&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+/* Layout: comic-brutalist control room. Sticky top bar, client rail on the left, one client workspace with tabs on the right. Tokens mirror crackedgtm.ai. */
+:root{
+  --ink:#111111; --paper:#FDFCF7; --band:#F4F2EA; --card:#FFFFFF; --muted:#5A5852;
+  --red:#D7191F; --yellow:#FFD60A; --on-yellow:#111111; --on-red:#FFFFFF;
+  --good:#1F8A4C; --warn:#B86E00; --line:#111111; --shadow:#111111; --code-bg:#F4F2EA;
+  --f-display:'Archivo Black','Arial Black',Impact,sans-serif;
+  --f-body:'Archivo',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --f-comic:'Bangers','Impact',cursive;
+  --f-mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --ink:#F3F0E6; --paper:#151513; --band:#1E1E1B; --card:#1B1B19; --muted:#A8A498;
+  --red:#F0373D; --yellow:#FFD60A; --on-yellow:#111111; --on-red:#FFFFFF;
+  --good:#4CC57F; --warn:#F2A93B; --line:#F3F0E6; --shadow:#000000; --code-bg:#22221F; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --ink:#F3F0E6; --paper:#151513; --band:#1E1E1B; --card:#1B1B19; --muted:#A8A498;
+  --red:#F0373D; --yellow:#FFD60A; --on-yellow:#111111; --on-red:#FFFFFF;
+  --good:#4CC57F; --warn:#F2A93B; --line:#F3F0E6; --shadow:#000000; --code-bg:#22221F; color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{min-height:100%}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+button,input,textarea,select{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--red);outline-offset:2px}
+h1,h2,h3{text-wrap:balance;margin:0}
+.display{font-family:var(--f-display);letter-spacing:-.02em}
+.comic{font-family:var(--f-comic);letter-spacing:1.5px;font-weight:400}
+
+/* top bar */
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--paper);border-bottom:2px solid var(--line);padding:10px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.brand{display:flex;align-items:baseline;gap:8px;margin-right:auto}
+.brand b{font-family:var(--f-display);font-size:18px;letter-spacing:-.02em}
+.brand span{font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+#clientPick{padding:7px 10px;border:2px solid var(--line);background:var(--card);font-weight:700;max-width:220px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:40px;padding:0 16px;font-family:var(--f-display);font-size:14px;border:2px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer;box-shadow:3px 3px 0 var(--shadow);transition:transform .1s ease,box-shadow .1s ease;text-decoration:none;white-space:nowrap}
+.btn:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--shadow)}
+.btn:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--shadow)}
+.btn:disabled{opacity:.45;cursor:not-allowed;transform:none}
+.btn.dark{background:var(--ink);color:var(--paper)}
+.btn.red{background:var(--red);color:var(--on-red)}
+.btn.yellow{background:var(--yellow);color:var(--on-yellow)}
+.btn.sm{min-height:32px;padding:0 12px;font-size:12px}
+.btn.ghost{box-shadow:none}
+main{max-width:900px;margin:0 auto;padding:24px 16px 40px;display:flex;flex-direction:column;gap:18px;min-width:0}
+.foot{max-width:900px;margin:0 auto;padding:0 16px 32px}
+.step{border:2px solid var(--line);background:var(--card)}
+.step.next{border-width:3px;box-shadow:5px 5px 0 var(--red)}
+.step-h{display:flex;align-items:center;gap:12px;padding:12px 16px;flex-wrap:wrap}
+.step-h h2{font-family:var(--f-display);font-size:18px;letter-spacing:-.02em;margin-right:auto}
+.step-h .n{width:28px;height:28px;display:grid;place-items:center;border:2px solid var(--line);font-family:var(--f-display);font-size:14px;flex-shrink:0}
+.step.done .step-h .n{background:var(--good);border-color:var(--good);color:#fff}
+.step.next .step-h .n{background:var(--yellow);color:var(--on-yellow)}
+.step-b{padding:0 16px 16px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.step-b > .input-card{border-style:dashed}
+.banner{border:2px solid var(--red);background:var(--card);color:var(--red);padding:10px 14px;font-weight:700;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.extras{display:flex;flex-direction:column;gap:10px;align-items:flex-start}
+.extras > details{width:100%}
+.email-one{display:flex;flex-direction:column;gap:12px}
+.email-one .field textarea{min-height:340px}
+.icp,.codebox{box-shadow:none!important}
+/* empty */
+.empty{max-width:640px;margin:40px auto;display:flex;flex-direction:column;gap:22px;align-items:flex-start}
+.empty h1{font-family:var(--f-display);font-size:clamp(34px,5vw,56px);line-height:.98;letter-spacing:-.035em}
+.empty p{font-size:18px;margin:0;max-width:60ch}
+.hl{background:var(--yellow);color:var(--on-yellow);padding:0 6px;box-decoration-break:clone;-webkit-box-decoration-break:clone}
+.flow{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;width:100%}
+.flow div{padding:14px;border:2px solid var(--line);background:var(--card);display:flex;flex-direction:column;gap:4px}
+.flow b{font-family:var(--f-comic);font-size:16px;letter-spacing:1.5px;color:var(--red)}
+.flow span{font-size:14px;font-weight:600}
+
+/* client header */
+.chead{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-end;justify-content:space-between}
+.chead h1{font-family:var(--f-display);font-size:clamp(28px,4vw,40px);line-height:1;letter-spacing:-.035em}
+.chead .sub{margin-top:6px;font-size:14px;font-weight:600;color:var(--muted);word-break:break-all}
+.stages{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));margin:20px 0 6px;border:3px solid var(--line)}
+.stage{padding:8px 10px;font-size:12px;font-weight:700;border-right:2px solid var(--line);background:var(--card);display:flex;flex-direction:column;gap:2px;min-width:0}
+.stage:last-child{border-right:0}
+.stage i{font-style:normal;font-family:var(--f-comic);font-size:14px;letter-spacing:1px;color:var(--muted)}
+.stage.done{background:var(--ink);color:var(--paper)}
+.stage.done i{color:var(--yellow)}
+.stage.now{background:var(--yellow);color:var(--on-yellow)}
+.stage.now i{color:var(--red)}
+
+.tabs{display:flex;gap:0;margin-top:22px;border-bottom:3px solid var(--line);overflow-x:auto}
+.tab{all:unset;cursor:pointer;padding:10px 16px;font-family:var(--f-display);font-size:14px;border:3px solid transparent;border-bottom:0;margin-bottom:-3px;white-space:nowrap}
+.tab.on{background:var(--card);border-color:var(--line);border-bottom:3px solid var(--card)}
+.tab:focus-visible{outline:3px solid var(--red)}
+.pane{padding-top:22px}
+
+/* brain */
+.brain{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:24px;align-items:start}
+.col{display:flex;flex-direction:column;gap:14px;min-width:0}
+.colhead{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.colhead h2{font-family:var(--f-comic);font-size:24px;letter-spacing:2px}
+.input-card{border:2px solid var(--line);background:var(--card)}
+.input-card summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:10px;padding:10px 12px}
+.input-card summary::-webkit-details-marker{display:none}
+.input-card summary .t{font-weight:700;flex:1;min-width:0}
+.input-card summary .h{font-size:12px;color:var(--muted);font-weight:500;display:block}
+.input-card .body{padding:0 12px 12px;display:flex;flex-direction:column;gap:8px}
+.input-card textarea{width:100%;min-height:130px;resize:vertical;padding:10px;border:2px solid var(--line);background:var(--paper);font-size:13px;line-height:1.45}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:2px 8px;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;border:2px solid var(--line);white-space:nowrap}
+.chip.ok{background:var(--good);color:#fff;border-color:var(--good)}
+.chip.miss{background:transparent;color:var(--muted);border-color:var(--muted);border-style:dashed}
+.chip.y{background:var(--yellow);color:var(--on-yellow)}
+.chip.r{background:var(--red);color:var(--on-red)}
+.hint{font-size:12px;color:var(--muted)}
+.file-btn{position:relative;overflow:hidden}
+.file-btn input{position:absolute;inset:0;opacity:0;cursor:pointer}
+
+.icp{border:3px solid var(--line);background:var(--card);box-shadow:8px 8px 0 var(--red);display:flex;flex-direction:column}
+.icp-top{background:var(--ink);color:var(--paper);padding:16px 18px;display:flex;gap:16px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.icp-top .k{font-family:var(--f-comic);font-size:16px;letter-spacing:2px;background:var(--yellow);color:var(--on-yellow);padding:1px 8px;display:inline-block}
+.icp-top h3{font-family:var(--f-display);font-size:22px;margin-top:6px;line-height:1.1}
+.meter{display:flex;flex-direction:column;align-items:flex-end;gap:4px;font-variant-numeric:tabular-nums}
+.meter b{font-family:var(--f-display);font-size:32px;line-height:1}
+.meter span{font-size:11px;letter-spacing:.08em;text-transform:uppercase;opacity:.8}
+.bar{width:140px;height:10px;border:2px solid var(--paper)}
+.bar i{display:block;height:100%;background:var(--yellow)}
+.icp-body{padding:18px;display:flex;flex-direction:column;gap:18px}
+.icp-body h4{margin:0 0 8px;font-family:var(--f-comic);font-size:19px;letter-spacing:2px;color:var(--red);font-weight:400}
+.icp-body p{margin:0}
+.arch{display:grid;gap:10px}
+.arch div{padding:12px;border:2px solid var(--line);background:var(--paper);display:flex;flex-direction:column;gap:4px;font-size:14px}
+.arch b{font-family:var(--f-display);font-size:16px}
+.crit{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:6px;font-size:14px}
+.crit li{display:flex;gap:10px;align-items:flex-start}
+.crit li::before{content:"";flex-shrink:0;width:10px;height:10px;margin-top:6px;border:2px solid var(--line);background:var(--good)}
+.crit.dq li::before{background:var(--red)}
+.crit.gap li::before{background:var(--yellow)}
+.crit .w{font-family:var(--f-mono);font-size:11px;padding:0 5px;border:1px solid var(--line);margin-left:auto;white-space:nowrap}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.status{font-size:13px;font-weight:600;min-height:1.4em}
+.status.err{color:var(--red)}
+.thinking{display:flex;align-items:center;gap:10px;padding:18px;font-weight:700}
+.dot{width:12px;height:12px;background:var(--red);border:2px solid var(--line);animation:pop 1s infinite}
+@keyframes pop{50%{transform:scale(1.4) rotate(45deg)}}
+@media (prefers-reduced-motion:reduce){.dot{animation:none}.btn{transition:none}}
+.icp-empty{padding:22px 18px;display:flex;flex-direction:column;gap:10px}
+.icp-empty p{margin:0;font-size:14px;color:var(--muted)}
+.toggle{display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:700;cursor:pointer}
+.toggle input{width:18px;height:18px;accent-color:var(--red)}
+.history{font-size:12px;color:var(--muted);display:flex;flex-direction:column;gap:4px}
+
+/* code */
+.codebox{position:relative;border:3px solid var(--line);background:var(--code-bg);box-shadow:6px 6px 0 var(--shadow)}
+.codebox pre{margin:0;padding:18px;overflow:auto;max-height:620px;font-family:var(--f-mono);font-size:12.5px;line-height:1.6;white-space:pre-wrap;word-break:break-word}
+.codebar{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 12px;border-bottom:3px solid var(--line);background:var(--card);flex-wrap:wrap}
+.codebar b{font-family:var(--f-comic);font-size:18px;letter-spacing:2px}
+.stack{display:flex;flex-direction:column;gap:22px}
+.note{padding:12px 14px;border:2px dashed var(--line);font-size:14px;background:var(--band)}
+.note b{font-weight:700}
+.seg{display:inline-flex;border:2px solid var(--line)}
+.seg button{all:unset;cursor:pointer;padding:6px 12px;font-size:13px;font-weight:700}
+.seg button.on{background:var(--ink);color:var(--paper)}
+
+/* email */
+.email{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:24px;align-items:start}
+.field{display:flex;flex-direction:column;gap:4px}
+.field label{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.field input,.field textarea{padding:10px;border:2px solid var(--line);background:var(--card);width:100%}
+.field textarea{min-height:420px;resize:vertical;line-height:1.55}
+
+/* checklist */
+.checks{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
+.check{display:flex;gap:12px;align-items:flex-start;padding:14px;border:2px solid var(--line);background:var(--card);cursor:pointer}
+.check input{width:22px;height:22px;accent-color:var(--good);flex-shrink:0;margin-top:2px}
+.check b{display:block;font-size:15px}
+.check span{font-size:13px;color:var(--muted)}
+.check.on{background:var(--band)}
+.check.on b{text-decoration:line-through;text-decoration-thickness:2px}
+
+/* modal */
+.scrim{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:50;display:flex;align-items:flex-start;justify-content:center;padding:6vh 16px;overflow:auto}
+.modal{width:100%;max-width:540px;background:var(--paper);border:3px solid var(--line);box-shadow:10px 10px 0 var(--red);display:flex;flex-direction:column}
+.modal-top{background:var(--red);color:var(--on-red);padding:16px 20px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.modal-top h2{font-family:var(--f-display);font-size:24px;letter-spacing:-.02em}
+.modal form{padding:20px;display:flex;flex-direction:column;gap:14px}
+.modal .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.x{all:unset;cursor:pointer;font-family:var(--f-display);font-size:22px;padding:0 6px}
+
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--paper);padding:10px 18px;font-weight:700;border:2px solid var(--line);box-shadow:4px 4px 0 var(--red);z-index:60}
+
+/* leads + backtest */
+.tablewrap{overflow-x:auto;border:3px solid var(--line);background:var(--card)}
+table.leads{border-collapse:collapse;width:100%;font-size:13px;min-width:760px}
+.leads th{position:sticky;top:0;background:var(--ink);color:var(--paper);text-align:left;padding:8px 10px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
+.leads td{padding:8px 10px;border-top:1px solid var(--line);vertical-align:top}
+.leads td.num{font-variant-numeric:tabular-nums;font-family:var(--f-mono);white-space:nowrap}
+.leads tr.fail td{color:var(--muted)}
+.leads a{color:inherit}
+.score{display:inline-block;min-width:44px;text-align:center;padding:1px 6px;border:2px solid var(--line);font-weight:700}
+.score.pass{background:var(--good);color:#fff;border-color:var(--good)}
+.score.no{background:transparent}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
+.stats div{padding:14px;border:2px solid var(--line);background:var(--card);display:flex;flex-direction:column;gap:4px}
+.stats b{font-family:var(--f-display);font-size:30px;line-height:1;font-variant-numeric:tabular-nums}
+.stats span{font-size:13px;font-weight:600}
+.stats div.good{background:var(--good);color:#fff;border-color:var(--good)}
+.stats div.bad{background:var(--red);color:var(--on-red)}
+.bt-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.bt-grid textarea{width:100%;min-height:200px;padding:10px;border:2px solid var(--line);background:var(--card);font-size:13px}
+.range{display:flex;align-items:center;gap:10px;font-weight:700;font-size:14px}
+.range input{accent-color:var(--red);width:180px}
+.mini{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.mini input{padding:7px 9px;border:2px solid var(--line);background:var(--paper);font-size:13px;min-width:0;flex:1}
+/* guided test */
+.guide{position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));width:min(380px,calc(100vw - 32px));max-height:calc(100vh - 110px);overflow:auto;background:var(--paper);border:3px solid var(--line);box-shadow:8px 8px 0 var(--red);z-index:40}
+.guide-top{background:var(--yellow);color:var(--on-yellow);padding:10px 14px;display:flex;align-items:center;justify-content:space-between;gap:8px;border-bottom:3px solid var(--line)}
+.guide-top b{font-family:var(--f-comic);font-size:20px;letter-spacing:2px;font-weight:400}
+.guide ol{list-style:none;margin:0;padding:10px 12px 14px;display:flex;flex-direction:column;gap:8px}
+.guide li{border:2px solid var(--line);background:var(--card);padding:10px;display:flex;flex-direction:column;gap:6px}
+.guide li.done{opacity:.6}
+.guide li.cur{box-shadow:4px 4px 0 var(--shadow);border-width:3px}
+.guide li .gt{display:flex;gap:8px;align-items:flex-start;font-weight:700}
+.guide li .gt i{font-style:normal;font-family:var(--f-mono);font-size:11px;padding:1px 5px;border:2px solid var(--line);flex-shrink:0}
+.guide li.done .gt i{background:var(--good);color:#fff;border-color:var(--good)}
+.guide li p{margin:0;font-size:13px;color:var(--muted)}
+.guide .gbar{height:8px;border:2px solid var(--line);margin:10px 12px 0}
+.guide .gbar i{display:block;height:100%;background:var(--good)}
+@media (max-width:760px){.bt-grid{grid-template-columns:1fr}}
+@media (max-width:980px){
+  .brain,.email{grid-template-columns:minmax(0,1fr)}
+}
+@media (max-width:760px){
+  .stages{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .stage:nth-child(3){border-right:0}
+  .stage:nth-child(-n+3){border-bottom:2px solid var(--line)}
+  .two,.modal .grid2{grid-template-columns:1fr}
+  .brand span{display:none}
+  #clientPick{max-width:150px}
+}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand"><b>Cracked GTM</b><span>Onboarding</span></div>
+  <select id="clientPick" aria-label="Client"></select>
+  <button class="btn sm ghost" id="settingsBtn" type="button">Settings</button>
+  <button class="btn sm dark" id="onboardBtn" type="button">+ New client</button>
+</header>
+<main id="main"></main>
+<p class="foot hint" id="storeNote"></p>
+
+<div class="scrim" id="onboardModal" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="obTitle">
+    <div class="modal-top"><h2 id="obTitle">Onboard a client</h2><button class="x" type="button" data-close aria-label="Close">×</button></div>
+    <form id="onboardForm">
+      <div class="grid2">
+        <div class="field"><label for="obFirst">Contact first name</label><input id="obFirst" required placeholder="Pranav"></div>
+        <div class="field"><label for="obCompany">Company</label><input id="obCompany" required placeholder="Acme AI"></div>
+      </div>
+      <div class="field"><label for="obEmail">Email</label><input id="obEmail" type="email" required placeholder="pranav@acme.ai"></div>
+      <div class="field"><label for="obSite">Website</label><input id="obSite" placeholder="acme.ai (we fill this from the email domain)"></div>
+      <p class="hint">Creates the client's company brain, drafts the onboarding email with your Stripe link, and opens the ICP builder.</p>
+      <div class="row"><button class="btn red" type="submit">Onboard</button><button class="btn ghost" type="button" id="fillCracked">Fill with Cracked GTM (test)</button></div>
+    </form>
+  </div>
+</div>
+
+<div class="scrim" id="settingsModal" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="setTitle">
+    <div class="modal-top"><h2 id="setTitle">Settings</h2><button class="x" type="button" data-close aria-label="Close">×</button></div>
+    <form id="settingsForm">
+      <div class="field"><label for="setStripe">Stripe payment link (month one)</label><input id="setStripe" placeholder="https://buy.stripe.com/..."></div>
+      <div class="field"><label for="setGuide">Client GTM guide link</label><input id="setGuide" placeholder="Link to the Cracked GTM playbook"></div>
+      <div class="field"><label for="setSign">Email sign-off</label><input id="setSign" placeholder="Priyanka & Khaled"></div>
+      <p class="hint">Shared with everyone who can edit this page, so Khaled sees the same links.</p>
+      <div class="row"><button class="btn dark" type="submit">Save settings</button></div>
+    </form>
+  </div>
+</div>
+
+<div class="toast" id="toast" hidden></div>
+
+<script>
+(() => {
+/* ---------- reference data (Prospeo enums) ---------- */
+const SENIORITY = ["Founder/Owner","C-Suite","Partner","Vice President","Head","Director","Manager","Senior","Entry","Intern"];
+const HEADCOUNT = ["1-10","11-20","21-50","51-100","101-200","201-500","501-1000","1001-2000","2001-5000","5001-10000","10000+"];
+const FUNDING = ["Series unknown","Pre seed","Seed","Series A","Series B","Series C","Series D","Series E-J","Grant","Angel","Private equity","Debt financing","Non equity assistance","Post IPO equity","Undisclosed","Post IPO debt","Product crowdfunding","Equity crowdfunding","Corporate round","Convertible note","Secondary market","Initial coin offering","Post IPO secondary"];
+const DEPARTMENTS = ["C-Suite","Chief Executive","Finance Executive","Founder","Human Resources Executive","Information Technology Executive","Legal Executive","Marketing Executive","Operations Executive","Sales Leader","Product","Product Development","Product Management","Engineering & Technical","Artificial Intelligence / Machine Learning","Data Science & Analysis","DevOps","Digital Transformation","Software Development","Project Management","Research & Development","Design","Finance","Accounting","Financial Planning Strategy & Analysis","Sourcing / Procurement","Human Resources","People Operations","Recruiting & Talent Acquisition","Learning & Development","Information Technology","Information Security","IT Strategy","Cloud Engineering","Legal","Compliance","Legal Counsel","Legal Operations","Privacy","Marketing","Brand Management","Content Marketing","Customer Marketing","Growth & Demand Generation","Digital Marketing","Event & Field Marketing","Lead Generation","Marketing Operations","Product Marketing","Social Media Marketing","Sales","Sales Operations","Sales Engineering","Sales Enablement","Revenue Operations","Partnerships","Sales Development","Account Executive","Customer Success","Account Management","Operations","Supply Chain","Logistics","Facilities Management","Customer Service / Support","Corporate Strategy","Construction","Consulting","Medical & Health","Education & Coaching"];
+const FREEMAIL = new Set(["gmail.com","googlemail.com","yahoo.com","hotmail.com","outlook.com","live.com","icloud.com","me.com","aol.com","proton.me","protonmail.com","hey.com","msn.com"]);
+
+const INPUTS = [
+  {k:"site", t:"Their website", h:"Pulled automatically from the URL. Edit if the site is thin or JavaScript-only.", core:true},
+  {k:"customers", t:"Current customers", h:"One website URL per line. A Stripe export or CSV works too.", file:true, core:true},
+  {k:"newsite", t:"Our new website copy", h:"The rewrite we're shipping. Positioning wins over the old site."},
+  {k:"won", t:"Granola: deals won", h:"Transcripts or notes from calls that closed.", file:true},
+  {k:"lost", t:"Granola: deals lost", h:"Transcripts or notes from calls that went cold.", file:true},
+  {k:"founder", t:"Kickoff notes", h:"What the founder told us: dream customers, who to avoid, competitors."},
+];
+const CHECKS = [
+  {k:"emailSent", t:"Onboarding email sent", s:"Marked when you send it from the Email tab."},
+  {k:"paid", t:"Month one paid (Stripe)", s:"Kick off only after the first invoice clears."},
+  {k:"customerList", t:"Customer list received", s:"Feeds the ICP and the exclusion list."},
+  {k:"heyreach", t:"HeyReach connected", s:"Their LinkedIn is signed in so we can run sequences."},
+  {k:"granola", t:"Granola recordings shared", s:"A few won deals and a few lost ones."},
+  {k:"inbox", t:"Email workspace invite", s:"So we can spin up and warm a new sending inbox."},
+  {k:"photos", t:"Photos for content", s:"Founder, team and product in action. More is better."},
+  {k:"kickoff", t:"Weekly GTM call booked", s:"Same slot every week, 30 minutes."},
+  {k:"listBuilt", t:"First list built", s:"Prospeo search run and leads scored."},
+  {k:"campaignLive", t:"First campaign live", s:"Emails and LinkedIn sequences shipping."},
+];
+const STAGES = ["Onboarded","Access","Inputs in","ICP ready","List built","Campaigns live"];
+
+/* ---------- state ---------- */
+let clients = [];           // [{id, ...}]
+let settings = {stripe:"", guide:"", sign:"Priyanka & Khaled"};
+let selected = null;
+let tab = "brain";
+let promptView = "mega";
+let busy = {};
+const drafts = {};          // unsaved textarea text, survives live re-renders              // clientId -> true while sharpening
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const arr = v => Array.isArray(v) ? v.filter(x => x != null && String(x).trim() !== "") : [];
+const domainOf = s => { s = String(s||"").trim().toLowerCase(); if (!s) return ""; if (s.includes("@")) s = s.split("@").pop(); return s.replace(/^https?:\/\//,"").replace(/^www\./,"").split(/[\/?#\s]/)[0]; };
+const now = () => new Date().toISOString();
+const fmtDate = iso => { try { return new Date(iso).toLocaleDateString(undefined,{month:"short",day:"numeric"}); } catch { return ""; } };
+
+function toast(msg){ const t = $("#toast"); t.textContent = msg; t.hidden = false; clearTimeout(toast._t); toast._t = setTimeout(() => t.hidden = true, 2200); }
+async function copy(text, btn){
+  try { await navigator.clipboard.writeText(text); toast("Copied"); }
+  catch { const ta = document.createElement("textarea"); ta.value = text; document.body.appendChild(ta); ta.select(); try { document.execCommand("copy"); toast("Copied"); } catch { toast("Select the text and copy it"); } ta.remove(); }
+}
+
+/* ---------- CSV parsing for customer exports ---------- */
+function parseCSV(text){
+  const rows = []; let row = [], cur = "", q = false;
+  for (let i = 0; i < text.length; i++){
+    const c = text[i];
+    if (q){ if (c === '"'){ if (text[i+1] === '"'){ cur += '"'; i++; } else q = false; } else cur += c; }
+    else if (c === '"') q = true;
+    else if (c === ","){ row.push(cur); cur = ""; }
+    else if (c === "\n" || c === "\r"){ if (c === "\r" && text[i+1] === "\n") i++; row.push(cur); rows.push(row); row = []; cur = ""; }
+    else cur += c;
+  }
+  if (cur || row.length){ row.push(cur); rows.push(row); }
+  return rows.filter(r => r.some(x => x.trim()));
+}
+function customerDigest(raw){
+  raw = String(raw || "").trim();
+  if (!raw) return {domains:[], count:0, text:""};
+  let rows = [];
+  if (raw.includes(",") && raw.split("\n").length > 1) rows = parseCSV(raw);
+  const domains = new Map(); let count = 0; let lines = [];
+  if (rows.length > 1){
+    const head = rows[0].map(h => h.toLowerCase().trim());
+    const idx = n => head.findIndex(h => n.some(x => h === x || h.includes(x)));
+    const iEmail = idx(["email"]), iName = idx(["name"]), iDesc = idx(["description","company"]), iAmt = idx(["total spend","amount","mrr","plan"]);
+    for (const r of rows.slice(1)){
+      count++;
+      const d = domainOf(r[iEmail] ?? "");
+      if (d && !FREEMAIL.has(d)) domains.set(d, (domains.get(d)||0) + 1);
+      if (lines.length < 150) lines.push([r[iName], d || r[iEmail], r[iDesc], r[iAmt]].filter(Boolean).join(" | "));
+    }
+  } else {
+    for (const line of raw.split(/\n+/)){
+      if (!line.trim()) continue; count++;
+      const m = line.match(/[\w.+-]+@[\w-]+\.[\w.-]+/) || line.match(/(?:https?:\/\/)?(?:www\.)?[\w-]+\.[a-z]{2,}(?:\.[a-z]{2})?/i);
+      const d = m ? domainOf(m[0]) : "";
+      if (d && !FREEMAIL.has(d)) domains.set(d, (domains.get(d)||0) + 1);
+      if (lines.length < 150) lines.push(line.trim().slice(0,200));
+    }
+  }
+  return {domains:[...domains.keys()], count, text: lines.join("\n")};
+}
+
+/* ---------- storage ---------- */
+async function api(path, opts = {}){
+  const r = await fetch(path, {method: opts.method || (opts.body ? "POST" : "GET"), headers: {"content-type":"application/json"}, body: opts.body ? JSON.stringify(opts.body) : undefined, credentials: "same-origin"});
+  const b = await r.json().catch(() => ({}));
+  if (r.status === 401 && path !== "/api/login"){ location.reload(); throw {error:"Signed out"}; }
+  if (!r.ok) throw {status: r.status, error: b.error || ("Request failed (" + r.status + ")"), raw: b.raw, detail: b.detail};
+  return b;
+}
+let status = {claude:false, prospeo:false};
+async function refresh(){
+  try {
+    const list = await api("/api/clients");
+    // keep local-only fields (errors, results) when the server copy comes back
+    clients = list.sort((a,b) => String(b.createdAt).localeCompare(String(a.createdAt))).map(c => { const old = clients.find(x => x.id === c.id); return old ? {...c, _err: old._err, _results: old._results, _bt: old._bt} : c; });
+    if (!selected && clients.length) selected = clients[0].id;
+    if (selected && !clients.find(c => c.id === selected)) selected = clients[0]?.id || null;
+  } catch(e){ $("#storeNote").textContent = e.error || "Couldn't load clients."; }
+}
+async function boot(){
+  render();
+  try { status = await api("/api/status"); } catch {}
+  try { settings = {...settings, ...(await api("/api/settings"))}; } catch {}
+  await refresh();
+  $("#storeNote").innerHTML = `Claude: <b>${status.claude ? "connected" : "add ANTHROPIC_API_KEY"}</b> · Prospeo: <b>${status.prospeo ? "connected" : "add PROSPEO_API_KEY"}</b> · <a href="#" id="logout">Sign out</a>`;
+  $("#logout").onclick = async e => { e.preventDefault(); await fetch("/api/logout"); location.reload(); };
+  render();
+  // pick up Khaled's changes; skip while someone is mid-edit on this screen
+  setInterval(async () => { if (document.hidden || Object.keys(drafts).length || Object.values(busy).some(Boolean)) return; await refresh(); render(); }, 20000);
+}
+function strip(c){ const out = {}; for (const [k,v] of Object.entries(c)) if (!k.startsWith("_") && k !== "id" && k !== "updatedAt") out[k] = v; return out; }
+async function saveClient(id, patch){
+  const c = clients.find(x => x.id === id); if (!c) return;
+  Object.assign(c, patch);
+  render();
+  try { const saved = await api("/api/clients/" + id, {method:"PUT", body: strip(c)}); c.updatedAt = saved.updatedAt; }
+  catch(e){ toast("Save failed: " + e.error); }
+}
+async function createClient(c){
+  clients.unshift(c); selected = c.id; render();
+  try { await api("/api/clients/" + c.id, {method:"PUT", body: strip(c)}); }
+  catch(e){ toast("Couldn't create client: " + e.error); }
+}
+async function deleteClient(id){
+  try { await api("/api/clients/" + id, {method:"DELETE"}); clients = clients.filter(x => x.id !== id); selected = clients[0]?.id || null; render(); toast("Client deleted"); }
+  catch(e){ toast(e.error); }
+}
+
+/* ---------- derived ---------- */
+function filled(c){ return INPUTS.filter(i => String(c.inputs?.[i.k]||"").trim()).length; }
+const custDomains = c => customerDigest(c.inputs?.customers).domains.filter(d => d !== domainOf(c.website)).slice(0, 40);
+const researched = c => custDomains(c).filter(d => c.research?.[d]);
+const buyerCount = c => Object.values(c.buyers || {}).reduce((n, xs) => n + arr(xs).length, 0);
+function stageOf(c){
+  const ch = c.checks || {};
+  if (ch.campaignLive) return 5;
+  if (ch.listBuilt) return 4;
+  if (c.icp && (c.icp.confidence||0) >= 70) return 3;
+  if (researched(c).length >= 2 || filled(c) >= 3) return 2;
+  if (ch.emailSent) return 1;
+  return 0;
+}
+
+/* ---------- ICP engine ---------- */
+function icpPrompt(c){
+  const cut = (s,n) => { s = String(s||"").trim(); return s.length > n ? s.slice(0,n) + "\n[...truncated]" : s; };
+  const cust = customerDigest(c.inputs?.customers);
+  const prev = c.icp ? JSON.stringify(c.icp) : "none yet";
+  return `You are the head of GTM research at Cracked GTM, a fractional zero-to-one GTM team. Build or refine the Ideal Customer Profile for our client so we can generate a lead list in Prospeo and ship outbound campaigns.
+
+CLIENT: ${c.company} (${c.website || domainOf(c.email)})
+
+Weighting rules:
+- The CUSTOMER PATTERN ANALYSIS is the strongest evidence. Build archetypes from its strong patterns, buyer personas from its buyer pattern, and disqualifiers from its anti-patterns. Outliers are not archetypes unless they share a pattern.
+- Won-deal notes are next. Lost-deal notes tell us who to disqualify.
+- The NEW website copy is our intended positioning. When it conflicts with the current site, the new copy wins. Website copy says what they sell; it does not prove who buys.
+- Never invent facts about named customers. If a domain is unfamiliar, treat it as unknown.
+- If evidence is thin, say so in "gaps" and keep confidence low. Confidence above 80 needs a pattern analysis over at least 5 customers with confirmed buyers. Confidence above 60 needs at least 3 analyzed customers.
+
+PREVIOUS ICP (refine it; keep what still holds, change what new evidence contradicts):
+${cut(prev, 12000)}
+
+=== CUSTOMER PATTERN ANALYSIS (${c.patterns ? c.patterns.n + " customers, " + c.patterns.buyers + " confirmed buyers" : "not run yet"}) ===
+${c.patterns ? cut(JSON.stringify(stripMeta(c.patterns)), 14000) : "(not run yet)"}
+
+=== CURRENT WEBSITE COPY ===
+${cut(c.inputs?.site, 9000) || "(not provided)"}
+
+=== NEW WEBSITE COPY (our rewrite) ===
+${cut(c.inputs?.newsite, 9000) || "(not provided)"}
+
+=== CUSTOMERS (${cust.count} rows; business domains: ${cust.domains.slice(0,80).join(", ") || "none"}) ===
+${cut(cust.text, 9000) || "(not provided)"}
+
+=== WON DEALS (call notes) ===
+${cut(c.inputs?.won, 9000) || "(not provided)"}
+
+=== LOST DEALS (call notes) ===
+${cut(c.inputs?.lost, 9000) || "(not provided)"}
+
+=== KICKOFF NOTES FROM FOUNDER ===
+${cut(c.inputs?.founder, 6000) || "(not provided)"}
+
+Allowed values (use these exact strings, only these):
+- seniority: ${SENIORITY.join(" | ")}
+- headcount: ${HEADCOUNT.join(" | ")}
+- funding: ${FUNDING.join(" | ")}
+- departments: ${DEPARTMENTS.join(" | ")}
+
+Reply with only one JSON object in exactly this shape:
+{
+ "one_liner": "what the client sells, to whom, in one sentence",
+ "summary": "2-3 sentences: who buys, why, and what makes a lead great",
+ "confidence": 0-100,
+ "archetypes": [{"name":"short label","company_profile":"size, stage, industry, model","buyer":"title who signs","pain":"the pain in the buyer's words","trigger":"event that makes them buy now","why_they_buy":"","evidence":"which input supports this"}],
+ "qualification": [{"criterion":"must-have or strong signal, observable from data","weight":1-5,"how_to_check":"field or signal in Prospeo, LinkedIn or the website"}],
+ "disqualification": [{"criterion":"","how_to_check":""}],
+ "buying_signals": ["observable signal that the problem is live right now"],
+ "personas": {"titles_include":["lowercase full title phrases, e.g. chief technology officer, head of growth (no bare acronyms; these are substring-matched)"],"titles_exclude":[],"seniority":[],"departments":[]},
+ "firmographics": {"headcount":[],"funding":[],"industries":["LinkedIn-style industry names"],"locations":["country or region names"],"technologies":[]},
+ "competitors": ["companies to exclude or use as lookalike seeds"],
+ "lookalike_seeds": ["domains of best-fit customers to find lookalikes of"],
+ "messaging_angles": ["one-line angle per archetype"],
+ "gaps": ["the single most useful missing input, phrased as an ask to the client"],
+ "changelog": "one sentence on what changed versus the previous ICP and why"
+}
+1-3 archetypes, 5-8 qualification criteria, 4-7 disqualification criteria.`;
+}
+
+async function sharpen(id){
+  const c = clients.find(x => x.id === id); if (!c || busy[id]) return;
+  if (!status.claude){ toast("Add ANTHROPIC_API_KEY to the Worker to build ICPs"); return; }
+  if (!filled(c) && !c.patterns){ toast("Add their website or customers first"); return; }
+  busy[id] = true; c._err = ""; render();
+  try {
+    const {data: out} = await api("/api/claude", {body: {prompt: icpPrompt(c), maxTokens: 8000}});
+    if (!out || typeof out !== "object" || !out.archetypes) throw {error:"Claude's answer was missing the ICP fields. Try again."};
+    const v = (c.icp?.version || 0) + 1;
+    out.version = v; out.builtAt = now(); out.inputsUsed = INPUTS.filter(i => String(c.inputs?.[i.k]||"").trim()).map(i => i.k).concat(c.patterns ? ["patterns"] : []);
+    const history = [...arr(c.history), {v, at: out.builtAt, confidence: out.confidence, note: out.changelog || ""}].slice(-20);
+    busy[id] = false;
+    await saveClient(id, {icp: out, history});
+    toast("ICP v" + v + " ready");
+  } catch(e){
+    busy[id] = false;
+    c._err = e?.error || "Something went wrong. Try again.";
+    render();
+  }
+}
+
+/* ---------- customer research + pattern recognition ---------- */
+const stripMeta = o => { const {at, n, buyers, ...rest} = o || {}; return rest; };
+function personOf(r){ const l = normalizeLead(r); const p = r.person || r; return {...l, seniority: p.seniority || p.job_seniority || "", department: arr(p.departments || p.job_departments).join(", ") || p.department || ""}; }
+async function researchCustomers(c, force = false){
+  const todo = custDomains(c).filter(d => force || !c.research?.[d]);
+  if (!todo.length){ toast(custDomains(c).length ? "All customers already researched" : "Add customer URLs first"); return; }
+  busy[c.id + ":research"] = {done: 0, of: todo.length}; c._err = ""; render();
+  const research = {...(c.research || {})};
+  let i = 0;
+  const worker = async () => {
+    while (i < todo.length){
+      const d = todo[i++];
+      try {
+        const r = await api("/api/research-customer", {body: {domain: d}});
+        const people = arr(r.people).map(personOf);
+        const first = arr(r.people)[0] || {};
+        const co = first.company || {};
+        research[d] = {at: now(), site: r.site || "", siteError: r.siteError || "", peopleError: r.peopleError || "", total: r.total ?? people.length,
+          company: {name: co.name || people[0]?.company || "", industry: co.industry || "", headcount: co.employee_count || co.employee_range || co.headcount || "", location: typeof co.location === "string" ? co.location : [co.location?.city, co.location?.country].filter(Boolean).join(", "), funding: co.funding_stage || co.last_funding_stage || co.funding?.stage || "", description: String(co.description || "").slice(0, 400)},
+          people: people.map(({key, name, title, linkedin, location, seniority, department}) => ({key, name, title, linkedin, location, seniority, department}))};
+      } catch(e){ research[d] = {at: now(), site: "", siteError: e.error, peopleError: e.error, people: [], company: {}}; }
+      busy[c.id + ":research"].done++; c.research = research; render();
+    }
+  };
+  await Promise.all([worker(), worker(), worker()]);
+  busy[c.id + ":research"] = false;
+  await saveClient(c.id, {research});
+  toast("Researched " + todo.length + " customer" + (todo.length > 1 ? "s" : "") + ". Tick the buyers, then find patterns.");
+}
+function patternPrompt(c){
+  const cut = (s,n) => { s = String(s||"").trim(); return s.length > n ? s.slice(0,n) + " [...]" : s; };
+  const ds = researched(c);
+  const blocks = ds.map((d, n) => {
+    const r = c.research[d]; const picks = arr(c.buyers?.[d]);
+    const buyers = r.people.filter(p => picks.includes(p.key));
+    const leaders = r.people.filter(p => !picks.includes(p.key)).slice(0, 12);
+    return `### Customer ${n+1}: ${d}
+Company data: ${[r.company?.name, r.company?.industry, r.company?.headcount && ("headcount " + r.company.headcount), r.company?.funding && ("funding " + r.company.funding), r.company?.location].filter(Boolean).join(" | ") || "none"}
+CONFIRMED BUYER(S): ${buyers.length ? buyers.map(p => `${p.title} (${[p.seniority, p.department].filter(Boolean).join(", ") || "n/a"})`).join("; ") : "not confirmed"}
+Other leaders found (unconfirmed, context only): ${leaders.map(p => p.title).filter(Boolean).join("; ") || "none found"}
+Website excerpt: ${r.site ? cut(r.site, 2200) : "(couldn't read site: " + (r.siteError || "unknown") + ")"}`;
+  }).join("\n\n");
+  return `You are a GTM analyst doing pattern recognition across a startup's earliest customers. The goal is to find what these customers have in common so we can find more companies like them.
+
+THE STARTUP: ${c.company} (${c.website})
+What they sell, from their site: ${cut(c.inputs?.site, 3000) || "(site not pulled)"}
+
+THEIR CUSTOMERS (${ds.length}):
+${blocks}
+
+How to analyze:
+1. Classify every customer on each dimension below, using only the evidence shown plus well-established public knowledge of that company. If the evidence doesn't show it, classify it as "unknown". Never guess to fill a gap.
+2. A pattern needs at least 2 customers. Report it as a count over ${ds.length} and name the domains. Strength: strong = 60%+ of customers, moderate = 40-59%, weak = under 40%.
+3. Dimensions: industry/vertical; who THEY sell to (their own customer); business model (B2B SaaS, marketplace, services, hardware, B2C...); sales motion (product-led, sales-led, founder-led, self-serve); company size; stage/funding; geography; product category; buyer title, function and seniority (confirmed buyers outweigh unconfirmed leaders; say which you used); recurring pains, outcomes or phrases on their websites.
+4. Find the intersection: the narrowest description that still covers most customers. That's the sharpest ICP hypothesis.
+5. Name outliers (customers that break the main pattern) and anti-patterns (traits no customer has that a list builder might wrongly include).
+6. Be blunt about confidence. ${ds.length} customers is ${ds.length < 4 ? "a small sample; say so" : "a usable sample"}.
+
+Reply with only one JSON object:
+{
+ "classification": [{"domain":"", "industry":"", "sells_to":"", "model":"", "motion":"", "size":"", "stage":"", "geo":"", "category":"", "buyer":""}],
+ "patterns": [{"dimension":"", "finding":"plain-language pattern", "count": 0, "of": ${ds.length}, "domains": [""], "strength":"strong|moderate|weak"}],
+ "buyer_pattern": {"finding":"", "titles":["full title phrases"], "seniority":[], "departments":[], "count": 0, "of": ${ds.length}, "basis":"confirmed buyers | unconfirmed leaders | mixed"},
+ "language": ["recurring phrases or pains from their sites, quoted short"],
+ "hypothesis": "one sentence: the narrowest ICP that covers most customers",
+ "outliers": [{"domain":"", "why":""}],
+ "anti_patterns": ["trait to exclude, with why"],
+ "lookalike_brief": "2-3 sentences a researcher could use to find more companies like these",
+ "confidence": "low|medium|high, with one-line reason",
+ "next_evidence": ["the most useful thing to confirm next"]
+}`;
+}
+async function findPatterns(c){
+  if (!status.claude){ toast("Add ANTHROPIC_API_KEY to the Worker first"); return false; }
+  if (researched(c).length < 2){ toast("Research at least 2 customers first"); return false; }
+  busy[c.id + ":patterns"] = true; c._err = ""; render();
+  try {
+    const {data} = await api("/api/claude", {body: {prompt: patternPrompt(c), maxTokens: 10000}});
+    if (!data || !Array.isArray(data.patterns)) throw {error: "The pattern analysis came back incomplete. Try again."};
+    data.at = now(); data.n = researched(c).length; data.buyers = buyerCount(c);
+    busy[c.id + ":patterns"] = false;
+    await saveClient(c.id, {patterns: data});
+    toast("Found " + data.patterns.length + " patterns across " + data.n + " customers");
+    return true;
+  } catch(e){ busy[c.id + ":patterns"] = false; c._err = e.error; render(); return false; }
+}
+async function patternsThenICP(c){ if (await findPatterns(c)) sharpen(c.id); }
+function patternsStale(c){ const p = c.patterns; return !p || p.n !== researched(c).length || p.buyers !== buyerCount(c); }
+
+/* ---------- prompt + payload builders ---------- */
+const pct = c => Math.max(40, Math.min(95, Number(c.threshold) || 70));
+const totalPts = c => arr(c.icp?.qualification).reduce((s,q) => s + (Number(q.weight)||1), 0) || 1;
+const passMark = (c, total = totalPts(c)) => Math.ceil(total * pct(c) / 100);
+const bullet = (xs, f = x => x) => arr(xs).map(x => "- " + f(x)).join("\n") || "- (none yet)";
+function megaPrompt(c){
+  const i = c.icp; if (!i) return "";
+  const cust = customerDigest(c.inputs?.customers);
+  const total = arr(i.qualification).reduce((s,q) => s + (Number(q.weight)||1), 0) || 1;
+  return `# ROLE
+You are a senior GTM researcher building a high-precision prospect list for ${c.company} (${c.website || domainOf(c.email)}). Precision beats volume. A short list of perfect-fit leads is the goal.
+
+# WHAT ${c.company.toUpperCase()} SELLS
+${i.one_liner || ""}
+${i.summary || ""}
+
+${c.patterns ? `# WHAT ${c.company.toUpperCase()}'S CURRENT CUSTOMERS HAVE IN COMMON (${c.patterns.n} customers analyzed)
+${arr(c.patterns.patterns).filter(x => x.strength !== "weak").map(x => `- ${x.finding} (${x.count}/${x.of}, ${x.strength})`).join("\n")}
+Buyer: ${c.patterns.buyer_pattern?.finding || "(unknown)"}
+Sharpest hypothesis: ${c.patterns.hypothesis || ""}
+Find lookalikes: ${c.patterns.lookalike_brief || ""}
+
+` : ""}# ICP ARCHETYPES (ranked, best first)
+${arr(i.archetypes).map((a,n) => `${n+1}. ${a.name}
+   Company: ${a.company_profile}
+   Buyer: ${a.buyer}
+   Pain: ${a.pain}
+   Buys now when: ${a.trigger}
+   Why they buy: ${a.why_they_buy}`).join("\n\n")}
+
+# QUALIFICATION CRITERIA (score each lead, max ${total} points)
+${arr(i.qualification).map(q => `- [${Number(q.weight)||1} pts] ${q.criterion}\n    Check: ${q.how_to_check}`).join("\n")}
+
+# DISQUALIFICATION CRITERIA (drop the lead if ANY is true)
+${arr(i.disqualification).map(q => `- ${q.criterion}\n    Check: ${q.how_to_check}`).join("\n")}
+
+# BUYING SIGNALS (problem is live right now; prioritize these)
+${bullet(i.buying_signals)}
+
+# TARGET PEOPLE
+Titles to include: ${arr(i.personas?.titles_include).join(", ") || "(see archetypes)"}
+Titles to exclude: ${arr(i.personas?.titles_exclude).join(", ") || "(none)"}
+Seniority: ${arr(i.personas?.seniority).join(", ") || "(any)"}
+Departments: ${arr(i.personas?.departments).join(", ") || "(any)"}
+
+# TARGET COMPANIES
+Headcount: ${arr(i.firmographics?.headcount).join(", ") || "(any)"}
+Funding: ${arr(i.firmographics?.funding).join(", ") || "(any)"}
+Industries: ${arr(i.firmographics?.industries).join(", ") || "(any)"}
+Locations: ${arr(i.firmographics?.locations).join(", ") || "(any)"}
+Tech stack signals: ${arr(i.firmographics?.technologies).join(", ") || "(none)"}
+Lookalikes of: ${arr(i.lookalike_seeds).join(", ") || "(none yet)"}
+
+# HARD EXCLUSIONS
+- Existing customers (${cust.domains.length} domains): ${cust.domains.slice(0,60).join(", ") || "(customer list not provided yet)"}${cust.domains.length > 60 ? ", ..." : ""}
+- Competitors: ${arr(i.competitors).join(", ") || "(none listed)"}
+- Personal email domains, agencies reselling the same service, students, job seekers
+
+# OUTPUT
+Return one row per lead with: full_name, title, company, domain, linkedin_url, location, archetype (name from above), qualification_score (0-${total}), matched_criteria, disqualifier_check ("clear" or the reason), why_now (one sentence citing a real signal), personalization_hook (one line we could open an email with).
+Only return leads scoring at least ${passMark(c,total)} of ${total} with disqualifier_check = "clear". If unsure about a criterion, score it 0. Never guess emails or invent signals.`;
+}
+function clayPrompt(c){
+  const i = c.icp; if (!i) return "";
+  const total = arr(i.qualification).reduce((s,q) => s + (Number(q.weight)||1), 0) || 1;
+  return `You qualify one lead for ${c.company}. ${i.one_liner || ""}
+
+Lead record:
+Name: /Full Name  |  Title: /Title  |  Company: /Company Name  |  Domain: /Company Domain  |  Headcount: /Employee Count  |  Industry: /Industry  |  LinkedIn: /LinkedIn Profile  |  Company description: /Company Description
+
+Score against these criteria (points in brackets):
+${arr(i.qualification).map(q => `- [${Number(q.weight)||1}] ${q.criterion}`).join("\n")}
+
+Disqualify if any is true:
+${arr(i.disqualification).map(q => `- ${q.criterion}`).join("\n")}
+
+Archetypes: ${arr(i.archetypes).map(a => a.name).join(" | ")}
+
+Return JSON only:
+{"score": 0-${total}, "pass": true if score >= ${passMark(c,total)} and no disqualifier, "archetype": "", "disqualifier": "" or null, "reason": "one sentence", "hook": "one-line personalized opener"}
+Score a criterion 0 when the record doesn't show it. Don't guess.`;
+}
+function prospeoPayload(c){
+  const i = c.icp; if (!i) return null;
+  const keep = (xs, allowed) => { const set = new Map(allowed.map(a => [a.toLowerCase(), a])); return arr(xs).map(x => set.get(String(x).toLowerCase())).filter(Boolean); };
+  const f = {};
+  const sen = keep(i.personas?.seniority, SENIORITY); if (sen.length) f.person_seniority = {include: sen};
+  const dep = keep(i.personas?.departments, DEPARTMENTS); if (dep.length) f.person_department = {include: dep};
+  // CONTAINS matching: "cto" would also hit "direCTOr", so expand acronyms and drop fragments under 4 chars
+  const ACR = {ceo:"chief executive officer",cto:"chief technology officer",cfo:"chief financial officer",coo:"chief operating officer",cmo:"chief marketing officer",cro:"chief revenue officer",cpo:"chief product officer",ciso:"chief information security officer",cio:"chief information officer",vp:"vice president"};
+  const titles = [...new Set(arr(i.personas?.titles_include).map(t => String(t).toLowerCase().trim()).flatMap(t => ACR[t] ? [ACR[t]] : t.length >= 4 ? [t] : []))];
+  if (titles.length) f.person_job_title = {include: titles, match_mode: "CONTAINS"};
+  const hc = keep(i.firmographics?.headcount, HEADCOUNT); if (hc.length) f.company_headcount_range = {include: hc};
+  const fu = keep(i.firmographics?.funding, FUNDING); if (fu.length) f.company_funding = {include: fu};
+  const ind = arr(i.firmographics?.industries); if (ind.length) f.company_industry = {include: ind};
+  const loc = arr(i.firmographics?.locations); if (loc.length) f.company_location_search = {include: loc};
+  const cust = customerDigest(c.inputs?.customers).domains;
+  const own = domainOf(c.website || c.email);
+  const excl = [...new Set([own, ...cust].filter(Boolean))].slice(0,500);
+  if (excl.length) f.company = {websites: {exclude: excl}};
+  const dropped = {
+    seniority: arr(i.personas?.seniority).filter(x => !sen.includes(x)),
+    departments: arr(i.personas?.departments).filter(x => !dep.includes(x)),
+    headcount: arr(i.firmographics?.headcount).filter(x => !hc.includes(x)),
+    funding: arr(i.firmographics?.funding).filter(x => !fu.includes(x)),
+  };
+  return {body: {page: 1, filters: f}, dropped, excluded: excl.length};
+}
+
+
+const CRACKED_BAD = `salesforce.com - 70,000+ employees with a huge sales org
+duolingo.com - consumer app, B2C
+a pre-launch idea stage startup with no product and no customers
+a 40-person outbound lead-gen agency selling the same service`;
+
+/* ---------- render ---------- */
+function render(){
+  const pick = $("#clientPick");
+  pick.innerHTML = clients.length ? clients.map(c => `<option value="${esc(c.id)}" ${c.id === selected ? "selected" : ""}>${esc(c.company)}</option>`).join("") : '<option>No clients yet</option>';
+  pick.disabled = !clients.length;
+  const c = clients.find(x => x.id === selected);
+  const m = $("#main");
+  const keepScroll = window.scrollY;
+  if (!c){ m.innerHTML = emptyView(); bindEmpty(); return; }
+  m.innerHTML = clientView(c);
+  bindClient(c);
+  window.scrollTo(0, keepScroll);
+}
+function emptyView(){
+  return `<section class="empty">
+    <h1>Onboard a client</h1>
+    <p>Add their website and customer URLs. The tool finds the buyers, spots patterns across customers, builds the ICP, and pulls scored leads from Prospeo.</p>
+    <div class="row"><button class="btn red" id="emptyOnboard" type="button">+ New client</button><button class="btn ghost" id="emptyTest" type="button">Test on Cracked GTM</button></div>
+  </section>`;
+}
+function bindEmpty(){ const b = $("#emptyOnboard"); if (b) b.onclick = openOnboard; const t = $("#emptyTest"); if (t) t.onclick = () => { openOnboard(); fillCracked(); }; }
+function fillCracked(){ $("#obFirst").value = "Priyanka"; $("#obCompany").value = "Cracked GTM"; $("#obEmail").value = "priyankassundhar@gmail.com"; $("#obSite").value = "crackedgtm.ai"; }
+function step(n, title, done, next, body, hint = ""){
+  return `<section class="step ${done ? "done" : ""} ${next ? "next" : ""}" id="step${n}">
+    <div class="step-h"><span class="n">${done ? "✓" : n}</span><h2>${title}</h2>${hint ? `<span class="hint">${hint}</span>` : ""}</div>
+    <div class="step-b">${body}</div></section>`;
+}
+function clientView(c){
+  const ds = custDomains(c);
+  const flags = [!!String(c.inputs?.site || "").trim(), ds.length > 0, researched(c).length > 0, !!c.icp, arr(c.leads).some(l => l.score != null), !!c.checks?.emailSent];
+  const next = flags.findIndex(f => !f);
+  const stale = patternsStale(c) && researched(c).length >= 2;
+  const more = INPUTS.filter(i => !i.core);
+  return `
+  <div class="chead"><h1>${esc(c.company)}</h1><div class="sub">${esc(c.first)} · ${esc(c.email)} · ${esc(c.website || "")}</div></div>
+  ${c._err ? `<div class="banner" role="alert">${esc(c._err)} <button class="x" id="clearErr" type="button" aria-label="Dismiss">×</button></div>` : ""}
+  ${step(1, "Their website", flags[0], next === 0, inputCard(c, INPUTS[0], false, !flags[0]))}
+  ${step(2, "Customer URLs", flags[1], next === 1, inputCard(c, INPUTS[1], false, !flags[1]), ds.length ? ds.length + " customers" : "")}
+  ${step(3, "Team members + buyers", flags[2], next === 2, researchBlock(c), buyerCount(c) ? buyerCount(c) + " buyers ticked" : "")}
+  ${step(4, "Patterns and ICP", flags[3], next === 3, `
+    <div class="row">
+      <button class="btn ${stale || !c.patterns ? "red" : ""}" id="patternsBtn" type="button" ${busy[c.id + ":patterns"] || busy[c.id] || researched(c).length < 2 ? "disabled" : ""}>${c.patterns && stale ? "Re-find patterns" : "Find patterns + build ICP"}</button>
+      <button class="btn" id="sharpenBtn" type="button" ${busy[c.id] ? "disabled" : ""}>${c.icp ? "Sharpen ICP only" : "Build ICP without patterns"}</button>
+    </div>
+    ${researched(c).length < 2 ? '<p class="hint">Research at least 2 customers to find patterns.</p>' : stale && c.patterns ? '<p class="hint">Customers or buyers changed since the last analysis.</p>' : ""}
+    ${patternsCard(c)}${icpCard(c)}`, c.icp ? "ICP v" + c.icp.version + " · " + (c.icp.confidence ?? "?") + "%" : "")}
+  ${step(5, "Leads", flags[4], next === 4, prospeoPane(c), arr(c.leads).length ? arr(c.leads).filter(l => l.pass).length + " of " + arr(c.leads).length + " pass" : "")}
+  ${step(6, "Onboarding email", flags[5], next === 5, emailPane(c))}
+  <section class="extras">
+    <details class="input-card"><summary><span class="t">More evidence<span class="h">New website copy, won and lost calls, kickoff notes. Saving these re-sharpens the ICP.</span></span><span class="chip">${more.filter(i => String(c.inputs?.[i.k]||"").trim()).length}/${more.length}</span></summary>
+      <div class="body">${more.map(i => inputCard(c, i, true, false)).join("")}</div></details>
+    <details class="input-card" ${c._open === "bt" ? "open" : ""} data-sec="bt"><summary><span class="t">Backtest<span class="h">Check the ICP passes known good fits and rejects known bad ones.</span></span>${c.backtest ? '<span class="chip ok">Run</span>' : ""}</summary><div class="body">${backtestPane(c)}</div></details>
+    <details class="input-card" ${c._open === "mp" ? "open" : ""} data-sec="mp"><summary><span class="t">Mega prompt<span class="h">For Prospeo AI search, Clay or any research agent.</span></span></summary><div class="body">${promptPane(c)}</div></details>
+    <details class="input-card"><summary><span class="t">Access checklist</span><span class="chip">${CHECKS.filter(k => c.checks?.[k.k]).length}/${CHECKS.length}</span></summary><div class="body">${checksPane(c)}</div></details>
+    <button class="btn sm ghost" id="delClient" type="button">${c._confirmDel ? "Click again to delete " + esc(c.company) : "Delete client"}</button>
+  </section>`;
+}
+
+function inputCard(c, i, auto, openIt){
+  const saved = String(c.inputs?.[i.k] || "");
+  const v = drafts[c.id + ":" + i.k] ?? saved;
+  const isDraft = drafts[c.id + ":" + i.k] != null;
+  const extra = i.k === "customers" && v.trim() ? (() => { const d = customerDigest(v); return `<span class="hint">${d.domains.length} customer domain${d.domains.length === 1 ? "" : "s"} found. These are auto-excluded from lead lists.</span>`; })() : "";
+  return `<details class="input-card" ${isDraft || openIt ? "open" : ""}>
+    <summary><span class="t">${i.t}<span class="h">${i.h}</span></span>${isDraft ? '<span class="chip y">Unsaved</span>' : saved.trim() ? '<span class="chip ok">Added</span>' : '<span class="chip miss">Missing</span>'}</summary>
+    <div class="body">
+      <textarea id="in-${i.k}" placeholder="${i.k === "customers" ? "waldium.com\nacme.ai\nhttps://example.com" : "Paste here"}">${esc(v)}</textarea>
+      ${extra}
+      ${i.k === "customers" ? `<div class="mini"><input id="stripeKey" type="password" autocomplete="off" placeholder="Or: client's Stripe restricted key (rk_live_…)" aria-label="Client's Stripe restricted key"><button class="btn sm ghost" id="pullStripe" type="button" ${busy[c.id + ":stripe"] ? "disabled" : ""}>${busy[c.id + ":stripe"] ? "Pulling…" : "Pull from Stripe"}</button></div>` : ""}
+      <div class="row">
+        <button class="btn sm dark" data-save="${i.k}" type="button">Save${auto && !i.core ? " + sharpen" : ""}</button>
+        ${i.k === "site" ? `<button class="btn sm yellow" id="pullSite" type="button" ${busy[c.id + ":site"] ? "disabled" : ""}>${busy[c.id + ":site"] ? "Pulling…" : saved.trim() ? "Re-pull " + esc(c.website || "website") : "Pull " + esc(c.website || "website")}</button>` : ""}
+        ${i.file ? `<span class="btn sm ghost file-btn">Upload file<input type="file" accept=".csv,.txt,.md,.tsv,.json" data-file="${i.k}" aria-label="Upload ${i.t}"></span>` : ""}
+      </div>
+    </div>
+  </details>`;
+}
+function researchBlock(c){
+  const ds = custDomains(c); const rb = busy[c.id + ":research"];
+  if (!ds.length) return `<div class="note">Add customer URLs above, then the tool reads each customer's site and finds their leadership team so you can tick the real buyer.</div>`;
+  const todo = ds.filter(d => !c.research?.[d]).length;
+  return `<div class="stack" style="gap:12px">
+    <div class="row">
+      <button class="btn red" id="researchBtn" type="button" ${rb ? "disabled" : ""}>${rb ? `Researching ${rb.done}/${rb.of}…` : todo ? `Research ${todo} customer${todo > 1 ? "s" : ""}` : "Re-research all"}</button>
+      <span class="hint">${status.prospeo ? "Reads each site and finds leaders in Prospeo (1 credit per customer)." : "Prospeo isn't connected, so only websites will be read."}</span>
+    </div>
+    ${ds.filter(d => c.research?.[d]).map(d => {
+      const r = c.research[d]; const picks = arr(c.buyers?.[d]); const showAll = c._showAll?.[d];
+      const people = showAll ? r.people : r.people.slice(0, 6);
+      return `<div class="input-card" style="padding:12px;display:flex;flex-direction:column;gap:8px">
+        <div class="row" style="justify-content:space-between"><b>${esc(r.company?.name || d)}</b><span class="hint">${esc(d)}${r.company?.industry ? " · " + esc(r.company.industry) : ""}${r.company?.headcount ? " · " + esc(r.company.headcount) + " people" : ""}</span></div>
+        <div class="row">${r.site ? '<span class="chip ok">Site read</span>' : `<span class="chip miss" title="${esc(r.siteError)}">Site unreadable</span>`}${picks.length ? `<span class="chip y">${picks.length} buyer${picks.length > 1 ? "s" : ""} confirmed</span>` : r.people.length ? '<span class="chip miss">Tick the buyer</span>' : ""}</div>
+        ${r.people.length ? `<div style="display:flex;flex-direction:column;gap:4px">${people.map(pp => `<label class="toggle" style="font-weight:500"><input type="checkbox" data-buyer="${esc(d)}" value="${esc(pp.key)}" ${picks.includes(pp.key) ? "checked" : ""}><span><b>${esc(pp.name)}</b> · ${esc(pp.title)}</span></label>`).join("")}</div>
+          ${r.people.length > 6 ? `<button class="btn sm ghost" data-showall="${esc(d)}" type="button">${showAll ? "Show fewer" : "Show all " + r.people.length}</button>` : ""}` : `<span class="hint">${esc(r.peopleError || "No leaders found in Prospeo.")}</span>`}
+      </div>`;
+    }).join("")}
+  </div>`;
+}
+function patternsCard(c){
+  const pb = busy[c.id + ":patterns"]; const p = c.patterns;
+  if (pb) return `<div class="icp"><div class="thinking"><span class="dot"></span>Comparing ${researched(c).length} customers across 10 dimensions…</div></div>`;
+  if (!p) return "";
+  const strong = arr(p.patterns).sort((a,b) => (b.count/b.of) - (a.count/a.of));
+  return `<div class="icp" style="box-shadow:8px 8px 0 var(--shadow)">
+    <div class="icp-top"><div style="min-width:0;flex:1"><span class="k">PATTERNS · ${p.n} CUSTOMERS · ${p.buyers} BUYERS</span><h3>${esc(p.hypothesis)}</h3></div><div class="meter"><span>confidence</span><b style="font-size:18px">${esc(String(p.confidence || "").split(/[ ,.]/)[0])}</b></div></div>
+    <div class="icp-body">
+      <ul class="crit">${strong.map(x => `<li><span><b>${esc(x.finding)}</b><br><span class="hint">${esc(x.dimension)} · ${esc(arr(x.domains).join(", "))}</span></span><span class="w">${x.count}/${x.of} ${esc(x.strength || "")}</span></li>`).join("")}</ul>
+      ${p.buyer_pattern?.finding ? `<div><h4>BUYER</h4><p>${esc(p.buyer_pattern.finding)} <span class="hint">(${p.buyer_pattern.count}/${p.buyer_pattern.of}, ${esc(p.buyer_pattern.basis || "")})</span></p></div>` : ""}
+      ${arr(p.language).length ? `<div><h4>THEIR LANGUAGE</h4><p>${arr(p.language).map(x => "“" + esc(x) + "”").join(" · ")}</p></div>` : ""}
+      ${arr(p.outliers).length ? `<div><h4>OUTLIERS</h4><ul class="crit gap">${arr(p.outliers).map(o => `<li><span><b>${esc(o.domain)}</b>: ${esc(o.why)}</span></li>`).join("")}</ul></div>` : ""}
+      ${arr(p.anti_patterns).length ? `<div><h4>ANTI-PATTERNS</h4><ul class="crit dq">${arr(p.anti_patterns).map(x => `<li>${esc(x)}</li>`).join("")}</ul></div>` : ""}
+      <p class="hint">${esc(p.confidence || "")}${arr(p.next_evidence).length ? " · Next: " + esc(arr(p.next_evidence).join("; ")) : ""}</p>
+    </div>
+  </div>`;
+}
+function icpCard(c){
+  if (busy[c.id] && !c.icp) return `<div class="icp"><div class="thinking"><span class="dot"></span>Reading the inputs and building the first ICP. This takes about a minute.</div></div>`;
+  const i = c.icp;
+  if (!i) return `<div class="icp"><div class="icp-empty">
+    <span class="comic" style="font-size:20px;color:var(--red)">NO ICP YET</span>
+    <p>Paste their website copy or upload the Stripe customer export, then build. Each new input sharpens the profile and bumps the version. The mega prompt and Prospeo search update with it.</p>
+  </div></div>`;
+  const conf = Math.max(0, Math.min(100, Number(i.confidence)||0));
+  return `<div class="icp">
+    <div class="icp-top">
+      <div style="min-width:0;flex:1"><span class="k">ICP v${i.version}${busy[c.id] ? " · SHARPENING…" : ""}</span><h3>${esc(i.one_liner)}</h3></div>
+      <div class="meter"><b>${conf}%</b><span>confidence</span><div class="bar"><i style="width:${conf}%"></i></div></div>
+    </div>
+    <div class="icp-body">
+      <p>${esc(i.summary)}</p>
+      <div><h4>ARCHETYPES</h4><div class="arch">${arr(i.archetypes).map(a => `<div><b>${esc(a.name)}</b><span><strong>Company:</strong> ${esc(a.company_profile)}</span><span><strong>Buyer:</strong> ${esc(a.buyer)}</span><span><strong>Pain:</strong> ${esc(a.pain)}</span><span><strong>Buys now when:</strong> ${esc(a.trigger)}</span>${a.evidence ? `<span class="hint">Evidence: ${esc(a.evidence)}</span>` : ""}</div>`).join("")}</div></div>
+      <div class="two">
+        <div><h4>QUALIFY</h4><ul class="crit">${arr(i.qualification).map(q => `<li><span>${esc(q.criterion)}</span><span class="w">${Number(q.weight)||1} pt</span></li>`).join("")}</ul></div>
+        <div><h4>DISQUALIFY</h4><ul class="crit dq">${arr(i.disqualification).map(q => `<li><span>${esc(q.criterion)}</span></li>`).join("")}</ul></div>
+      </div>
+      ${arr(i.buying_signals).length ? `<div><h4>BUYING SIGNALS</h4><ul class="crit">${arr(i.buying_signals).map(x => `<li>${esc(x)}</li>`).join("")}</ul></div>` : ""}
+      ${arr(i.gaps).length ? `<div><h4>ASK THE CLIENT FOR</h4><ul class="crit gap">${arr(i.gaps).map(x => `<li>${esc(x)}</li>`).join("")}</ul></div>` : ""}
+    </div>
+  </div>`;
+}
+
+function promptPane(c){
+  if (!c.icp) return `<div class="note"><b>Build the ICP first.</b> The mega prompt is generated from it and updates every time the ICP sharpens.</div>`;
+  const text = promptView === "mega" ? megaPrompt(c) : clayPrompt(c);
+  return `<div class="stack">
+    <div class="row"><div class="seg"><button class="${promptView==="mega"?"on":""}" data-pv="mega" type="button">Mega prompt (list building)</button><button class="${promptView==="clay"?"on":""}" data-pv="clay" type="button">Row qualifier (Clay / Sheets column)</button></div></div>
+    <div class="codebox"><div class="codebar"><b>${promptView === "mega" ? "MEGA PROMPT" : "ROW QUALIFIER"} · ICP v${c.icp.version}</b><button class="btn sm dark" id="copyPrompt" type="button">Copy</button></div><pre id="promptText">${esc(text)}</pre></div>
+    <p class="hint">${promptView === "mega" ? "Drop into Prospeo's AI search, Clay's Claygent, or any research agent. Qualification weights, disqualifiers, and the existing-customer exclusion list are baked in." : "Runs per row. /Field names are Clay column references; rename them to match your table."}</p>
+  </div>`;
+}
+
+function prospeoPane(c){
+  const p = prospeoPayload(c);
+  if (!p) return `<div class="note"><b>Build the ICP first.</b> The Prospeo search is generated from its personas and firmographics.</div>`;
+  const body = JSON.stringify(p.body, null, 2);
+  const curl = `curl -X POST https://api.prospeo.io/search-person \\\n  -H "X-KEY: $PROSPEO_API_KEY" \\\n  -H "Content-Type: application/json" \\\n  -d '${JSON.stringify(p.body).replace(/'/g,"'\\''")}'`;
+  const dropped = Object.entries(p.dropped).filter(([,v]) => v.length);
+  const leads = arr(c.leads);
+  const scored = leads.filter(l => l.score != null);
+  const passing = scored.filter(l => l.pass).length;
+  return `<div class="stack">
+    <div class="row">
+      <button class="btn red big" id="runSearch" type="button" ${busy[c.id + ":search"] ? "disabled" : ""}>${busy[c.id + ":search"] ? "Searching…" : leads.length ? "Pull next 25 leads" : "Pull 25 leads from Prospeo"}</button>
+      <button class="btn yellow" id="scoreLeads" type="button" ${!leads.length || busy[c.id + ":score"] ? "disabled" : ""}>${busy[c.id + ":score"] ? "Scoring…" : "Score against ICP"}</button>
+      ${leads.length ? '<button class="btn" id="csvLeads" type="button">Download CSV</button><button class="btn sm ghost" id="clearLeads" type="button">Clear leads</button>' : ""}
+    </div>
+    <p class="hint">${status.prospeo ? "Each pull is one Prospeo credit for up to 25 people. Search doesn't return emails; enrich the passing leads in Prospeo before sending." : "Add PROSPEO_API_KEY to the Worker to pull leads from here. Until then, copy the JSON below into Prospeo."}</p>
+    
+    ${leads.length ? `<div class="stats">
+      <div><b>${leads.length}</b><span>leads pulled${c.prospeoTotal ? " of " + Number(c.prospeoTotal).toLocaleString() + " matching" : ""}</span></div>
+      <div><b>${scored.length}</b><span>scored against ICP v${c.icp.version}</span></div>
+      <div class="${scored.length ? "good" : ""}"><b>${passing}</b><span>pass at ${pct(c)}% (${passMark(c)}/${totalPts(c)} pts)</span></div>
+    </div>
+    <div class="tablewrap"><table class="leads"><thead><tr><th>Score</th><th>Name</th><th>Title</th><th>Company</th><th>Location</th><th>Archetype</th><th>Why / hook</th></tr></thead><tbody>
+      ${leads.slice().sort((a,b) => (b.score ?? -1) - (a.score ?? -1)).map(l => `<tr class="${l.score != null && !l.pass ? "fail" : ""}">
+        <td class="num">${l.score == null ? "–" : `<span class="score ${l.pass ? "pass" : "no"}">${l.score}</span>`}</td>
+        <td>${l.linkedin ? `<a href="${esc(l.linkedin)}" target="_blank" rel="noopener">${esc(l.name)}</a>` : esc(l.name)}</td>
+        <td>${esc(l.title)}</td><td>${esc(l.company)}${l.domain ? `<br><span class="hint">${esc(l.domain)}</span>` : ""}</td>
+        <td>${esc(l.location)}</td><td>${esc(l.archetype || "")}${l.disqualifier ? `<br><span class="chip r">${esc(l.disqualifier)}</span>` : ""}</td>
+        <td>${esc(l.reason || "")}${l.hook ? `<br><em>${esc(l.hook)}</em>` : ""}</td></tr>`).join("")}
+    </tbody></table></div>` : ""}
+    <div class="row"><span class="chip">${Object.keys(p.body.filters).length} filters</span><span class="chip">${p.excluded} domains excluded</span>${p.body.filters.company_industry ? '<span class="chip y">Check industry names against Prospeo</span>' : ""}${p.body.filters.company_location_search ? '<span class="chip y">Locations must match dashboard spelling</span>' : ""}</div>
+    ${dropped.length ? `<div class="note">Dropped values Prospeo won't accept: ${dropped.map(([k,v]) => `<b>${k}</b> ${esc(v.join(", "))}`).join(" · ")}</div>` : ""}
+    <details class="input-card"><summary><span class="t">Search filters sent to Prospeo<span class="h">Generated from the ICP. Copy them if you'd rather run the search in Prospeo directly.</span></span></summary><div class="body">
+      <div class="codebox"><div class="codebar"><b>SEARCH-PERSON BODY</b><button class="btn sm dark" id="copyBody" type="button">Copy JSON</button></div><pre>${esc(body)}</pre></div>
+      <div class="codebox"><div class="codebar"><b>CURL</b><button class="btn sm dark" id="copyCurl" type="button">Copy curl</button></div><pre id="curlText">${esc(curl)}</pre></div>
+      ${c.lastRaw ? `<div class="codebox"><div class="codebar"><b>LAST RAW RESPONSE (first result)</b></div><pre>${esc(c.lastRaw)}</pre></div>` : ""}
+    </div></details>
+    <div class="row"><a class="btn" href="https://app.prospeo.io" target="_blank" rel="noopener">Open Prospeo</a><button class="btn yellow" id="markList" type="button">${c.checks?.listBuilt ? "List built ✓" : "Mark list built"}</button></div>
+  </div>`;
+}
+
+/* ---------- live list building ---------- */
+function normalizeLead(r){
+  const p = r.person || r.profile || r;
+  const co = r.company || p.company || {};
+  const loc = p.location || {};
+  const name = p.full_name || p.name || [p.first_name, p.last_name].filter(Boolean).join(" ");
+  return {
+    name: name || "(no name)",
+    title: p.current_job_title || p.job_title || p.title || p.headline || "",
+    company: co.name || p.company_name || "",
+    domain: domainOf(co.domain || co.website || p.company_domain || ""),
+    location: typeof loc === "string" ? loc : [loc.city, loc.state, loc.country].filter(Boolean).join(", "),
+    linkedin: p.linkedin_url || p.linkedin || "",
+    headcount: co.employee_count || co.headcount || co.employee_range || "",
+    industry: co.industry || "",
+    description: String(co.description || co.short_description || "").slice(0, 300),
+    key: p.person_id || p.id || p.linkedin_url || name + "|" + (co.name || ""),
+  };
+}
+async function runSearch(c){
+  const p = prospeoPayload(c); if (!p) return;
+  if (!status.prospeo){ toast("Add PROSPEO_API_KEY to the Worker first"); return; }
+  busy[c.id + ":search"] = true; c._err = ""; render();
+  try {
+    const page = (Number(c.prospeoPage) || 0) + 1;
+    const res = await api("/api/prospeo/search", {body: {...p.body, page}});
+    const raw = res.results || res.response?.results || res.data || [];
+    const seen = new Set(arr(c.leads).map(l => l.key));
+    const fresh = raw.map(normalizeLead).filter(l => !seen.has(l.key));
+    const total = res.pagination?.total_count ?? c.prospeoTotal;
+    busy[c.id + ":search"] = false;
+    await saveClient(c.id, {leads: [...arr(c.leads), ...fresh].slice(0, 500), prospeoPage: page, prospeoTotal: total, lastRaw: raw[0] ? JSON.stringify(raw[0], null, 2).slice(0, 4000) : "", checks: {...(c.checks||{}), listBuilt: true}, checkedAt: {...(c.checkedAt||{}), listBuilt: c.checkedAt?.listBuilt || now()}});
+    toast(fresh.length ? fresh.length + " new leads" : "No new leads on that page");
+  } catch(e){ busy[c.id + ":search"] = false; c._err = e.error + (e.detail ? " · " + JSON.stringify(e.detail).slice(0, 300) : ""); render(); }
+}
+function scorePrompt(c, rows){
+  const i = c.icp, total = totalPts(c);
+  return `You qualify prospects for ${c.company}. ${i.one_liner || ""}
+${i.summary || ""}
+
+Archetypes: ${arr(i.archetypes).map(a => `${a.name} (${a.company_profile}; buyer: ${a.buyer})`).join(" | ")}
+
+Qualification criteria (points):
+${arr(i.qualification).map((q,n) => `Q${n+1} [${Number(q.weight)||1}] ${q.criterion}`).join("\n")}
+
+Disqualify if any is true:
+${arr(i.disqualification).map((q,n) => `D${n+1} ${q.criterion}`).join("\n")}
+
+Rules:
+- Award a criterion's points only when the row or well-established public knowledge of that company supports it. Unknown means 0. Never invent signals.
+- A disqualifier applies only when it is clearly true. Name it in "disqualifier", otherwise null.
+- "hook" is one specific line we could open an email with, grounded in the row. Empty string if nothing specific.
+
+Rows:
+${rows.map((r,n) => `#${n} ${r}`).join("\n")}
+
+Reply with only a JSON array, one object per row, in row order:
+[{"i": 0, "score": 0-${total}, "hits": ["Q1","Q3"], "archetype": "name or empty", "disqualifier": null, "reason": "one sentence", "hook": ""}]`;
+}
+async function scoreRows(c, rows){
+  const out = [];
+  for (let k = 0; k < rows.length; k += 25){
+    const chunk = rows.slice(k, k + 25);
+    const {data} = await api("/api/claude", {body: {prompt: scorePrompt(c, chunk), maxTokens: 8000}});
+    const list = Array.isArray(data) ? data : arr(data?.results);
+    chunk.forEach((_, n) => {
+      const r = list.find(x => Number(x.i) === n) || list[n] || {};
+      const score = Math.max(0, Math.min(totalPts(c), Number(r.score) || 0));
+      const dq = r.disqualifier && String(r.disqualifier).toLowerCase() !== "null" ? String(r.disqualifier) : "";
+      out.push({score, pass: score >= passMark(c) && !dq, archetype: r.archetype || "", disqualifier: dq, reason: r.reason || "", hook: r.hook || "", hits: arr(r.hits)});
+    });
+  }
+  return out;
+}
+async function scoreLeads(c){
+  if (!status.claude){ toast("Add ANTHROPIC_API_KEY to the Worker first"); return; }
+  busy[c.id + ":score"] = true; c._err = ""; render();
+  try {
+    const leads = arr(c.leads);
+    const rows = leads.map(l => [l.name, l.title, l.company, l.domain, l.location, l.headcount && ("headcount " + l.headcount), l.industry, l.description].filter(Boolean).join(" | "));
+    const res = await scoreRows(c, rows);
+    busy[c.id + ":score"] = false;
+    await saveClient(c.id, {leads: leads.map((l,n) => ({...l, ...res[n], icpV: c.icp.version}))});
+    toast(res.filter(r => r.pass).length + " of " + res.length + " pass");
+  } catch(e){ busy[c.id + ":score"] = false; c._err = e.error; render(); }
+}
+function leadsCSV(c){
+  const cols = ["score","pass","name","title","company","domain","location","linkedin","archetype","disqualifier","reason","hook"];
+  const q = v => { v = String(v ?? ""); return /[",\n]/.test(v) ? '"' + v.replace(/"/g,'""') + '"' : v; };
+  return [cols.join(","), ...arr(c.leads).map(l => cols.map(k => q(l[k])).join(","))].join("\n");
+}
+
+/* ---------- backtest ---------- */
+function backtestPane(c){
+  if (!c.icp) return `<div class="note"><b>Build the ICP first.</b> The backtest scores companies you already know against it.</div>`;
+  const bt = c.backtest;
+  const good = drafts[c.id + ":btGood"] ?? (c.btGood || custDomains(c).join("\n"));
+  const bad = drafts[c.id + ":btBad"] ?? (c.btBad || (/crackedgtm\.ai/.test(c.website || "") ? CRACKED_BAD : ""));
+  return `<div class="stack">
+    <div class="note"><b>How this works.</b> List companies you know are great fits (current customers, won deals) and companies you know are wrong (lost deals, too big, wrong model). The row qualifier scores both. A sharp ICP passes the good ones and rejects the bad ones. Aim for 80% or better on both before you spend credits.</div>
+    <div class="bt-grid">
+      <div class="field"><label for="btGood">Known good fits (one per line)</label><textarea id="btGood" placeholder="Company name, domain, a few words of context">${esc(good)}</textarea></div>
+      <div class="field"><label for="btBad">Known bad fits (one per line)</label><textarea id="btBad" placeholder="Company name, domain, why it's wrong">${esc(bad)}</textarea></div>
+    </div>
+    <div class="row">
+      <label class="range" for="thr">Pass mark <input id="thr" type="range" min="40" max="95" step="5" value="${pct(c)}"> <span id="thrVal">${pct(c)}%</span> <span class="hint">(${passMark(c)} of ${totalPts(c)} pts)</span></label>
+      <button class="btn red" id="runBt" type="button" ${busy[c.id + ":bt"] ? "disabled" : ""}>${busy[c.id + ":bt"] ? "Scoring…" : "Run backtest"}</button>
+    </div>
+    
+    ${bt ? (() => {
+      const gp = bt.good.filter(r => r.pass).length, br = bt.bad.filter(r => !r.pass).length;
+      const gr = bt.good.length ? Math.round(gp / bt.good.length * 100) : 0, rr = bt.bad.length ? Math.round(br / bt.bad.length * 100) : 0;
+      const misses = [...bt.good.filter(r => !r.pass).map(r => ({...r, kind:"Good fit rejected"})), ...bt.bad.filter(r => r.pass).map(r => ({...r, kind:"Bad fit passed"}))];
+      return `<div class="stats">
+        <div class="${gr >= 80 ? "good" : "bad"}"><b>${gr}%</b><span>good fits passed (${gp}/${bt.good.length})</span></div>
+        <div class="${rr >= 80 ? "good" : "bad"}"><b>${rr}%</b><span>bad fits rejected (${br}/${bt.bad.length})</span></div>
+        <div><b>v${bt.icpV}</b><span>ICP tested · pass mark ${bt.pct}% · ${fmtDate(bt.at)}</span></div>
+      </div>
+      ${misses.length ? `<div class="tablewrap"><table class="leads"><thead><tr><th>Miss</th><th>Score</th><th>Company</th><th>Reason</th></tr></thead><tbody>${misses.map(r => `<tr><td><span class="chip ${r.kind.startsWith("Bad") ? "r" : "y"}">${r.kind}</span></td><td class="num">${r.score}</td><td>${esc(r.row)}</td><td>${esc(r.reason)}${r.disqualifier ? " · DQ: " + esc(r.disqualifier) : ""}</td></tr>`).join("")}</tbody></table></div>
+      <p class="hint">Fix misses at the source: add the missing evidence to the Company brain (for example the lost-deal notes behind a bad fit that passed), sharpen the ICP, then rerun.</p>` : `<p class="hint">No misses. This ICP separates your known good and bad fits at this pass mark.</p>`}`;
+    })() : ""}
+  </div>`;
+}
+async function runBacktest(c){
+  if (!status.claude){ toast("Add ANTHROPIC_API_KEY to the Worker first"); return; }
+  const good = $("#btGood").value.split("\n").map(x => x.trim()).filter(Boolean);
+  const bad = $("#btBad").value.split("\n").map(x => x.trim()).filter(Boolean);
+  if (good.length < 2 || bad.length < 2){ toast("Add at least 2 good fits and 2 bad fits"); return; }
+  delete drafts[c.id + ":btGood"]; delete drafts[c.id + ":btBad"];
+  busy[c.id + ":bt"] = true; c._err = ""; c.btGood = good.join("\n"); c.btBad = bad.join("\n"); render();
+  try {
+    const res = await scoreRows(c, [...good, ...bad]);
+    const tag = (rows, off) => rows.map((row, n) => ({row, ...res[off + n]}));
+    busy[c.id + ":bt"] = false;
+    await saveClient(c.id, {btGood: c.btGood, btBad: c.btBad, backtest: {at: now(), icpV: c.icp.version, pct: pct(c), good: tag(good, 0), bad: tag(bad, good.length)}});
+  } catch(e){ busy[c.id + ":bt"] = false; c._err = e.error; render(); }
+}
+
+function defaultEmail(c){
+  const sign = settings.sign || "Priyanka & Khaled";
+  return {
+    subject: `Getting ${c.company} set up with Cracked GTM`,
+    body: `Hey ${c.first},
+
+Looking forward to getting you set up with Cracked GTM. We'll need access to a few things to set you up properly and get your campaigns shipped.
+
+Here's our Stripe link to get month one started:
+${settings.stripe || "[add your Stripe link in Settings]"}
+
+Then please share:
+
+1. A list of your clients and existing users (a Stripe or CRM export is perfect)
+2. A HeyReach sign-in so we can run LinkedIn from your profile (we'll send the invite)
+3. Granola recordings of a few deals you won and a few you lost
+4. An invite to your email workspace so we can set up a new sending account
+5. Photos of you, your team and your product in action. We use these for content, and more is better
+
+As soon as these land, we turn them into your ICP and your first lead list, and campaigns go out right after.
+${settings.guide ? `
+Here's a short guide on how we work together and how to get the most out of it:
+${settings.guide}
+` : ""}
+Talk soon,
+${sign}
+Cracked GTM`
+  };
+}
+function emailPane(c){
+  const e = c.draft || defaultEmail(c);
+  const gmail = "https://mail.google.com/mail/?view=cm&fs=1&to=" + encodeURIComponent(c.email) + "&su=" + encodeURIComponent(e.subject) + "&body=" + encodeURIComponent(e.body);
+  return `<div class="email-one">
+    <div class="col">
+      <div class="field"><label for="emTo">To</label><input id="emTo" value="${esc(c.email)}" readonly></div>
+      <div class="field"><label for="emSubject">Subject</label><input id="emSubject" value="${esc(e.subject)}"></div>
+      <div class="field"><label for="emBody">Body</label><textarea id="emBody">${esc(e.body)}</textarea></div>
+      <div class="row">
+        <a class="btn red" href="${esc(gmail)}" target="_blank" rel="noopener" id="gmailLink">Open in Gmail</a>
+        <button class="btn" id="copyEmail" type="button">Copy email</button>
+        <button class="btn yellow" id="markSent" type="button">${c.checks?.emailSent ? "Sent ✓" : "Mark as sent"}</button>
+        <button class="btn sm ghost" id="resetEmail" type="button">Reset to template</button>
+      </div>
+      <p class="hint">${settings.stripe ? "" : "Add your Stripe link in Settings so it fills in. "}${settings.guide ? "" : "Add the client guide link in Settings to include it."}</p>
+    </div>
+  </div>`;
+}
+function checksPane(c){
+  return `<div class="checks">${CHECKS.map(k => {
+    const on = !!c.checks?.[k.k];
+    return `<label class="check ${on ? "on" : ""}"><input type="checkbox" data-check="${k.k}" ${on ? "checked" : ""}><div><b>${k.t}</b><span>${k.s}${on && c.checkedAt?.[k.k] ? " · " + fmtDate(c.checkedAt[k.k]) : ""}</span></div></label>`;
+  }).join("")}</div>`;
+}
+
+async function pullSiteFor(c){
+  if (!c.website){ toast("Add the client's website first"); return; }
+  busy[c.id + ":site"] = true; render();
+  try {
+    const r = await api("/api/pull-site", {body: {url: c.website}});
+    busy[c.id + ":site"] = false; delete drafts[c.id + ":site"];
+    await saveClient(c.id, {inputs: {...(c.inputs||{}), site: r.text}});
+    toast("Pulled " + r.pages.length + " page" + (r.pages.length > 1 ? "s" : "") + " from " + c.website);
+  } catch(e){ busy[c.id + ":site"] = false; c._err = e.error; render(); }
+}
+/* ---------- bindings ---------- */
+function bindClient(c){
+  document.querySelectorAll("details[data-sec]").forEach(d => d.addEventListener("toggle", () => { if (d.open) c._open = d.dataset.sec; else if (c._open === d.dataset.sec) c._open = null; }));
+  const ce = $("#clearErr"); if (ce) ce.onclick = () => { c._err = ""; render(); };
+  {
+    const a = $("#autoSharpen"); if (a) a.onchange = () => saveClient(c.id, {autoSharpen: a.checked});
+    document.querySelectorAll("[data-save]").forEach(b => b.onclick = async () => {
+      const k = b.dataset.save; const v = $("#in-" + k).value;
+      if (v.length > 200000){ toast("That's too long to store. Trim it under 200k characters."); return; }
+      delete drafts[c.id + ":" + k];
+      await saveClient(c.id, {inputs: {...(c.inputs||{}), [k]: v}});
+      if (k === "customers" && v.trim()) await setCheck(c, "customerList", true, false);
+      toast("Saved");
+      if (k === "customers"){ if (custDomains(c).some(d => !c.research?.[d])) researchCustomers(c); }
+      else if (k !== "site" && c.autoSharpen !== false) sharpen(c.id);
+    });
+    document.querySelectorAll("textarea[id^='in-']").forEach(ta => ta.addEventListener("input", () => { drafts[c.id + ":" + ta.id.slice(3)] = ta.value; }));
+    document.querySelectorAll("[data-file]").forEach(inp => inp.onchange = () => {
+      const f = inp.files?.[0]; if (!f) return;
+      const r = new FileReader();
+      r.onload = () => { const ta = $("#in-" + inp.dataset.file); const prev = ta.value.trim(); ta.value = (prev ? prev + "\n\n" : "") + String(r.result); drafts[c.id + ":" + inp.dataset.file] = ta.value; ta.closest("details").open = true; toast("Loaded " + f.name + ". Hit Save."); };
+      r.readAsText(f);
+    });
+    const sb = $("#sharpenBtn"); if (sb) sb.onclick = () => sharpen(c.id);
+    const rb = $("#researchBtn"); if (rb) rb.onclick = () => researchCustomers(c, !custDomains(c).some(d => !c.research?.[d]));
+    const pb = $("#patternsBtn"); if (pb) pb.onclick = () => patternsThenICP(c);
+    document.querySelectorAll("[data-buyer]").forEach(cb => cb.onchange = () => {
+      const d = cb.dataset.buyer; const cur = new Set(arr(c.buyers?.[d]));
+      cb.checked ? cur.add(cb.value) : cur.delete(cb.value);
+      saveClient(c.id, {buyers: {...(c.buyers || {}), [d]: [...cur]}});
+    });
+    document.querySelectorAll("[data-showall]").forEach(b => b.onclick = () => { c._showAll = {...(c._showAll || {}), [b.dataset.showall]: !c._showAll?.[b.dataset.showall]}; render(); });
+    const ps = $("#pullSite"); if (ps) ps.onclick = () => pullSiteFor(c);
+    const pst = $("#pullStripe"); if (pst) pst.onclick = async () => {
+      const key = $("#stripeKey").value.trim(); if (!key){ toast("Paste the client's restricted key"); return; }
+      busy[c.id + ":stripe"] = true; render();
+      try {
+        const r = await api("/api/pull-stripe", {body: {key}});
+        busy[c.id + ":stripe"] = false; delete drafts[c.id + ":customers"];
+        await saveClient(c.id, {inputs: {...(c.inputs||{}), customers: r.csv}, checks: {...(c.checks||{}), customerList: true}, checkedAt: {...(c.checkedAt||{}), customerList: now()}});
+        toast(r.count + " customers pulled from Stripe. Research them next.");
+      } catch(e){ busy[c.id + ":stripe"] = false; c._err = e.error; render(); }
+    };
+  }
+  {
+    document.querySelectorAll("[data-pv]").forEach(b => b.onclick = () => { promptView = b.dataset.pv; render(); });
+    const cp = $("#copyPrompt"); if (cp) cp.onclick = () => copy(promptView === "mega" ? megaPrompt(c) : clayPrompt(c));
+  }
+  {
+    const p = prospeoPayload(c);
+    const cb = $("#copyBody"); if (cb) cb.onclick = () => copy(JSON.stringify(p.body, null, 2));
+    const cc = $("#copyCurl"); if (cc) cc.onclick = () => copy($("#curlText").textContent);
+    const rs = $("#runSearch"); if (rs) rs.onclick = () => runSearch(c);
+    const sl = $("#scoreLeads"); if (sl) sl.onclick = () => scoreLeads(c);
+    const cl = $("#clearLeads"); if (cl) cl.onclick = () => saveClient(c.id, {leads: [], prospeoPage: 0, prospeoTotal: null, lastRaw: ""});
+    const cv = $("#csvLeads"); if (cv) cv.onclick = () => {
+      const blob = new Blob([leadsCSV(c)], {type: "text/csv"}); const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob); a.download = c.company.replace(/\W+/g, "-").toLowerCase() + "-leads-icp-v" + c.icp.version + ".csv"; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    };
+    const ml = $("#markList"); if (ml) ml.onclick = () => setCheck(c, "listBuilt", !c.checks?.listBuilt);
+  }
+  {
+    const persist = () => saveClient(c.id, {draft: {subject: $("#emSubject").value, body: $("#emBody").value}});
+    $("#emSubject").onchange = persist; $("#emBody").onchange = persist;
+    const refreshLink = () => { $("#gmailLink").href = "https://mail.google.com/mail/?view=cm&fs=1&to=" + encodeURIComponent(c.email) + "&su=" + encodeURIComponent($("#emSubject").value) + "&body=" + encodeURIComponent($("#emBody").value); };
+    $("#emSubject").oninput = refreshLink; $("#emBody").oninput = refreshLink;
+    $("#copyEmail").onclick = () => copy("To: " + c.email + "\nSubject: " + $("#emSubject").value + "\n\n" + $("#emBody").value);
+    $("#markSent").onclick = () => setCheck(c, "emailSent", !c.checks?.emailSent);
+    $("#resetEmail").onclick = () => saveClient(c.id, {draft: null});
+  }
+  if (c.icp && $("#btGood")){
+    ["btGood","btBad"].forEach(k => $("#" + k).addEventListener("input", e => { drafts[c.id + ":" + k] = e.target.value; }));
+    $("#thr").oninput = e => { $("#thrVal").textContent = e.target.value + "%"; };
+    $("#thr").onchange = e => {
+      c.threshold = Number(e.target.value);
+      const mark = passMark(c), re = r => ({...r, pass: r.score >= mark && !r.disqualifier});
+      const patch = {threshold: c.threshold, leads: arr(c.leads).map(l => l.score == null ? l : re(l))};
+      if (c.backtest) patch.backtest = {...c.backtest, pct: c.threshold, good: c.backtest.good.map(re), bad: c.backtest.bad.map(re)};
+      saveClient(c.id, patch);
+    };
+    $("#runBt").onclick = () => runBacktest(c);
+  }
+  const del = $("#delClient"); if (del) del.onclick = () => { if (c._confirmDel) deleteClient(c.id); else { c._confirmDel = true; render(); setTimeout(() => { c._confirmDel = false; render(); }, 4000); } };
+  {
+    document.querySelectorAll("[data-check]").forEach(inp => inp.onchange = () => setCheck(c, inp.dataset.check, inp.checked));
+  }
+}
+async function setCheck(c, k, v, rerender = true){
+  await saveClient(c.id, {checks: {...(c.checks||{}), [k]: v}, checkedAt: {...(c.checkedAt||{}), [k]: v ? now() : null}});
+}
+
+function openOnboard(){ $("#onboardModal").hidden = false; setTimeout(() => $("#obFirst").focus(), 30); }
+$("#onboardBtn").onclick = openOnboard;
+$("#clientPick").onchange = e => { selected = e.target.value; render(); window.scrollTo(0,0); };
+$("#fillCracked").onclick = fillCracked;
+$("#settingsBtn").onclick = () => { $("#setStripe").value = settings.stripe || ""; $("#setGuide").value = settings.guide || ""; $("#setSign").value = settings.sign || ""; $("#settingsModal").hidden = false; };
+document.querySelectorAll("[data-close]").forEach(b => b.onclick = () => b.closest(".scrim").hidden = true);
+document.querySelectorAll(".scrim").forEach(s => s.addEventListener("click", e => { if (e.target === s) s.hidden = true; }));
+document.addEventListener("keydown", e => { if (e.key === "Escape") document.querySelectorAll(".scrim").forEach(s => s.hidden = true); });
+$("#obEmail").addEventListener("blur", () => { if (!$("#obSite").value.trim()){ const d = domainOf($("#obEmail").value); if (d && !FREEMAIL.has(d)) $("#obSite").value = d; } });
+
+$("#onboardForm").addEventListener("submit", async e => {
+  e.preventDefault();
+  const company = $("#obCompany").value.trim(), first = $("#obFirst").value.trim(), email = $("#obEmail").value.trim();
+  if (!company || !first || !email) return;
+  const slug = company.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,40) || "client";
+  const id = slug + "-" + Date.now().toString(36);
+  const website = domainOf($("#obSite").value) || (FREEMAIL.has(domainOf(email)) ? "" : domainOf(email));
+  // drop the example client once a real one exists in preview mode
+  await createClient({id, company, first, email, website, createdAt: now(), inputs:{}, checks:{}, checkedAt:{}, icp:null, history:[], draft:null, autoSharpen:true});
+  $("#onboardModal").hidden = true; e.target.reset();
+  selected = id; render();
+  toast(company + " onboarded. Email drafted, pulling their site…");
+  const nc = clients.find(x => x.id === id); if (nc && website) pullSiteFor(nc);
+});
+$("#settingsForm").addEventListener("submit", async e => {
+  e.preventDefault();
+  settings = {stripe: $("#setStripe").value.trim(), guide: $("#setGuide").value.trim(), sign: $("#setSign").value.trim() || "Priyanka & Khaled"};
+  $("#settingsModal").hidden = true; render();
+  try { await api("/api/settings", {method:"PUT", body: settings}); toast("Settings saved"); } catch(err){ toast("Couldn't save settings: " + err.error); }
+});
+
+boot();
+})();
+</script>
+
+</body>
+</html>

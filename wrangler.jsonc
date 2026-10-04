@@ -1,7 +1,18 @@
 {
   "name": "dry-bird-b050",
   "compatibility_date": "2026-09-01",
+  // The Worker only runs for the onboarding tool and its API. Every other path
+  // (the landing page, case studies, images) is served straight from static assets.
+  "main": "worker/index.js",
   "assets": {
-    "directory": "."
-  }
+    "directory": ".",
+    "binding": "ASSETS",
+    "run_worker_first": ["/onboarding", "/onboarding/*", "/api/*"]
+  },
+  "durable_objects": {
+    "bindings": [{ "name": "STORE", "class_name": "Store" }]
+  },
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["Store"] }
+  ]
 }

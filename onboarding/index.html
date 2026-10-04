@@ -1189,14 +1189,24 @@ async function runSearch(c){
   try {
     const page = (Number(c.prospeoPage) || 0) + 1;
     // If Prospeo rejects a filter, retry without the riskiest ones (location, then industry, then titles) and say what was dropped
-    let body = JSON.parse(JSON.stringify(p.body)); body.page = page; const droppedF = [];
+    // If Prospeo rejects a filter (bad value or not on our plan), retry without filters one at a time,
+    // riskiest first, and say exactly what was dropped and why.
+    let body = JSON.parse(JSON.stringify(p.body)); body.page = page; const droppedF = []; let firstErr = "";
     let res;
-    for (const drop of [null, "company_location_search", "company_industry", "person_job_title", "person_department"]){
+    const order = [null, "company_funding", "company_location_search", "company_industry", "person_job_title", "company_headcount_range", "person_department"];
+    for (const drop of order){
       if (drop){ if (!body.filters[drop]) continue; delete body.filters[drop]; droppedF.push(drop); }
       try { res = await api("/api/prospeo/search", {body}); break; }
-      catch(e){ if (!/INVALID_FILTERS|INVALID_REQUEST/.test(e.error || "")) throw e; if (drop === "person_department") throw e; }
+      catch(e){
+        const msg = e.error || "";
+        if (/INVALID_API_KEY|INSUFFICIENT_CREDITS|rate limit|SERVICE_TEMPORARILY|INTERNAL_ERROR/i.test(msg)) throw e;
+        firstErr = firstErr || msg;
+        if (drop === order[order.length - 1]) throw {error: msg + " (also failed after removing " + droppedF.join(", ") + ")"};
+      }
     }
-    if (droppedF.length) toast("Prospeo rejected " + droppedF.map(x => x.replace(/^(company|person)_/, "").replace(/_/g, " ")).join(", ") + ". Pulled without it.");
+    if (!res) throw {error: firstErr || "Prospeo rejected the search."};
+    const label = x => x.replace(/^(company|person)_/, "").replace(/_/g, " ");
+    if (droppedF.length){ c._err = `Pulled without ${droppedF.map(label).join(", ")}. Prospeo's reason: ${firstErr.replace(/^Prospeo said: /, "")}`; }
     const raw = res.results || res.response?.results || res.data || [];
     const seen = new Set(arr(c.leads).map(l => l.key));
     const fresh = raw.map(normalizeLead).filter(l => !seen.has(l.key));

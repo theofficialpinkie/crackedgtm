@@ -1,6 +1,8 @@
 {
   "name": "dry-bird-b050",
   "compatibility_date": "2026-09-01",
+  // Keep variables added in the Cloudflare dashboard when GitHub deploys a new version.
+  "keep_vars": true,
   // The Worker only runs for the onboarding tool and its API. Every other path
   // (the landing page, case studies, images) is served straight from static assets.
   "main": "worker/index.js",

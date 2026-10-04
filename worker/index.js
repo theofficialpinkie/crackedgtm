@@ -310,6 +310,86 @@ export default {
       if (path === "/api/pull-stripe" && req.method === "POST") {
         const { key } = await req.json(); return json(await pullStripe(key));
       }
+      if (path === "/api/research-source" && req.method === "POST") {
+        // Research one signal source: pre-read the page (renders JavaScript via the reader fallback),
+        // then let Claude browse with web search + web fetch and return the companies showing the signal.
+        if (!env.ANTHROPIC_API_KEY) return fail(503, "ANTHROPIC_API_KEY is not set on the Worker.");
+        const { source, brief, exclude = [], limit = 30 } = await req.json();
+        if (!source?.url && !source?.query) return fail(400, "Source needs a URL or a search query.");
+        let pageText = "", pageErr = "";
+        if (source.url) {
+          try { const p = await pullSite(source.url, env, url.hostname); pageText = p.text.slice(0, 30000); } catch (e) { pageErr = e.error || "couldn't read"; }
+        }
+        const prompt = `You are a lead researcher. Find companies that show a specific buying signal, using the source below. Browse as needed: web_search to find the right pages (e.g. the latest batch or cohort list, news of the signal), web_fetch to open them. Stay focused on this one source and signal.
+
+SIGNAL WE'RE TRACKING: ${source.signal || ""}
+SOURCE: ${source.name || ""} ${source.url || ""}
+WHAT TO EXTRACT: ${source.extract || "company name, website, and the evidence of the signal with a date"}
+${source.query ? "SUGGESTED SEARCH: " + source.query : ""}
+
+WHO WE'RE LOOKING FOR (from the client's customer and buyer research):
+${String(brief || "").slice(0, 6000)}
+
+${pageText ? "THE SOURCE PAGE, ALREADY READ FOR YOU (may be partial):\n" + pageText : "The source page couldn't be pre-read (" + (pageErr || "no URL") + "). Use web_search and web_fetch."}
+
+Skip these existing customers: ${exclude.slice(0, 200).join(", ") || "none"}
+
+Rules:
+- Only include companies where you saw evidence of the signal. Put the evidence and the page URL in each item. Never invent companies or websites; leave website empty if you didn't see it.
+- Prefer the most recent signals (latest batch, last 12 months).
+- Rate fit 0-100 against WHO WE'RE LOOKING FOR using what you saw (what they do, stage, size), and say why in one line.
+- At most ${Math.min(Number(limit) || 30, 50)} companies, best fit first.
+
+Finish with only one JSON object (no prose after it):
+{"companies":[{"company":"","website":"","signal":"e.g. YC W26","evidence":"one line","evidence_url":"","what_they_do":"one line","fit":0,"why":""}],"notes":"what you covered and what you couldn't reach"}`;
+        const tools = [
+          { type: "web_search_20250305", name: "web_search", max_uses: 4 },
+          { type: "web_fetch_20250910", name: "web_fetch", max_uses: 5, max_content_tokens: 40000 },
+        ];
+        let messages = [{ role: "user", content: prompt }];
+        let text = "", turns = 0, searches = 0, fetches = 0;
+        while (turns++ < 4) {
+          const r = await fetch("https://api.anthropic.com/v1/messages", {
+            method: "POST",
+            headers: { "x-api-key": env.ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01", "content-type": "application/json" },
+            body: JSON.stringify({ model: env.CLAUDE_MODEL || DEFAULT_MODEL, max_tokens: 12000, tools, messages }),
+          });
+          const body = await r.json().catch(() => ({}));
+          if (!r.ok) return fail(502, "Claude API error: " + (body?.error?.message || r.status));
+          for (const b of body.content || []) {
+            if (b.type === "server_tool_use") b.name === "web_search" ? searches++ : fetches++;
+            if (b.type === "text") text += b.text;
+          }
+          if (body.stop_reason === "pause_turn") { messages = [...messages, { role: "assistant", content: body.content }]; continue; }
+          break;
+        }
+        const parsed = extractJSON(text.slice(text.lastIndexOf('{"companies"') >= 0 ? text.lastIndexOf('{"companies"') : 0));
+        if (!parsed || !Array.isArray(parsed.companies)) return fail(502, "The research didn't return a company list. Try again or tighten the source.", { raw: text.slice(-1500) });
+        return json({ companies: parsed.companies, notes: parsed.notes || "", read: !!pageText, searches, fetches });
+      }
+      if (path === "/api/prospeo/people-at" && req.method === "POST") {
+        // Buyers at specific companies (from signals): websites include + buyer-pattern titles/seniority
+        if (!env.PROSPEO_API_KEY) return fail(503, "PROSPEO_API_KEY is not set on the Worker.");
+        const { websites = [], titles = [], seniority = [], page = 1 } = await req.json();
+        const sites = [...new Set(websites.map(rootDomain).filter(Boolean))].slice(0, 500);
+        if (!sites.length) return fail(400, "No valid company websites to search.");
+        const base = { company: { websites: { include: sites } } };
+        const tries = [
+          { ...base, ...(titles.length ? { person_job_title: { include: titles, match_mode: "CONTAINS" } } : {}), ...(seniority.length ? { person_seniority: { include: seniority } } : {}) },
+          { ...base, ...(seniority.length ? { person_seniority: { include: seniority } } : { person_seniority: { include: ["Founder/Owner", "C-Suite"] } }) },
+        ];
+        let last = {};
+        for (const filters of tries) {
+          const r = await fetch("https://api.prospeo.io/search-person", { method: "POST", headers: { "X-KEY": env.PROSPEO_API_KEY, "content-type": "application/json" }, body: JSON.stringify({ page, filters }) });
+          const d = await r.json().catch(() => ({}));
+          if (r.ok && !d.error) return json({ ...d, usedTitles: !!filters.person_job_title });
+          last = d;
+          if (d.error_code !== "NO_RESULTS" && d.error_code !== "INVALID_FILTERS") break;
+          await new Promise(res => setTimeout(res, 1200));
+        }
+        if (last.error_code === "NO_RESULTS") return json({ results: [], pagination: { total_count: 0 } });
+        return fail(502, "Prospeo said: " + ([last.error_code, last.filter_error].filter(Boolean).join(" · ") || "error"));
+      }
       if (path === "/api/prospeo/suggest" && req.method === "POST") {
         // Free Prospeo lookup that returns location names exactly as Prospeo stores them
         if (!env.PROSPEO_API_KEY) return fail(503, "PROSPEO_API_KEY is not set on the Worker.");

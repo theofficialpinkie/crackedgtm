@@ -233,6 +233,32 @@ table.leads{border-collapse:collapse;width:100%;font-size:13px;min-width:760px}
 .guide .gbar i{display:block;height:100%;background:var(--good)}
 @media (max-width:760px){.bt-grid{grid-template-columns:1fr}}
 .chips{display:flex;flex-wrap:wrap;gap:6px}
+.clientbar{max-width:900px;margin:0 auto;padding:12px 16px 0;display:flex;gap:8px;flex-wrap:wrap}
+.cpill{all:unset;cursor:pointer;display:flex;flex-direction:column;padding:6px 12px;border:2px solid var(--line);background:var(--card);font-weight:700;font-size:13px}
+.cpill span{font-size:11px;font-weight:500;color:var(--muted)}
+.cpill.on{background:var(--ink);color:var(--paper)}
+.cpill.on span{color:var(--paper);opacity:.75}
+.cpill.add{border-style:dashed;justify-content:center}
+.cpill:focus-visible{outline:3px solid var(--red)}
+.tabs{display:flex;gap:0;border-bottom:2px solid var(--line);overflow-x:auto;margin-top:-4px}
+.tab{all:unset;cursor:pointer;padding:9px 16px;font-family:var(--f-display);font-size:14px;border:2px solid transparent;border-bottom:0;margin-bottom:-2px;white-space:nowrap}
+.tab.on{background:var(--card);border-color:var(--line);border-bottom:2px solid var(--card)}
+.tab:focus-visible{outline:3px solid var(--red)}
+.tcount{font-family:var(--f-body);font-size:11px;font-weight:700;padding:1px 6px;background:var(--yellow);color:var(--on-yellow);margin-left:4px}
+.toolbar{position:sticky;top:calc(env(safe-area-inset-top,0px) + 58px);z-index:10;display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:10px 12px;border:2px solid var(--line);background:var(--card)}
+.spacer{flex:1}
+.lead-row{display:grid;grid-template-columns:34px minmax(0,1fr);align-items:start;border-top:1px solid var(--line)}
+.lead-row:first-child{border-top:0}
+.lead-row > input{margin:14px 0 0 12px;width:16px;height:16px;accent-color:var(--red)}
+.lead-row .lead{border-top:0}
+.srcs{display:flex;flex-direction:column;border:2px solid var(--line);background:var(--card)}
+.src{display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:8px;align-items:start;padding:10px 12px;border-top:1px solid var(--line)}
+.src:first-child{border-top:0}
+.src.off{opacity:.55}
+.src input{margin-top:3px;width:16px;height:16px;accent-color:var(--red)}
+.src-m{display:flex;flex-direction:column;gap:3px;min-width:0}
+.src-m .hint{overflow-wrap:anywhere}
+.src-a{display:flex;gap:6px;align-items:center}
 .addloc{all:unset;cursor:pointer;display:inline-flex;gap:6px;align-items:center;padding:4px 10px;border:2px dashed var(--line);font-size:13px;font-weight:700}
 .addloc i{font-style:normal;font-weight:500;color:var(--muted)}
 .addloc:focus-visible{outline:2px solid var(--red)}
@@ -305,10 +331,10 @@ table.leads{border-collapse:collapse;width:100%;font-size:13px;min-width:760px}
 <body>
 <header class="top">
   <div class="brand"><b>Cracked GTM</b><span>Onboarding</span></div>
-  <select id="clientPick" aria-label="Client"></select>
   <button class="btn sm ghost" id="settingsBtn" type="button">Settings</button>
   <button class="btn sm dark" id="onboardBtn" type="button">+ New client</button>
 </header>
+<nav class="clientbar" id="clientBar" aria-label="Clients"></nav>
 <main id="main"></main>
 <p class="foot hint" id="storeNote"></p>
 
@@ -1092,9 +1118,10 @@ a 40-person outbound lead-gen agency selling the same service`;
 
 /* ---------- render ---------- */
 function render(){
-  const pick = $("#clientPick");
-  pick.innerHTML = clients.length ? clients.map(c => `<option value="${esc(c.id)}" ${c.id === selected ? "selected" : ""}>${esc(c.company)}</option>`).join("") : '<option>No clients yet</option>';
-  pick.disabled = !clients.length;
+  const bar = $("#clientBar");
+  bar.innerHTML = clients.map(c => `<button type="button" class="cpill ${c.id === selected ? "on" : ""}" data-client="${esc(c.id)}">${esc(c.company)}<span>${arr(c.leads).length ? arr(c.leads).length + " leads" : c.icp ? "ICP v" + c.icp.version : "new"}</span></button>`).join("") + '<button type="button" class="cpill add" id="barNew">+ New client</button>';
+  bar.querySelectorAll("[data-client]").forEach(b => b.onclick = () => { selected = b.dataset.client; render(); window.scrollTo(0, 0); });
+  $("#barNew").onclick = openOnboard;
   const c = clients.find(x => x.id === selected);
   const m = $("#main");
   const keepScroll = window.scrollY;
@@ -1117,38 +1144,169 @@ function step(n, title, done, next, body, hint = ""){
     <div class="step-h"><span class="n">${done ? "✓" : n}</span><h2>${title}</h2>${hint ? `<span class="hint">${hint}</span>` : ""}</div>
     <div class="step-b">${body}</div></section>`;
 }
+const TABS = [["research","Research"],["signals","Signals"],["leads","Leads"],["setup","Email & setup"]];
 function clientView(c){
   const ds = custDomains(c);
-  const flags = [!!String(c.inputs?.site || "").trim(), ds.length > 0, researched(c).length > 0, !!c.icp, arr(c.leads).some(l => l.score != null), !!c.checks?.emailSent];
+  const t = c._tab || (arr(c.leads).length ? "leads" : "research");
+  const flags = [!!String(c.inputs?.site || "").trim(), ds.length > 0, researched(c).length > 0, !!c.icp];
   const next = flags.findIndex(f => !f);
   const stale = patternsStale(c) && researched(c).length >= 2;
-  const more = INPUTS.filter(i => !i.core);
+  const leads = arr(c.leads);
+  const body = t === "research" ? `
+    ${step(1, "Their website", flags[0], next === 0, inputCard(c, INPUTS[0], false, !flags[0]))}
+    ${step(2, "Customer URLs", flags[1], next === 1, customersBlock(c), ds.length ? ds.length + " customers" : "")}
+    ${step(3, "Team members + buyers", flags[2], next === 2, researchBlock(c) + buyerPanel(c), buyerCount(c) ? buyerCount(c) + " buyers · " + enrichedCount(c) + " full profiles" : "")}
+    ${step(4, "Patterns and ICP", flags[3], next === 3, `
+      <div class="field"><label for="in-context">Additional context (free form)</label>
+        <textarea id="in-context" class="ctx" placeholder="Anything we know that the data won't show: dream customers, deals in flight, who to avoid, why customers churned, pricing, competitors…">${esc(drafts[c.id + ":context"] ?? (c.inputs?.context || ""))}</textarea>
+        <span class="hint" id="save-context">${c.inputs?.context ? "Saved. Used in the patterns, the ICP and signals." : "Saves as you type."}</span></div>
+      <div class="row">
+        <button class="btn ${stale || !c.patterns ? "red" : ""}" id="patternsBtn" type="button" ${busy[c.id + ":patterns"] || busy[c.id] || researched(c).length < 2 ? "disabled" : ""}>${c.patterns && stale ? "Re-find patterns" : "Find patterns + build ICP"}</button>
+        <button class="btn" id="sharpenBtn" type="button" ${busy[c.id] ? "disabled" : ""}>${c.icp ? "Sharpen ICP only" : "Build ICP without patterns"}</button>
+      </div>
+      ${researched(c).length < 2 ? '<p class="hint">Research at least 2 customers to find patterns.</p>' : stale && c.patterns ? '<p class="hint">Customers, buyers or buyer profiles changed since the last analysis.</p>' : ""}
+      ${patternsCard(c)}${buyerPatternsCard(c)}${icpCard(c)}`, c.icp ? "ICP v" + c.icp.version + " · " + (c.icp.confidence ?? "?") + "%" : "")}
+    ${c.icp ? '<div class="row"><button class="btn red" data-goto="signals" type="button">Next: signals →</button><button class="btn" data-goto="leads" type="button">Go to leads →</button></div>' : ""}`
+  : t === "signals" ? signalsPane(c)
+  : t === "leads" ? leadsPane(c)
+  : `<section class="step"><div class="step-h"><h2>Onboarding email</h2></div><div class="step-b">${emailPane(c)}</div></section>
+    <section class="extras">
+      <details class="input-card"><summary><span class="t">More evidence<span class="h">New website copy, won and lost calls, kickoff notes. Used by the ICP when you sharpen it.</span></span><span class="chip">${INPUTS.filter(i => !i.core && String(c.inputs?.[i.k]||"").trim()).length}/${INPUTS.filter(i => !i.core).length}</span></summary>
+        <div class="body">${INPUTS.filter(i => !i.core).map(i => inputCard(c, i, true, false)).join("")}</div></details>
+      <details class="input-card" data-sec="bt" ${c._open === "bt" ? "open" : ""}><summary><span class="t">Backtest<span class="h">Check the ICP passes known good fits and rejects known bad ones.</span></span>${c.backtest ? '<span class="chip ok">Run</span>' : ""}</summary><div class="body">${backtestPane(c)}</div></details>
+      <details class="input-card" data-sec="mp" ${c._open === "mp" ? "open" : ""}><summary><span class="t">Mega prompt<span class="h">For Prospeo AI search, Clay or any research agent.</span></span></summary><div class="body">${promptPane(c)}</div></details>
+      <details class="input-card"><summary><span class="t">Access checklist</span><span class="chip">${CHECKS.filter(k => c.checks?.[k.k]).length}/${CHECKS.length}</span></summary><div class="body">${checksPane(c)}</div></details>
+      <button class="btn sm ghost" id="delClient" type="button">${c._confirmDel ? "Click again to delete " + esc(c.company) : "Delete client"}</button>
+    </section>`;
   return `
   <div class="chead"><h1>${esc(c.company)}</h1><div class="sub">${esc(c.first)} · ${esc(c.email)} · ${esc(c.website || "")}</div></div>
+  <div class="tabs" role="tablist">${TABS.map(([k, l]) => `<button class="tab ${t === k ? "on" : ""}" role="tab" aria-selected="${t === k}" data-tab="${k}" type="button">${l}${k === "leads" && leads.length ? ` <span class="tcount">${leads.length}</span>` : k === "signals" && arr(c.signalCompanies).length ? ` <span class="tcount">${arr(c.signalCompanies).length}</span>` : ""}</button>`).join("")}</div>
   ${c._err ? `<div class="banner" role="alert">${esc(c._err)} <button class="x" id="clearErr" type="button" aria-label="Dismiss">×</button></div>` : ""}
-  ${step(1, "Their website", flags[0], next === 0, inputCard(c, INPUTS[0], false, !flags[0]))}
-  ${step(2, "Customer URLs", flags[1], next === 1, customersBlock(c), ds.length ? ds.length + " customers" : "")}
-  ${step(3, "Team members + buyers", flags[2], next === 2, researchBlock(c) + buyerPanel(c), buyerCount(c) ? buyerCount(c) + " buyers · " + enrichedCount(c) + " full profiles" : "")}
-  ${step(4, "Patterns and ICP", flags[3], next === 3, `
-    <div class="field"><label for="in-context">Additional context (free form)</label>
-      <textarea id="in-context" class="ctx" placeholder="Anything we know that the data won't show: who the founder says their dream customer is, deals in flight, who to avoid, why customers churned, pricing, competitors…">${esc(drafts[c.id + ":context"] ?? (c.inputs?.context || ""))}</textarea>
-      <span class="hint" id="save-context">${c.inputs?.context ? "Saved. Used in the patterns and the ICP." : "Saves as you type. Used in the patterns and the ICP."}</span></div>
-    <div class="row">
-      <button class="btn ${stale || !c.patterns ? "red" : ""}" id="patternsBtn" type="button" ${busy[c.id + ":patterns"] || busy[c.id] || researched(c).length < 2 ? "disabled" : ""}>${c.patterns && stale ? "Re-find patterns" : "Find patterns + build ICP"}</button>
-      <button class="btn" id="sharpenBtn" type="button" ${busy[c.id] ? "disabled" : ""}>${c.icp ? "Sharpen ICP only" : "Build ICP without patterns"}</button>
-    </div>
-    ${researched(c).length < 2 ? '<p class="hint">Research at least 2 customers to find patterns.</p>' : stale && c.patterns ? '<p class="hint">Customers, buyers or buyer profiles changed since the last analysis.</p>' : ""}
-    ${patternsCard(c)}${buyerPatternsCard(c)}${icpCard(c)}`, c.icp ? "ICP v" + c.icp.version + " · " + (c.icp.confidence ?? "?") + "%" : "")}
-  ${step(5, "Leads", flags[4], next === 4, prospeoPane(c), arr(c.leads).length ? arr(c.leads).filter(l => l.pass).length + " of " + arr(c.leads).length + " pass" : "")}
-  ${step(6, "Onboarding email", flags[5], next === 5, emailPane(c))}
-  <section class="extras">
-    <details class="input-card"><summary><span class="t">More evidence<span class="h">New website copy, won and lost calls, kickoff notes. Saving these re-sharpens the ICP.</span></span><span class="chip">${more.filter(i => String(c.inputs?.[i.k]||"").trim()).length}/${more.length}</span></summary>
-      <div class="body">${more.map(i => inputCard(c, i, true, false)).join("")}</div></details>
-    <details class="input-card" ${c._open === "bt" ? "open" : ""} data-sec="bt"><summary><span class="t">Backtest<span class="h">Check the ICP passes known good fits and rejects known bad ones.</span></span>${c.backtest ? '<span class="chip ok">Run</span>' : ""}</summary><div class="body">${backtestPane(c)}</div></details>
-    <details class="input-card" ${c._open === "mp" ? "open" : ""} data-sec="mp"><summary><span class="t">Mega prompt<span class="h">For Prospeo AI search, Clay or any research agent.</span></span></summary><div class="body">${promptPane(c)}</div></details>
-    <details class="input-card"><summary><span class="t">Access checklist</span><span class="chip">${CHECKS.filter(k => c.checks?.[k.k]).length}/${CHECKS.length}</span></summary><div class="body">${checksPane(c)}</div></details>
-    <button class="btn sm ghost" id="delClient" type="button">${c._confirmDel ? "Click again to delete " + esc(c.company) : "Delete client"}</button>
-  </section>`;
+  ${body}`;
+}
+
+/* ---------- signals: custom sources researched by Claude ---------- */
+function signalBrief(c){
+  const i = c.icp || {}; const b = c.buyerPatterns || {}; const p = c.patterns || {};
+  return [
+    i.one_liner && "Client sells: " + i.one_liner,
+    p.hypothesis && "Their customers have in common: " + p.hypothesis,
+    arr(p.patterns).filter(x => x.strength !== "weak").map(x => "- " + x.finding + " (" + x.count + "/" + x.of + ")").join("\n"),
+    b.persona && "Buyer: " + b.persona,
+    arr(i.archetypes).map(a => `Archetype ${a.name}: ${a.company_profile}; buys when ${a.trigger}`).join("\n"),
+    arr(i.disqualification).length && "Disqualify: " + arr(i.disqualification).map(d => d.criterion).join("; "),
+    arr(c.locations).length && "Location: " + c.locations.join(", "),
+    c.inputs?.context && "Team context: " + String(c.inputs.context).slice(0, 1500),
+  ].filter(Boolean).join("\n");
+}
+function sourcesPrompt(c){
+  return `You plan lead research for ${c.company} (${c.website}). The team tracks SIGNALS: public events that make a company a likely buyer right now. Given their signal description and their customer research, list the specific websites and sources where those signals show up, so a research agent can pull qualified companies from each one.
+
+SIGNALS THE TEAM WANTS TO TRACK:
+${c.signalsText || "(not written yet; infer the best signals from the research)"}
+
+CUSTOMER AND BUYER RESEARCH:
+${signalBrief(c)}
+Buying signals from the ICP: ${arr(c.icp?.buying_signals).join("; ") || "none"}
+Existing customers (for reference): ${custDomains(c).join(", ")}
+
+Rules:
+- Be specific to this client: name the actual programs, directories, lists, job boards, communities, events and news feeds where their buyers' signals appear (e.g. for "got into an accelerator": Y Combinator's company directory, a16z speedrun, Pear VC, Techstars, South Park Commons, Neo, Entrepreneurs First, relevant vertical accelerators).
+- Give the most direct public URL (a listing or directory page, not a homepage, when one exists). If no good page exists, give a search query instead.
+- Say what to extract and how a company there qualifies. Mark sources that need a login as access "login" (we can't use those yet).
+- 10 to 20 sources, best first. Group by signal.
+
+Reply with only one JSON object:
+{"signals":[{"signal":"plain-language signal","why":"why it predicts buying for this client"}],
+ "sources":[{"name":"","url":"","query":"","signal":"which signal","type":"accelerator|directory|job board|funding news|community|event|marketplace|other","extract":"what to pull","qualifies":"how a company there qualifies","access":"public|login","priority":1}]}`;
+}
+async function generateSources(c){
+  if (!status.claude){ toast("Add ANTHROPIC_API_KEY to the Worker first"); return; }
+  busy[c.id + ":sources"] = true; c._err = ""; render();
+  try {
+    const {data} = await api("/api/claude", {body: {prompt: sourcesPrompt(c), maxTokens: 6000}});
+    if (!arr(data?.sources).length) throw {error: "No sources came back. Add more detail to the signals and try again."};
+    const keepCustom = arr(c.sources).filter(x => x.custom);
+    const sources = [...keepCustom, ...data.sources.map((x, n) => ({...x, id: "s" + Date.now().toString(36) + n, on: x.access !== "login"}))];
+    busy[c.id + ":sources"] = false;
+    await saveClient(c.id, {sources, signalList: arr(data.signals)});
+  } catch(e){ busy[c.id + ":sources"] = false; c._err = e.error; render(); }
+}
+async function researchSources(c, onlyId){
+  const list = arr(c.sources).filter(x => onlyId ? x.id === onlyId : x.on);
+  if (!list.length){ toast("Tick at least one source"); return; }
+  const exclude = [...custDomains(c), domainOf(c.website)].filter(Boolean);
+  busy[c.id + ":sigrun"] = {done: 0, of: list.length}; c._err = ""; render();
+  let found = arr(c.signalCompanies).slice();
+  const runOne = async src => {
+    const cur = clients.find(x => x.id === c.id) || c;
+    const set = st => { cur.sources = arr(cur.sources).map(x => x.id === src.id ? {...x, ...st} : x); render(); };
+    set({status: "running", note: ""});
+    try {
+      const r = await api("/api/research-source", {body: {source: src, brief: signalBrief(c), exclude, limit: 30}});
+      const have = new Set(found.map(f => domainOf(f.website) || f.company.toLowerCase()));
+      const fresh = arr(r.companies).filter(x => x && x.company).map(x => ({...x, website: domainOf(x.website), source: src.name, sourceId: src.id, at: now(), key: (domainOf(x.website) || x.company.toLowerCase())}))
+        .filter(x => !exclude.includes(x.website) && !have.has(x.key));
+      found = [...found, ...fresh];
+      set({status: "done", found: arr(r.companies).length, added: fresh.length, note: r.notes || "", ranAt: now(), read: r.read, searches: r.searches, fetches: r.fetches});
+    } catch(e){ set({status: "error", note: e.error}); }
+    busy[c.id + ":sigrun"].done++; render();
+  };
+  for (let k = 0; k < list.length; k += 2) await Promise.all(list.slice(k, k + 2).map(runOne)); // 2 sources at a time
+  busy[c.id + ":sigrun"] = false;
+  const cur = clients.find(x => x.id === c.id) || c;
+  await saveClient(c.id, {sources: cur.sources, signalCompanies: found.sort((a, b) => (b.fit || 0) - (a.fit || 0)).slice(0, 400)});
+  toast(`Signals: ${found.length} companies so far`);
+}
+async function findBuyersAtSignals(c){
+  const picks = arr(c.signalCompanies).filter(x => (c._sigSel || new Set()).size ? c._sigSel.has(x.key) : (x.fit || 0) >= 60).filter(x => x.website);
+  if (!picks.length){ toast("Select companies with a website, or run research to find some with fit 60+"); return; }
+  const bp = c.buyerPatterns?.prospeo || {};
+  const titles = arr(bp.titles_include).length ? bp.titles_include : arr(c.icp?.personas?.titles_include);
+  const seniority = arr(bp.seniority).length ? bp.seniority : arr(c.icp?.personas?.seniority);
+  busy[c.id + ":sigbuyers"] = true; c._err = ""; render();
+  try {
+    const r = await api("/api/prospeo/people-at", {body: {websites: picks.map(x => x.website), titles: titles.map(t => String(t).toLowerCase()), seniority: seniority.filter(x => SENIORITY.includes(x)), page: 1}});
+    const byDomain = new Map(picks.map(x => [x.website, x]));
+    const pullId = "p" + Date.now().toString(36);
+    const seen = new Set(arr(c.leads).map(l => l.key));
+    const fresh = arr(r.results).map(normalizeLead).filter(l => !seen.has(l.key)).map(l => { const sc = byDomain.get(l.domain) || [...byDomain.values()].find(x => l.domain && l.domain.endsWith(x.website)); return {...l, pullId, variant: "Signal: " + (sc?.source || "custom"), signal: sc ? sc.signal + " · " + sc.evidence : "", evidenceUrl: sc?.evidence_url || ""}; });
+    busy[c.id + ":sigbuyers"] = false;
+    await saveClient(c.id, {_tab: "leads", _view: "latest", pulls: [...arr(c.pulls), {id: pullId, at: now(), label: "Signals", count: fresh.length}].slice(-30), leads: [...arr(c.leads), ...fresh].slice(-500)});
+    toast(fresh.length ? `${fresh.length} buyers at signal companies${r.usedTitles ? "" : " (title filter returned nothing, used seniority)"}. Scoring…` : "No buyers found at those companies in Prospeo");
+    if (fresh.length && status.claude) scoreLeads(clients.find(x => x.id === c.id) || c, [pullId]);
+  } catch(e){ busy[c.id + ":sigbuyers"] = false; c._err = e.error; render(); }
+}
+function signalsPane(c){
+  if (!c.icp) return `<div class="note"><b>Build the ICP first</b> (Research tab). Signals use the patterns and buyer research to pick sources.</div>`;
+  const srcs = arr(c.sources); const run = busy[c.id + ":sigrun"]; const comps = arr(c.signalCompanies);
+  const sel = c._sigSel || new Set();
+  return `
+  ${step(1, "Describe the signals", !!c.signalsText, !c.signalsText, `
+    <textarea id="sigText" class="ctx" placeholder="What tells us a company is ready to buy right now? e.g. Just got into an accelerator (YC, a16z speedrun, Pear VC), raised a seed round in the last 6 months, hiring their first AE…">${esc(drafts[c.id + ":sigText"] ?? (c.signalsText || ""))}</textarea>
+    <div class="row"><span class="hint" id="save-sigText">${c.signalsText ? "Saved" : "Saves as you type"}</span>${arr(c.icp?.buying_signals).length && !c.signalsText ? '<button class="btn sm" id="sigDraft" type="button">Start from the ICP\'s buying signals</button>' : ""}</div>`)}
+  ${step(2, "Sources", srcs.length > 0, !!c.signalsText && !srcs.length, `
+    <div class="row"><button class="btn ${srcs.length ? "" : "red"}" id="genSources" type="button" ${busy[c.id + ":sources"] ? "disabled" : ""}>${busy[c.id + ":sources"] ? "Finding sources…" : srcs.length ? "Regenerate sources" : "Generate sources"}</button><span class="hint">Claude picks sources specific to ${esc(c.company)} using the signals and the patterns.</span></div>
+    ${arr(c.signalList).length ? `<p class="hint">${c.signalList.map(x => `<b>${esc(x.signal)}</b>: ${esc(x.why)}`).join(" · ")}</p>` : ""}
+    ${srcs.length ? `<div class="srcs">${srcs.map(x => `<div class="src ${x.on ? "" : "off"}">
+      <input type="checkbox" data-srcon="${esc(x.id)}" ${x.on ? "checked" : ""} aria-label="Use ${esc(x.name)}">
+      <div class="src-m"><b>${esc(x.name)}</b> <span class="chip">${esc(x.type || "source")}</span>${x.access === "login" ? ' <span class="chip miss">needs login</span>' : ""}
+        <span class="hint">${x.url ? `<a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.url)}</a>` : "Search: " + esc(x.query || "")} · ${esc(x.signal || "")}</span>
+        ${x.status ? `<span class="hint">${x.status === "running" ? "Researching…" : x.status === "error" ? "⚠ " + esc(x.note) : `${x.added} new of ${x.found} found · ${x.searches || 0} searches, ${x.fetches || 0} pages${x.note ? " · " + esc(x.note) : ""}`}</span>` : ""}</div>
+      <div class="src-a"><button class="btn sm" data-srcrun="${esc(x.id)}" type="button" ${run ? "disabled" : ""}>Run</button><button class="x" data-srcdel="${esc(x.id)}" type="button" aria-label="Remove ${esc(x.name)}">×</button></div>
+    </div>`).join("")}</div>` : ""}
+    <div class="mini"><input id="srcUrl" placeholder="Add your own source URL, e.g. https://www.ycombinator.com/companies?batch=Winter%202026"><input id="srcSig" placeholder="Signal it shows" style="max-width:220px"><button class="btn sm" id="srcAdd" type="button">Add</button></div>`, srcs.length ? srcs.filter(x => x.on).length + " selected" : "")}
+  ${step(3, "Research the sources", comps.length > 0, srcs.length > 0 && !comps.length, `
+    <div class="row"><button class="btn red" id="runSources" type="button" ${run || !srcs.some(x => x.on) ? "disabled" : ""}>${run ? `Researching ${run.done}/${run.of}…` : `Research ${srcs.filter(x => x.on).length} selected sources`}</button><span class="hint">An agent reads each source, browses and searches for more, and pulls companies showing the signal. About 30 to 90 seconds per source.</span></div>
+    ${comps.length ? `<div class="leadbar"><label class="toggle"><input type="checkbox" id="sigAll" ${sel.size && sel.size === comps.length ? "checked" : ""}> Select all</label><span class="hint">${sel.size ? sel.size + " selected" : "None selected: Find buyers uses every company with fit 60+"}</span><button class="btn sm ghost" id="sigDelSel" type="button" ${sel.size ? "" : "disabled"}>Remove selected</button></div>
+    <div class="lead-list">${comps.map(x => `<div class="lead-row"><input type="checkbox" data-sigsel="${esc(x.key)}" ${sel.has(x.key) ? "checked" : ""} aria-label="Select ${esc(x.company)}"><details class="lead ${(x.fit || 0) < 60 ? "fail" : ""}"><summary>
+        <span class="pill ${(x.fit || 0) >= 60 ? "pass" : "no"}">${x.fit ?? "–"}</span>
+        <span class="who"><b>${esc(x.company)}</b><span>${esc(x.what_they_do || "")}</span></span>
+        <span class="co"><b>${esc(x.signal || "")}</b><span>${esc(x.website || "no website found")} · ${esc(x.source || "")}</span></span></summary>
+        <div class="lead-b"><p>${esc(x.why || "")}</p><p class="hint">${esc(x.evidence || "")}${x.evidence_url ? ` · <a href="${esc(x.evidence_url)}" target="_blank" rel="noopener">source</a>` : ""}</p></div></details></div>`).join("")}</div>` : ""}`, comps.length ? comps.length + " companies" : "")}
+  ${step(4, "Find the buyers", false, comps.length > 0, `
+    <div class="row"><button class="btn red" id="sigBuyers" type="button" ${busy[c.id + ":sigbuyers"] || !comps.length ? "disabled" : ""}>${busy[c.id + ":sigbuyers"] ? "Finding buyers…" : `Find buyers at ${sel.size || comps.filter(x => (x.fit || 0) >= 60 && x.website).length} companies`}</button>
+    <span class="hint">Prospeo finds people matching the buyer pattern (${esc(arr(c.buyerPatterns?.prospeo?.titles_include).slice(0, 4).join(", ") || "ICP titles")}) at these companies, 1 credit per 25. They land in Leads, tagged with the signal, and get scored.</span></div>`)}`;
 }
 
 function inputCard(c, i, auto, openIt){
@@ -1223,23 +1381,35 @@ function locationBlock(c){
     ${locs.length ? `<div class="chips">${locs.map(l => `<span class="dchip">${esc(l)}<button type="button" data-rmloc="${esc(l)}" aria-label="Remove ${esc(l)}">×</button></span>`).join("")}</div><span class="hint">Applied to every search, replacing any location the ICP picked.</span>` : '<span class="hint">No location set: searches use whatever the ICP picked.</span>'}
   </div>`;
 }
+function leadsInView(c){
+  const leads = arr(c.leads); const latest = latestPull(c);
+  const view = c._view || (latest ? "latest" : "all");
+  let rows = view === "latest" && latest ? leads.filter(l => l.pullId === latest.id) : leads;
+  if (c._passOnly) rows = rows.filter(l => l.pass);
+  return rows;
+}
+// newest pull that still has leads in it (deleting a whole pull falls back to the one before)
+function latestPull(c){ const ids = new Set(arr(c.leads).map(l => l.pullId)); return arr(c.pulls).slice().reverse().find(p => ids.has(p.id)) || null; }
 function leadList(c){
-  const leads = arr(c.leads); const pulls = arr(c.pulls);
-  const latest = pulls[pulls.length - 1];
+  const leads = arr(c.leads);
+  const latest = latestPull(c);
   const view = c._view || (latest ? "latest" : "all");
   let rows = view === "latest" && latest ? leads.filter(l => l.pullId === latest.id) : leads;
   if (c._passOnly) rows = rows.filter(l => l.pass);
   rows = rows.slice().sort((a, b) => (b.score ?? -1) - (a.score ?? -1));
   const tot = totalPts(c); const scored = rows.filter(l => l.score != null);
   const q = arr(c.icp?.qualification);
+  const sel = c._sel || new Set();
   return `<div class="leadbar">
+      <label class="toggle"><input type="checkbox" id="selAll" ${rows.length && rows.every(l => sel.has(l.key)) ? "checked" : ""} aria-label="Select all in view"></label>
       <div class="seg">${latest ? `<button type="button" class="${view === "latest" ? "on" : ""}" data-view="latest">Latest pull · ${esc(latest.label)} (${leads.filter(l => l.pullId === latest.id).length})</button>` : ""}<button type="button" class="${view === "all" ? "on" : ""}" data-view="all">All (${leads.length})</button></div>
       <label class="toggle"><input type="checkbox" id="passOnly" ${c._passOnly ? "checked" : ""}> Passing only</label>
-      <span class="hint">${scored.filter(l => l.pass).length} of ${scored.length} scored pass · pass mark ${pct(c)}%${c.prospeoTotal ? " · " + Number(c.prospeoTotal).toLocaleString() + " in pool" : ""}</span>
+      <span class="hint">${scored.filter(l => l.pass).length} of ${scored.length} pass</span>
+      ${sel.size ? `<span class="spacer"></span><span class="hint"><b>${sel.size} selected</b></span><button class="btn sm ghost" id="delSel" type="button">Delete selected</button><button class="btn sm ghost" id="clearSel" type="button">Clear</button>` : '<span class="spacer"></span><button class="btn sm ghost" id="delFail" type="button">Delete failing</button>'}
     </div>
     <div class="lead-list">${rows.length ? rows.map(l => {
       const s = l.score == null ? null : Math.round(l.score / tot * 100);
-      return `<details class="lead ${l.score != null && !l.pass ? "fail" : ""}">
+      return `<div class="lead-row"><input type="checkbox" data-sel="${esc(l.key)}" ${sel.has(l.key) ? "checked" : ""} aria-label="Select ${esc(l.name)}"><details class="lead ${l.score != null && !l.pass ? "fail" : ""}">
         <summary>
           <span class="pill ${s == null ? "" : l.pass ? "pass" : "no"}">${s == null ? "–" : s + "%"}</span>
           <span class="who"><b>${esc(l.name)}</b><span>${esc(l.title)}</span></span>
@@ -1250,9 +1420,11 @@ function leadList(c){
           ${l.reason ? `<p>${esc(l.reason)}</p>` : '<p class="hint">Not scored yet.</p>'}
           ${l.hook ? `<p><b>Opener:</b> <em>${esc(l.hook)}</em></p>` : ""}
           ${arr(l.hits).length ? `<p class="hint">Meets: ${arr(l.hits).map(h => { const n = Number(String(h).replace(/\D/g, "")) - 1; return q[n] ? esc(q[n].criterion) : esc(h); }).join(" · ")}</p>` : ""}
+          ${l.signal ? `<p><b>Signal:</b> ${esc(l.signal)}${l.evidenceUrl ? ` · <a href="${esc(l.evidenceUrl)}" target="_blank" rel="noopener">source</a>` : ""}</p>` : ""}
           <p class="hint">${[l.domain, l.past && "Before: " + l.past, l.variant && "From: " + l.variant].filter(Boolean).map(esc).join(" · ")}${l.linkedin ? ` · <a href="${esc(l.linkedin)}" target="_blank" rel="noopener">LinkedIn</a>` : ""}</p>
+          <div><button class="btn sm ghost" data-dellead="${esc(l.key)}" type="button">Delete lead</button></div>
         </div>
-      </details>`; }).join("") : '<p class="hint">No leads match this view.</p>'}</div>`;
+      </details></div>`; }).join("") : '<p class="hint">No leads match this view.</p>'}</div>`;
 }
 function translationBlock(c){
   if (!c.icp) return "";
@@ -1378,34 +1550,31 @@ function promptPane(c){
   </div>`;
 }
 
-function prospeoPane(c){
+function leadsPane(c){
   const p = currentPayload(c);
-  if (!p) return `<div class="note"><b>Build the ICP first.</b> The Prospeo search is generated from its personas and firmographics.</div>`;
-  const body = JSON.stringify(p.body, null, 2);
-  const curl = `curl -X POST https://api.prospeo.io/search-person \\\n  -H "X-KEY: $PROSPEO_API_KEY" \\\n  -H "Content-Type: application/json" \\\n  -d '${JSON.stringify(p.body).replace(/'/g,"'\\''")}'`;
-  const dropped = Array.isArray(p.dropped) ? (p.dropped.length ? [["unsupported filters", p.dropped]] : []) : Object.entries(p.dropped).filter(([,v]) => v.length);
+  if (!p) return `<div class="note"><b>Build the ICP first</b> (Research tab).</div>`;
   const leads = arr(c.leads);
-  const scored = leads.filter(l => l.score != null);
-  const passing = scored.filter(l => l.pass).length;
+  const dropped = Array.isArray(p.dropped) ? (p.dropped.length ? [["unsupported filters", p.dropped]] : []) : Object.entries(p.dropped).filter(([,v]) => v.length);
+  const sb = busy[c.id + ":score"];
   return `<div class="stack">
-    ${translationBlock(c)}
-    ${pipelineView(c)}
-    <h3 class="sub-h">Looks right? Pull leads${p.variant ? " · using " + esc(p.variant) : " · using ICP filters"}</h3>
-    <div class="row">
-      <button class="btn red big" id="runSearch" type="button" ${busy[c.id + ":search"] ? "disabled" : ""}>${busy[c.id + ":search"] ? "Searching…" : leads.length ? "Pull next 25 leads" : "Pull 25 leads from Prospeo"}</button>
-      <button class="btn yellow" id="scoreLeads" type="button" ${!leads.length || busy[c.id + ":score"] ? "disabled" : ""}>${busy[c.id + ":score"] ? `Scoring ${busy[c.id + ":score"].done || 0}/${busy[c.id + ":score"].of || ""}…` : "Score unscored leads"}</button>
-      ${leads.length ? '<button class="btn" id="csvLeads" type="button">Download CSV</button><button class="btn sm ghost" id="clearLeads" type="button">Clear leads</button>' : ""}
+    <div class="toolbar">
+      <button class="btn red" id="runSearch" type="button" ${busy[c.id + ":search"] ? "disabled" : ""}>${busy[c.id + ":search"] ? "Searching…" : "Pull 25 from Prospeo"}</button>
+      <span class="hint">using ${esc(p.variant || "ICP filters")}${arr(c.locations).length ? " · " + esc(c.locations.join(", ")) : ""}</span>
+      <span class="spacer"></span>
+      <button class="btn sm" id="scoreLeads" type="button" ${!leads.length || sb ? "disabled" : ""}>${sb ? `Scoring ${sb.done || 0}/${sb.of || ""}…` : "Score unscored"}</button>
+      <button class="btn sm dark" id="csvLeads" type="button" ${leads.length ? "" : "disabled"}>Download CSV</button>
     </div>
-    ${arr(c._attempts).length ? `<div class="tablewrap"><table class="leads"><thead><tr><th>Try</th><th>Removed</th><th>Prospeo reply</th><th>Filters sent</th></tr></thead><tbody>${c._attempts.map((t, n) => `<tr><td class="num">${n + 1}</td><td>${esc(t.dropped || "nothing")}</td><td>${t.ok ? '<span class="chip ok">OK</span>' : `<b>${esc(t.error_code || "HTTP " + t.status)}</b> ${esc(t.filter_error || "")} ${esc(t.message || "")}`}</td><td class="hint">${esc(arr(t.filters).join(", "))}</td></tr>`).join("")}</tbody></table></div>` : ""}
-    <p class="hint">${status.prospeo ? "Each pull is one Prospeo credit for up to 25 people. Search doesn't return emails; enrich the passing leads in Prospeo before sending." : "Add PROSPEO_API_KEY to the Worker to pull leads from here. Until then, copy the JSON below into Prospeo."}</p>
-    
-    ${locationBlock(c)}
     ${c._scoreErr ? `<div class="banner" role="alert">${esc(c._scoreErr)}</div>` : ""}
-    ${leads.length ? leadList(c) : ""}
-    <div class="row"><span class="chip">${Object.keys(p.body.filters).length} filters</span><span class="chip">${p.excluded} domains excluded</span>${p.body.filters.company_location_search ? '<span class="chip y">Locations must match dashboard spelling</span>' : ""}</div>
-    ${dropped.length ? `<div class="note">Dropped values Prospeo won't accept: ${dropped.map(([k,v]) => `<b>${k}</b> ${esc(v.join(", "))}`).join(" · ")}</div>` : ""}
-    ${c.lastRaw ? `<details class="input-card"><summary><span class="t">Last raw Prospeo result<span class="h">For checking field mapping if names or titles come back blank.</span></span></summary><div class="body"><pre class="raw">${esc(c.lastRaw)}</pre></div></details>` : ""}
-    <div class="row"><a class="btn" href="https://app.prospeo.io" target="_blank" rel="noopener">Open Prospeo</a><button class="btn yellow" id="markList" type="button">${c.checks?.listBuilt ? "List built ✓" : "Mark list built"}</button></div>
+    ${arr(c._attempts).length ? `<div class="tablewrap"><table class="leads"><thead><tr><th>Try</th><th>Removed</th><th>Prospeo reply</th></tr></thead><tbody>${c._attempts.map((t, n) => `<tr><td class="num">${n + 1}</td><td>${esc(t.dropped || "nothing")}</td><td>${t.ok ? '<span class="chip ok">OK</span>' : `<b>${esc(t.error_code || "HTTP " + t.status)}</b> ${esc(t.filter_error || "")}`}</td></tr>`).join("")}</tbody></table></div>` : ""}
+    ${leads.length ? leadList(c) : `<div class="note">No leads yet. Pull from Prospeo above, or find buyers at signal companies in the Signals tab.</div>`}
+    <details class="input-card" ${!leads.length || c._open === "search" ? "open" : ""} data-sec="search"><summary><span class="t">Search setup<span class="h">Location, how patterns translate into Prospeo filters, and the exact prompts.</span></span></summary>
+      <div class="body" style="gap:16px">
+        ${locationBlock(c)}
+        ${translationBlock(c)}
+        ${pipelineView(c)}
+        ${dropped.length ? `<div class="note">Dropped values Prospeo won't accept: ${dropped.map(([k,v]) => `<b>${k}</b> ${esc(v.join(", "))}`).join(" · ")}</div>` : ""}
+        ${c.lastRaw ? `<details class="input-card"><summary><span class="t">Last raw Prospeo result</span></summary><div class="body"><pre class="raw">${esc(c.lastRaw)}</pre></div></details>` : ""}
+      </div></details>
   </div>`;
 }
 
@@ -1537,10 +1706,11 @@ async function scoreLeads(c, onlyIds){
     toast(results.filter(r => r && r.pass).length + " of " + (target.length - failed) + " pass");
   } catch(e){ busy[c.id + ":score"] = false; c._scoreErr = e.error; render(); }
 }
-function leadsCSV(c){
-  const cols = ["score","pass","name","title","company","domain","location","linkedin","archetype","disqualifier","reason","hook"];
+function leadsCSV(c, rows){
+  const tot = totalPts(c);
+  const cols = [["score_pct", l => l.score == null ? "" : Math.round(l.score / tot * 100)], ["pass", l => l.pass ? "yes" : l.score == null ? "" : "no"], ["name"], ["title"], ["company"], ["domain"], ["location"], ["linkedin"], ["headline"], ["past_roles", l => l.past], ["source", l => l.variant || "Prospeo"], ["signal"], ["signal_source", l => l.evidenceUrl], ["archetype"], ["disqualifier"], ["reason"], ["opener", l => l.hook]];
   const q = v => { v = String(v ?? ""); return /[",\n]/.test(v) ? '"' + v.replace(/"/g,'""') + '"' : v; };
-  return [cols.join(","), ...arr(c.leads).map(l => cols.map(k => q(l[k])).join(","))].join("\n");
+  return [cols.map(x => x[0]).join(","), ...rows.map(l => cols.map(([k, f]) => q(f ? f(l) : l[k])).join(","))].join("\n");
 }
 
 /* ---------- backtest ---------- */
@@ -1655,6 +1825,37 @@ async function pullSiteFor(c){
 }
 /* ---------- bindings ---------- */
 function bindClient(c){
+  document.querySelectorAll("[data-tab]").forEach(b => b.onclick = () => { c._tab = b.dataset.tab; render(); window.scrollTo(0, 0); });
+  document.querySelectorAll("[data-goto]").forEach(b => b.onclick = () => { c._tab = b.dataset.goto; render(); window.scrollTo(0, 0); });
+  // lead selection + delete
+  const visible = () => leadsInView(c);
+  document.querySelectorAll("[data-sel]").forEach(cb => cb.onchange = () => { c._sel = c._sel || new Set(); cb.checked ? c._sel.add(cb.dataset.sel) : c._sel.delete(cb.dataset.sel); render(); });
+  const sa = $("#selAll"); if (sa) sa.onchange = () => { c._sel = sa.checked ? new Set(visible().map(l => l.key)) : new Set(); render(); };
+  const removeLeads = keys => { const k = new Set(keys); c._sel = new Set(); saveClient(c.id, {leads: arr(c.leads).filter(l => !k.has(l.key))}); toast("Deleted " + k.size + " lead" + (k.size === 1 ? "" : "s")); };
+  const ds2 = $("#delSel"); if (ds2) ds2.onclick = () => removeLeads([...(c._sel || [])]);
+  const cs = $("#clearSel"); if (cs) cs.onclick = () => { c._sel = new Set(); render(); };
+  const df = $("#delFail"); if (df) df.onclick = () => { const f = visible().filter(l => l.score != null && !l.pass).map(l => l.key); if (!f.length) toast("No failing leads in this view"); else removeLeads(f); };
+  document.querySelectorAll("[data-dellead]").forEach(b => b.onclick = () => removeLeads([b.dataset.dellead]));
+  // signals
+  const sd = $("#sigDraft"); if (sd) sd.onclick = () => { const t = arr(c.icp?.buying_signals).map(x => "- " + x).join("\n"); saveClient(c.id, {signalsText: t}); };
+  const st = $("#sigText"); if (st) st.addEventListener("input", () => {
+    drafts[c.id + ":sigText"] = st.value; const h = $("#save-sigText"); if (h) h.textContent = "Saving…";
+    clearTimeout(autosaveTimers[c.id + "sig"]);
+    autosaveTimers[c.id + "sig"] = setTimeout(async () => { const v = drafts[c.id + ":sigText"]; delete drafts[c.id + ":sigText"]; await saveClient(c.id, {signalsText: v}, true); const h2 = $("#save-sigText"); if (h2) h2.textContent = "Saved"; }, 900);
+  });
+  const gs = $("#genSources"); if (gs) gs.onclick = () => generateSources(c);
+  const rs2 = $("#runSources"); if (rs2) rs2.onclick = () => researchSources(c);
+  document.querySelectorAll("[data-srcrun]").forEach(b => b.onclick = () => researchSources(c, b.dataset.srcrun));
+  document.querySelectorAll("[data-srcon]").forEach(cb => cb.onchange = () => saveClient(c.id, {sources: arr(c.sources).map(x => x.id === cb.dataset.srcon ? {...x, on: cb.checked} : x)}));
+  document.querySelectorAll("[data-srcdel]").forEach(b => b.onclick = () => saveClient(c.id, {sources: arr(c.sources).filter(x => x.id !== b.dataset.srcdel)}));
+  const sad = $("#srcAdd"); if (sad) sad.onclick = () => {
+    const u = $("#srcUrl").value.trim(); if (!/^https?:\/\//.test(u)){ toast("Paste a full URL starting with https://"); return; }
+    saveClient(c.id, {sources: [{id: "s" + Date.now().toString(36), name: domainOf(u) || u, url: u, signal: $("#srcSig").value.trim() || "custom", type: "custom", extract: "companies listed and the evidence of the signal", access: "public", on: true, custom: true}, ...arr(c.sources)]});
+  };
+  document.querySelectorAll("[data-sigsel]").forEach(cb => cb.onchange = () => { c._sigSel = c._sigSel || new Set(); cb.checked ? c._sigSel.add(cb.dataset.sigsel) : c._sigSel.delete(cb.dataset.sigsel); render(); });
+  const sall = $("#sigAll"); if (sall) sall.onchange = () => { c._sigSel = sall.checked ? new Set(arr(c.signalCompanies).map(x => x.key)) : new Set(); render(); };
+  const sds = $("#sigDelSel"); if (sds) sds.onclick = () => { const k = c._sigSel || new Set(); c._sigSel = new Set(); saveClient(c.id, {signalCompanies: arr(c.signalCompanies).filter(x => !k.has(x.key))}); };
+  const sb2 = $("#sigBuyers"); if (sb2) sb2.onclick = () => findBuyersAtSignals(c);
   document.querySelectorAll("details[data-sec]").forEach(d => d.addEventListener("toggle", () => { if (d.open) c._open = d.dataset.sec; else if (c._open === d.dataset.sec) c._open = null; }));
   const ce = $("#clearErr"); if (ce) ce.onclick = () => { c._err = ""; render(); };
   {
@@ -1774,12 +1975,14 @@ function bindClient(c){
 
     const cl = $("#clearLeads"); if (cl) cl.onclick = () => saveClient(c.id, {leads: [], pulls: [], prospeoPage: 0, variantPages: {}, prospeoTotal: null, lastRaw: ""});
     const cv = $("#csvLeads"); if (cv) cv.onclick = () => {
-      const blob = new Blob([leadsCSV(c)], {type: "text/csv"}); const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob); a.download = c.company.replace(/\W+/g, "-").toLowerCase() + "-leads-icp-v" + c.icp.version + ".csv"; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+      const sel = c._sel || new Set(); const rows = sel.size ? arr(c.leads).filter(l => sel.has(l.key)) : leadsInView(c);
+      const blob = new Blob([leadsCSV(c, rows)], {type: "text/csv"}); const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob); a.download = c.company.replace(/\W+/g, "-").toLowerCase() + "-leads-" + new Date().toISOString().slice(0, 10) + ".csv"; toast("Downloaded " + rows.length + " leads"); a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
     };
     const ml = $("#markList"); if (ml) ml.onclick = () => setCheck(c, "listBuilt", !c.checks?.listBuilt);
   }
   {
+    if ($("#emSubject")){
     const persist = () => saveClient(c.id, {draft: {subject: $("#emSubject").value, body: $("#emBody").value}});
     $("#emSubject").onchange = persist; $("#emBody").onchange = persist;
     const refreshLink = () => { $("#gmailLink").href = "https://mail.google.com/mail/?view=cm&fs=1&to=" + encodeURIComponent(c.email) + "&su=" + encodeURIComponent($("#emSubject").value) + "&body=" + encodeURIComponent($("#emBody").value); };
@@ -1787,6 +1990,7 @@ function bindClient(c){
     $("#copyEmail").onclick = () => copy("To: " + c.email + "\nSubject: " + $("#emSubject").value + "\n\n" + $("#emBody").value);
     $("#markSent").onclick = () => setCheck(c, "emailSent", !c.checks?.emailSent);
     $("#resetEmail").onclick = () => saveClient(c.id, {draft: null});
+    }
   }
   if (c.icp && $("#btGood")){
     ["btGood","btBad"].forEach(k => $("#" + k).addEventListener("input", e => { drafts[c.id + ":" + k] = e.target.value; }));
@@ -1811,7 +2015,7 @@ async function setCheck(c, k, v, rerender = true){
 
 function openOnboard(){ $("#onboardModal").hidden = false; setTimeout(() => $("#obFirst").focus(), 30); }
 $("#onboardBtn").onclick = openOnboard;
-$("#clientPick").onchange = e => { selected = e.target.value; render(); window.scrollTo(0,0); };
+
 $("#fillCracked").onclick = fillCracked;
 $("#settingsBtn").onclick = () => { $("#setStripe").value = settings.stripe || ""; $("#setGuide").value = settings.guide || ""; $("#setSign").value = settings.sign || ""; $("#settingsModal").hidden = false; };
 document.querySelectorAll("[data-close]").forEach(b => b.onclick = () => b.closest(".scrim").hidden = true);

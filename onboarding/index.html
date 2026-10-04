@@ -625,7 +625,7 @@ async function sharpen(id){
   if (!filled(c) && !c.patterns){ toast("Add their website or customers first"); return; }
   busy[id] = true; c._err = ""; render();
   try {
-    const {data: out} = await api("/api/claude", {body: {prompt: icpPrompt(c), maxTokens: 8000}});
+    const {data: out} = await api("/api/claude", {body: {prompt: icpPrompt(c), maxTokens: 12000}});
     if (!out || typeof out !== "object" || !out.archetypes) throw {error:"Claude's answer was missing the ICP fields. Try again."};
     const v = (c.icp?.version || 0) + 1;
     out.version = v; out.builtAt = now(); out.inputsUsed = INPUTS.filter(i => String(c.inputs?.[i.k]||"").trim()).map(i => i.k).concat(c.patterns ? ["patterns"] : []);
@@ -774,7 +774,7 @@ async function findPatterns(c){
   if (researched(c).length < 2){ toast("Research at least 2 customers first"); return false; }
   busy[c.id + ":patterns"] = true; c._err = ""; render();
   try {
-    const {data} = await api("/api/claude", {body: {prompt: patternPrompt(c), maxTokens: 10000}});
+    const {data} = await api("/api/claude", {body: {prompt: patternPrompt(c), maxTokens: 16000}});
     if (!data || !Array.isArray(data.patterns)) throw {error: "The pattern analysis came back incomplete. Try again."};
     data.at = now(); data.n = researched(c).length; data.buyers = buyerCount(c);
     busy[c.id + ":patterns"] = false;
@@ -822,7 +822,7 @@ async function findBuyerPatterns(c){
   if (buyerList(c).length < 2) return false;
   busy[c.id + ":bpatterns"] = true; render();
   try {
-    const {data} = await api("/api/claude", {body: {prompt: buyerPatternPrompt(c), maxTokens: 6000}});
+    const {data} = await api("/api/claude", {body: {prompt: buyerPatternPrompt(c), maxTokens: 10000}});
     if (!data || !data.persona) throw {error: "The buyer analysis came back incomplete. Try again."};
     data.at = now(); data.n = buyerList(c).length; data.enriched = enrichedCount(c);
     busy[c.id + ":bpatterns"] = false;
@@ -1071,7 +1071,7 @@ async function translate(c){
   if (!c.icp){ toast("Build the ICP first"); return false; }
   busy[c.id + ":translate"] = true; c._err = ""; render();
   try {
-    const {data} = await api("/api/claude", {body: {prompt: translatorPrompt(c), maxTokens: 8000}});
+    const {data} = await api("/api/claude", {body: {prompt: translatorPrompt(c), maxTokens: 12000}});
     if (!data || !arr(data.variants).length) throw {error: "The translation came back without search variants. Try again."};
     data.at = now(); data.icpV = c.icp.version; data.bpAt = c.buyerPatterns?.at || null;
     busy[c.id + ":translate"] = false;
@@ -1224,8 +1224,9 @@ async function generateSources(c){
   if (!status.claude){ toast("Add ANTHROPIC_API_KEY to the Worker first"); return; }
   busy[c.id + ":sources"] = true; c._err = ""; render();
   try {
-    const {data} = await api("/api/claude", {body: {prompt: sourcesPrompt(c), maxTokens: 6000}});
-    if (!arr(data?.sources).length) throw {error: "No sources came back. Add more detail to the signals and try again."};
+    const {data} = await api("/api/claude", {body: {prompt: sourcesPrompt(c), maxTokens: 12000}});
+    data.sources = arr(data?.sources).filter(x => x && x.name && (x.url || x.query)); // drop items cut off mid-way
+    if (!data.sources.length) throw {error: "No sources came back. Add more detail to the signals and try again."};
     const keepCustom = arr(c.sources).filter(x => x.custom);
     const sources = [...keepCustom, ...data.sources.map((x, n) => ({...x, id: "s" + Date.now().toString(36) + n, on: x.access !== "login"}))];
     busy[c.id + ":sources"] = false;
@@ -1674,7 +1675,7 @@ async function scoreRows(c, rows, onProgress){
   const work = async start => {
     const chunk = rows.slice(start, start + size);
     try {
-      const {data} = await api("/api/claude", {body: {prompt: scorePrompt(c, chunk), maxTokens: 6000}});
+      const {data} = await api("/api/claude", {body: {prompt: scorePrompt(c, chunk), maxTokens: 8000}});
       const list = Array.isArray(data) ? data : arr(data?.results || data?.leads);
       chunk.forEach((_, n) => {
         const r = list.find(x => Number(x.i) === n) || list[n] || {};

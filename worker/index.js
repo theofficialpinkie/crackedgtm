@@ -81,6 +81,30 @@ function rootDomain(s) {
 }
 const safeId = s => /^[a-z0-9][a-z0-9-]{0,80}$/.test(String(s || ""));
 
+// Close a JSON value that was cut off mid-way: drop the unfinished tail back to the last complete
+// item, then add the missing closing brackets. Returns null if nothing usable is left.
+function repairTruncatedJSON(text) {
+  let s = String(text || "");
+  const start = s.search(/[\[{]/); if (start < 0) return null;
+  s = s.slice(start);
+  for (let cut = s.length; cut > 1; ) {
+    const head = s.slice(0, cut);
+    const stack = []; let inStr = false, esc = false;
+    for (const ch of head) {
+      if (inStr) { if (esc) esc = false; else if (ch === "\\") esc = true; else if (ch === '"') inStr = false; continue; }
+      if (ch === '"') inStr = true; else if (ch === "{" || ch === "[") stack.push(ch); else if (ch === "}" || ch === "]") stack.pop();
+    }
+    if (!inStr) {
+      const body = head.replace(/[,:\s]+$/, "");
+      const closed = body + stack.reverse().map(ch => ch === "{" ? "}" : "]").join("");
+      try { return JSON.parse(closed); } catch {}
+    }
+    const prev = Math.max(head.lastIndexOf("},", cut - 2), head.lastIndexOf("],", cut - 2), head.lastIndexOf('",', cut - 2));
+    if (prev <= 0) return null;
+    cut = prev + 1;
+  }
+  return null;
+}
 function extractJSON(text) {
   const t = String(text || "").trim();
   try { return JSON.parse(t); } catch {}
@@ -267,11 +291,21 @@ export default {
       if (path === "/api/claude" && req.method === "POST") {
         const { prompt, maxTokens, expectJson = true } = await req.json();
         if (!prompt || prompt.length > 400_000) return fail(400, "Prompt missing or too long");
-        const out = await askClaude(env, prompt, { maxTokens: Math.min(Number(maxTokens) || 8000, 16000) });
+        // If the answer runs out of room, retry once with double the room and a "be concise" instruction.
+        // If it's still cut off, salvage every complete item from the partial JSON instead of failing.
+        let budget = Math.min(Math.max(Number(maxTokens) || 8000, 4000), 32000);
+        let out = await askClaude(env, prompt, { maxTokens: budget });
         if (!expectJson) return json({ text: out.text, stop: out.stop });
-        const parsed = extractJSON(out.text);
-        if (parsed == null) return fail(502, out.stop === "max_tokens" ? "Claude's answer was cut off. Trim the inputs and retry." : "Claude's answer didn't parse as JSON. Retry.", { raw: out.text.slice(0, 2000) });
-        return json({ data: parsed, stop: out.stop, usage: out.usage });
+        let parsed = extractJSON(out.text);
+        if (parsed == null && out.stop === "max_tokens") {
+          budget = Math.min(budget * 2, 32000);
+          out = await askClaude(env, prompt + "\n\nKeep it tight: every string under 25 words, no extra fields. The JSON must be complete.", { maxTokens: budget });
+          parsed = extractJSON(out.text);
+        }
+        let salvaged = false;
+        if (parsed == null && out.stop === "max_tokens") { parsed = repairTruncatedJSON(out.text); salvaged = parsed != null; }
+        if (parsed == null) return fail(502, out.stop === "max_tokens" ? "Claude's answer was still too long after a retry. Try again; if it repeats, remove a few customers or sources." : "Claude's answer didn't parse as JSON. Retry.", { raw: out.text.slice(0, 2000) });
+        return json({ data: parsed, stop: out.stop, usage: out.usage, salvaged });
       }
       if (path === "/api/pull-site" && req.method === "POST") {
         const { url: u } = await req.json(); return json(await pullSite(u, env, url.hostname));
@@ -352,7 +386,7 @@ Finish with only one JSON object (no prose after it):
           const r = await fetch("https://api.anthropic.com/v1/messages", {
             method: "POST",
             headers: { "x-api-key": env.ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01", "content-type": "application/json" },
-            body: JSON.stringify({ model: env.CLAUDE_MODEL || DEFAULT_MODEL, max_tokens: 12000, tools, messages }),
+            body: JSON.stringify({ model: env.CLAUDE_MODEL || DEFAULT_MODEL, max_tokens: 20000, tools, messages }),
           });
           const body = await r.json().catch(() => ({}));
           if (!r.ok) return fail(502, "Claude API error: " + (body?.error?.message || r.status));
@@ -363,7 +397,8 @@ Finish with only one JSON object (no prose after it):
           if (body.stop_reason === "pause_turn") { messages = [...messages, { role: "assistant", content: body.content }]; continue; }
           break;
         }
-        const parsed = extractJSON(text.slice(text.lastIndexOf('{"companies"') >= 0 ? text.lastIndexOf('{"companies"') : 0));
+        const tail = text.slice(text.lastIndexOf('{"companies"') >= 0 ? text.lastIndexOf('{"companies"') : 0);
+        const parsed = extractJSON(tail) || repairTruncatedJSON(tail);
         if (!parsed || !Array.isArray(parsed.companies)) return fail(502, "The research didn't return a company list. Try again or tighten the source.", { raw: text.slice(-1500) });
         return json({ companies: parsed.companies, notes: parsed.notes || "", read: !!pageText, searches, fetches });
       }

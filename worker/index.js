@@ -194,7 +194,7 @@ async function prospeoSearch(env, body) {
   });
   const data = await r.json().catch(() => ({}));
   if (data.error_code === "NO_RESULTS") return { results: [], pagination: { total_count: 0 } };
-  if (!r.ok || data.error) throw { status: 502, error: "Prospeo said: " + (data.error_code || data.message || data.filter_error || r.status), detail: data };
+  if (!r.ok || data.error) throw { status: 502, error: "Prospeo said: " + ([data.error_code, data.filter_error, data.message].filter(Boolean).join(" · ") || r.status), detail: data };
   return data;
 }
 

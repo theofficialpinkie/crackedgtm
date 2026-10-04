@@ -111,26 +111,60 @@ function htmlToText(html) {
     .replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&#39;|&rsquo;/g, "'").replace(/&quot;|&ldquo;|&rdquo;/g, '"')
     .replace(/[ \t]+/g, " ").replace(/\n\s*\n+/g, "\n").trim();
 }
-async function pullSite(rawUrl) {
+const BROWSER_HEADERS = {
+  "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0 Safari/537.36",
+  accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+  "accept-language": "en-US,en;q=0.9",
+};
+// Reads one page. Order: our own site from static assets (a Worker can't fetch its own
+// domain), then a normal fetch, then a reader service that renders JavaScript and gets
+// past most bot walls. Returns {text, links, via} or null.
+async function readPage(url, env, selfHost) {
+  const u = new URL(url);
+  const bare = h => h.replace(/^www\./, "");
+  if (selfHost && bare(u.hostname) === bare(selfHost) && env.ASSETS) {
+    let r = await env.ASSETS.fetch(new Request(u.href));
+    for (let k = 0; k < 3 && r.status >= 300 && r.status < 400 && r.headers.get("location"); k++) r = await env.ASSETS.fetch(new Request(new URL(r.headers.get("location"), u).href));
+    if (r.ok) { const html = await r.text(); return { text: htmlToText(html), links: htmlLinks(html, u), via: "site" }; }
+  }
+  try {
+    const r = await fetch(u.href, { headers: BROWSER_HEADERS, redirect: "follow", cf: { cacheTtl: 300 } });
+    if (r.ok && (r.headers.get("content-type") || "").includes("html")) {
+      const html = await r.text(); const text = htmlToText(html);
+      if (text.length > 400) return { text, links: htmlLinks(html, new URL(r.url || u.href)), via: "direct" };
+    }
+  } catch {}
+  try {
+    const r = await fetch("https://r.jina.ai/" + u.href, { headers: { accept: "text/plain", "x-return-format": "markdown" } });
+    if (r.ok) {
+      const md = await r.text();
+      if (md.trim().length > 200) {
+        const links = [...md.matchAll(/\((https?:\/\/[^)\s]+)\)/g)].map(m => m[1]);
+        return { text: md.replace(/!\[[^\]]*\]\([^)]*\)/g, "").replace(/\]\((https?:[^)]+)\)/g, "]").replace(/\n{3,}/g, "\n\n").trim(), links, via: "reader" };
+      }
+    }
+  } catch {}
+  return null;
+}
+function htmlLinks(html, base) {
+  return [...String(html).matchAll(/href="([^"#]+)"/gi)].map(m => { try { return new URL(m[1], base).href; } catch { return null; } }).filter(Boolean);
+}
+async function pullSite(rawUrl, env, selfHost) {
   let base;
   try { base = new URL(/^https?:\/\//.test(rawUrl) ? rawUrl : "https://" + rawUrl); } catch { throw { status: 400, error: "That website address doesn't look valid." }; }
   if (!/^https?:$/.test(base.protocol) || /^(localhost|127\.|10\.|192\.168\.|169\.254\.)/.test(base.hostname)) throw { status: 400, error: "Only public websites can be pulled." };
-  const get = async u => {
-    const r = await fetch(u, { headers: { "user-agent": "Mozilla/5.0 (compatible; CrackedGTM-Onboarding/1.0)", accept: "text/html" }, redirect: "follow", cf: { cacheTtl: 300 } });
-    if (!r.ok || !(r.headers.get("content-type") || "").includes("html")) return null;
-    return await r.text();
-  };
-  const home = await get(base.href);
-  if (!home) throw { status: 422, error: "Couldn't read " + base.hostname + ". The site may block bots or render with JavaScript only. Paste the copy instead." };
-  // Follow a few high-signal internal pages if they exist
-  const want = /\/(pricing|about|customers|case-stud|product|solutions|features|why)/i;
-  const links = [...home.matchAll(/href="([^"#]+)"/gi)].map(m => { try { return new URL(m[1], base).href; } catch { return null; } })
-    .filter(u => u && new URL(u).hostname === base.hostname && want.test(new URL(u).pathname));
-  const extra = [...new Set(links)].slice(0, 4);
-  const pages = [{ url: base.href, text: htmlToText(home) }];
-  for (const u of extra) { const h = await get(u).catch(() => null); if (h) pages.push({ url: u, text: htmlToText(h) }); }
+  const home = await readPage(base.href, env, selfHost);
+  if (!home) throw { status: 422, error: "Couldn't read " + base.hostname + " directly or through the page reader. Paste the copy instead." };
+  // Follow a few internal pages: high-signal ones first, then other top-level pages
+  const want = /\/(pricing|about|customers?|case|stor|product|solutions?|features|why|platform|use-cases?)/i;
+  const skip = /\.(png|jpe?g|svg|gif|webp|ico|css|js|pdf|xml|json)$|\/(blog|careers|jobs|legal|privacy|terms|login|signin|signup)/i;
+  const bare = h => h.replace(/^www\./, "");
+  const internal = [...new Set(home.links)].filter(l => { try { const x = new URL(l); return bare(x.hostname) === bare(base.hostname) && x.pathname.length > 1 && !skip.test(x.pathname); } catch { return false; } });
+  const extra = [...internal.filter(l => want.test(new URL(l).pathname)), ...internal.filter(l => !want.test(new URL(l).pathname) && new URL(l).pathname.split("/").filter(Boolean).length === 1)].slice(0, 4);
+  const pages = [{ url: base.href, text: home.text, via: home.via }];
+  for (const u of extra) { const p = await readPage(u, env, selfHost).catch(() => null); if (p) pages.push({ url: u, text: p.text, via: p.via }); }
   const text = pages.map(p => `## ${p.url}\n${p.text.slice(0, 7000)}`).join("\n\n");
-  return { pages: pages.map(p => p.url), text };
+  return { pages: pages.map(p => p.url), via: [...new Set(pages.map(p => p.via))], text };
 }
 
 /* ---------------- Stripe pull (client's restricted read-only key) ---------------- */
@@ -230,13 +264,13 @@ export default {
         return json({ data: parsed, stop: out.stop, usage: out.usage });
       }
       if (path === "/api/pull-site" && req.method === "POST") {
-        const { url: u } = await req.json(); return json(await pullSite(u));
+        const { url: u } = await req.json(); return json(await pullSite(u, env, url.hostname));
       }
       if (path === "/api/research-customer" && req.method === "POST") {
         // One customer: read their site and find their leadership team in Prospeo.
         const { domain } = await req.json();
         const out = { domain, site: "", siteError: "", people: [], peopleError: "", company: null };
-        try { const r = await pullSite(domain); out.site = r.text.slice(0, 6000); } catch (e) { out.siteError = e.error || "Couldn't read site"; }
+        try { const r = await pullSite(domain, env, url.hostname); out.site = r.text.slice(0, 6000); } catch (e) { out.siteError = e.error || "Couldn't read site"; }
         if (env.PROSPEO_API_KEY) {
           try {
             const d = await prospeoSearch(env, { page: 1, filters: {

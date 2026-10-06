@@ -1723,6 +1723,7 @@ function normalizeLead(r){
     past: arr(p.job_history).filter(h => !h.current).slice(0, 3).map(h => `${h.title || ""} @ ${h.company_name || ""}`).join("; "),
     funding: co.funding?.last_funding_stage || co.funding?.stage || "",
     pid: p.person_id || "",
+    first: p.first_name || "", last: p.last_name || "",
     key: p.person_id || p.id || p.linkedin_url || name + "|" + (co.name || ""),
   };
 }
@@ -1847,9 +1848,15 @@ async function fetchEmails(c, keys, quiet = false){
     toast(`${found} of ${todo.length} verified email${todo.length === 1 ? "" : "s"} found${r.credits ? " · " + r.credits + " credit" + (r.credits === 1 ? "" : "s") : ""}${r.warning ? ". " + r.warning : ""}`);
   } catch(e){ busy[c.id + ":emails"] = false; cur()._scoreErr = "Emails: " + e.error; render(); }
 }
+// First/last from Prospeo's fields when we have them, else split the full name (older leads); drops "Dr."/"Jr." style noise
+function nameParts(l){
+  if (l.first || l.last) return [l.first || "", l.last || ""];
+  const t = String(l.name || "").replace(/\b(dr|mr|mrs|ms|prof)\.?\s/i, "").replace(/,?\s+(jr|sr|ii|iii|iv|phd|mba|cpa)\.?$/i, "").trim().split(/\s+/);
+  return t.length < 2 ? [t[0] || "", ""] : [t[0], t.slice(1).join(" ")];
+}
 function leadsCSV(c, rows){
   const tot = totalPts(c);
-  const cols = [["score_pct", l => l.score == null ? "" : Math.round(l.score / tot * 100)], ["pass", l => l.pass ? "yes" : l.score == null ? "" : "no"], ["name"], ["title"], ["email"], ["email_status", l => l.emailStatus], ["company"], ["domain"], ["location"], ["linkedin"], ["headline"], ["past_roles", l => l.past], ["source", l => l.variant || "Prospeo"], ["signal"], ["signal_source", l => l.evidenceUrl], ["archetype"], ["disqualifier"], ["reason"], ["opener", l => l.hook]];
+  const cols = [["score_pct", l => l.score == null ? "" : Math.round(l.score / tot * 100)], ["pass", l => l.pass ? "yes" : l.score == null ? "" : "no"], ["first_name", l => nameParts(l)[0]], ["last_name", l => nameParts(l)[1]], ["title"], ["email"], ["email_status", l => l.emailStatus], ["company"], ["domain"], ["location"], ["linkedin"], ["headline"], ["past_roles", l => l.past], ["source", l => l.variant || "Prospeo"], ["signal"], ["signal_source", l => l.evidenceUrl], ["archetype"], ["disqualifier"], ["reason"], ["opener", l => l.hook]];
   const q = v => { v = String(v ?? ""); return /[",\n]/.test(v) ? '"' + v.replace(/"/g,'""') + '"' : v; };
   return [cols.map(x => x[0]).join(","), ...rows.map(l => cols.map(([k, f]) => q(f ? f(l) : l[k])).join(","))].join("\n");
 }

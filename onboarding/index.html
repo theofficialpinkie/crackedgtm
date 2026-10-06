@@ -269,6 +269,9 @@ table.leads{border-collapse:collapse;width:100%;font-size:13px;min-width:760px}
 .addloc:focus-visible{outline:2px solid var(--red)}
 .locbox{display:flex;flex-direction:column;gap:8px;border-top:2px solid var(--line);padding-top:12px}
 .target{display:flex;flex-direction:column;gap:10px}
+.sel{padding:6px 8px;border:2px solid var(--line);background:var(--card);font-weight:700;font-size:13px}
+.log-co{border:2px solid var(--line);padding:10px;display:flex;flex-direction:column;gap:6px;background:var(--card)}
+.log-p{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:8px;align-items:center;font-size:13px;border-top:1px dashed var(--muted);padding-top:6px}
 .leadbar{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
 .lead-list{display:flex;flex-direction:column;border:2px solid var(--line);background:var(--card)}
 .lead{border-top:1px solid var(--line)}
@@ -515,7 +518,7 @@ async function boot(){
   $("#logout").onclick = async e => { e.preventDefault(); await fetch("/api/logout"); location.reload(); };
   render();
   // pick up Khaled's changes; skip while someone is mid-edit on this screen
-  setInterval(async () => { if (document.hidden || Object.keys(drafts).length || Object.values(busy).some(Boolean)) return; await refresh(); render(); }, 20000);
+  setInterval(async () => { if (document.hidden || Object.keys(drafts).length || Object.values(busy).some(Boolean)) return; await refresh(); const cc = clients.find(x => x.id === selected); if (cc && cc._mem) await loadMem(cc); render(); }, 20000);
 }
 function strip(c){ const out = {}; for (const [k,v] of Object.entries(c)) if (!k.startsWith("_") && k !== "id" && k !== "updatedAt") out[k] = v; return out; }
 async function saveClient(id, patch, quiet = false){
@@ -968,7 +971,7 @@ function prospeoPayload(c){
   const loc = arr(i.firmographics?.locations); if (loc.length) f.company_location_search = {include: loc};
   const cust = customerDigest(c.inputs?.customers).domains;
   const own = domainOf(c.website || c.email);
-  const excl = [...new Set([own, ...cust].filter(Boolean))].slice(0,500);
+  const excl = [...new Set([own, ...cust, ...blockedDomains(c)].filter(Boolean))].slice(0,500);
   if (excl.length) f.company = {websites: {exclude: excl}};
   applyTarget(c, f);
   const dropped = {
@@ -1179,7 +1182,7 @@ function cleanVariant(c, v){
     f[k] = x;
   }
   if (v.use_lookalike){ const ids = lookalikeIds(c); if (ids.length) f.company_lookalike = {company_oids: ids}; }
-  const excl = [...new Set([domainOf(c.website || c.email), ...customerDigest(c.inputs?.customers).domains].filter(Boolean))].slice(0, 500);
+  const excl = [...new Set([domainOf(c.website || c.email), ...customerDigest(c.inputs?.customers).domains, ...blockedDomains(c)].filter(Boolean))].slice(0, 500);
   if (excl.length) f.company = {websites: {exclude: excl}};
   applyTarget(c, f);
   return {body: {page: 1, filters: f}, dropped, excluded: excl.length};
@@ -1209,7 +1212,7 @@ async function testVariants(c){
     try {
       const res = await api("/api/prospeo/search", {body: {...p.body, page: 1}});
       const raw = res.results || [];
-      const batch = raw.map(normalizeLead).map(l => ({...l, variant: v.name}));
+      const batch = (await dropKnown(c, raw.map(normalizeLead).map(l => ({...l, variant: v.name})))).keep;
       const pullId = "p" + Date.now().toString(36) + k;
       const scored = batch.length ? (await scoreRows(c, batch.map(leadRow))).results : [];
       const merged = batch.map((l, n) => ({...l, ...(scored[n] || {}), ...(scored[n] ? {icpV: c.icp.version} : {}), pullId}));
@@ -1246,6 +1249,7 @@ function render(){
   if (!c){ m.innerHTML = emptyView(); bindEmpty(); return; }
   m.innerHTML = clientView(c);
   bindClient(c);
+  if (!c._mem && !c._memP) loadMem(c);
   window.scrollTo(0, keepScroll);
 }
 function emptyView(){
@@ -1393,11 +1397,12 @@ async function findBuyersAtSignals(c){
     const byDomain = new Map(picks.map(x => [x.website, x]));
     const pullId = "p" + Date.now().toString(36);
     const seen = new Set(arr(c.leads).map(l => l.key));
-    const fresh = arr(r.results).map(normalizeLead).filter(l => !seen.has(l.key)).map(l => { const sc = byDomain.get(l.domain) || [...byDomain.values()].find(x => l.domain && l.domain.endsWith(x.website)); return {...l, pullId, variant: "Signal: " + (sc?.source || "custom"), signal: sc ? sc.signal + " · " + sc.evidence : "", evidenceUrl: sc?.evidence_url || ""}; });
+    const fresh0 = arr(r.results).map(normalizeLead).filter(l => !seen.has(l.key)).map(l => { const sc = byDomain.get(l.domain) || [...byDomain.values()].find(x => l.domain && l.domain.endsWith(x.website)); return {...l, pullId, variant: "Signal: " + (sc?.source || "custom"), signal: sc ? sc.signal + " · " + sc.evidence : "", evidenceUrl: sc?.evidence_url || ""}; });
+    const {keep: fresh} = await dropKnown(c, fresh0);
     busy[c.id + ":sigbuyers"] = false;
     await saveClient(c.id, {_tab: "leads", _view: "latest", pulls: [...arr(c.pulls), {id: pullId, at: now(), label: "Signals", count: fresh.length}].slice(-30), leads: [...arr(c.leads), ...fresh].slice(-500)});
     toast(fresh.length ? `${fresh.length} buyers at signal companies${r.usedTitles ? "" : " (title filter returned nothing, used seniority)"}. Scoring…` : "No buyers found at those companies in Prospeo");
-    if (fresh.length && status.claude) scoreLeads(clients.find(x => x.id === c.id) || c, [pullId]);
+    if (fresh.length) afterPull(clients.find(x => x.id === c.id) || c, pullId);
   } catch(e){ busy[c.id + ":sigbuyers"] = false; c._err = e.error; render(); }
 }
 function signalsPane(c){
@@ -1512,21 +1517,21 @@ function leadList(c){
   rows = rows.slice().sort((a, b) => (b.score ?? -1) - (a.score ?? -1));
   const tot = totalPts(c); const scored = rows.filter(l => l.score != null);
   const q = arr(c.icp?.qualification);
-  const sel = c._sel || new Set();
+  const sel = c._sel || new Set(); const idx = sentIndex(c);
   return `<div class="leadbar">
       <label class="toggle"><input type="checkbox" id="selAll" ${rows.length && rows.every(l => sel.has(l.key)) ? "checked" : ""} aria-label="Select all in view"></label>
       <div class="seg">${latest ? `<button type="button" class="${view === "latest" ? "on" : ""}" data-view="latest">Latest pull · ${esc(latest.label)} (${leads.filter(l => l.pullId === latest.id).length})</button>` : ""}<button type="button" class="${view === "all" ? "on" : ""}" data-view="all">All (${leads.length})</button></div>
       <label class="toggle"><input type="checkbox" id="passOnly" ${c._passOnly ? "checked" : ""}> Passing only</label>
       <span class="hint">${scored.filter(l => l.pass).length} of ${scored.length} pass${c.getEmails ? " · " + rows.filter(l => l.email).length + " with email" : ""}</span>
       ${sel.size ? `<span class="spacer"></span><span class="hint"><b>${sel.size} selected</b></span><button class="btn sm ghost" id="delSel" type="button">Delete selected</button><button class="btn sm ghost" id="clearSel" type="button">Clear</button>` : '<span class="spacer"></span><button class="btn sm ghost" id="delFail" type="button">Delete failing</button>'}
-      ${rows.some(l => l.verdict === "drop") ? `<button class="btn sm red" id="delFlagged" type="button">Remove ${rows.filter(l => l.verdict === "drop").length} not a fit</button>` : ""}
+      ${rows.some(l => l.verdict === "drop") ? `<button class="btn sm red" id="delFlagged" type="button">Remove + block ${rows.filter(l => l.verdict === "drop").length} not a fit</button>` : ""}
     </div>
     <div class="lead-list">${rows.length ? rows.map(l => {
-      const s = l.score == null ? null : Math.round(l.score / tot * 100);
-      return `<div class="lead-row"><input type="checkbox" data-sel="${esc(l.key)}" ${sel.has(l.key) ? "checked" : ""} aria-label="Select ${esc(l.name)}"><details class="lead ${l.score != null && !l.pass || l.verdict === "drop" ? "fail" : ""}">
+      const s = l.score == null ? null : Math.round(l.score / tot * 100); const ct = contactedAs(c, l, idx);
+      return `<div class="lead-row"><input type="checkbox" data-sel="${esc(l.key)}" ${sel.has(l.key) ? "checked" : ""} aria-label="Select ${esc(l.name)}"><details class="lead ${l.score != null && !l.pass || l.verdict === "drop" || ct ? "fail" : ""}">
         <summary>
           <span class="pill ${s == null ? "" : l.pass ? "pass" : "no"}">${s == null ? "–" : s + "%"}</span>
-          <span class="who"><b>${esc(l.name)}${l.email ? " ✉" : ""}${l.verdict === "drop" ? ' <span class="chip r">Not a fit</span>' : ""}</b><span>${esc(l.title)}</span></span>
+          <span class="who"><b>${esc(l.name)}${l.email ? " ✉" : ""}${l.verdict === "drop" ? ' <span class="chip r">Not a fit</span>' : ""}${ct ? ` <span class="chip y">Contacted · ${esc(ct.channel || "")} · ${esc(fmtDate(ct.at))}</span>` : ""}</b><span>${esc(l.title)}</span></span>
           <span class="co"><b>${esc(l.company)}</b><span>${esc([l.location, l.headcount && l.headcount + " ppl"].filter(Boolean).join(" · "))}</span></span>
         </summary>
         <div class="lead-b">
@@ -1671,16 +1676,32 @@ function promptPane(c){
   </div>`;
 }
 
+function outreachPanel(c){
+  const m = c._mem; const sent = arr(m?.sent); const sel = c._sel || new Set();
+  const groups = new Map();
+  for (const r of sent){ const g = r.company || r.domain || "Unknown company"; if (!groups.has(g)) groups.set(g, []); groups.get(g).push(r); }
+  const list = [...groups.entries()].sort((a, b) => String(b[1][0].at).localeCompare(String(a[1][0].at))).slice(0, 150);
+  return `<details class="input-card" data-sec="log" ${c._open === "log" ? "open" : ""}><summary><span class="t">Contacted<span class="h">${!m ? "Loading…" : sent.length ? `${sent.length} ${sent.length === 1 ? "person" : "people"} at ${groups.size} ${groups.size === 1 ? "company" : "companies"}. Left out of every new pull and download.` : "Nobody marked as sent yet. Download a CSV with Mark as sent ticked, or mark leads here."}</span></span>${sent.length ? `<span class="chip y">${sent.length}</span>` : ""}</summary>
+    <div class="body">${m?.failed ? '<div class="note"><b>Couldn\'t load the contacted log.</b> Duplicates can\'t be blocked until it loads. <button class="btn sm" id="memRetry" type="button">Retry</button></div>' : ""}
+      <div class="mini"><input id="sendCamp" value="${esc(c.sendCamp || "")}" placeholder="Campaign name (optional), e.g. Oct finance leaders" aria-label="Campaign name"><button class="btn sm dark" id="markSelBtn" type="button" ${sel.size ? "" : "disabled"}>${sel.size ? `Mark ${sel.size} selected as sent` : "Tick leads to mark them as sent"}</button></div>
+      ${list.map(([g, rs]) => `<div class="log-co"><span><b>${esc(g)}</b> <span class="hint">${rs.length} contacted</span></span>${rs.map(r => `<div class="log-p"><span><b>${esc(r.name)}</b>${r.title ? " · " + esc(r.title) : ""}</span><span class="hint">${esc(r.channel || "")}${r.campaign ? " · " + esc(r.campaign) : ""} · ${esc(fmtDate(r.at))}</span><button class="x" data-unsent="${esc(r.id)}" type="button" aria-label="Remove ${esc(r.name)} from the log">×</button></div>`).join("")}</div>`).join("")}
+      ${groups.size > 150 ? '<span class="hint">Showing the 150 most recent companies. The download has everyone.</span>' : ""}
+      ${sent.length ? '<div><button class="btn sm ghost" id="logCsv" type="button">Download log (CSV)</button></div>' : ""}
+    </div></details>`;
+}
 function cleanPanel(c){
   const sig = cleanSig(c); const b = busy[c.id + ":clean"]; const sel = (c._sel || new Set());
   const todo = arr(c.leads).filter(l => (sel.size ? sel.has(l.key) : true) && l.cleanSig !== sig).length;
   const flagged = arr(c.leads).filter(l => l.verdict === "drop").length;
   return `<details class="input-card" data-sec="clean" ${c._open === "clean" ? "open" : ""}><summary><span class="t">Clean the list<span class="h">${flagged ? flagged + " flagged as not a fit. Review them, then remove." : "Flag companies that aren't the kind you want, in plain English."}</span></span>${flagged ? `<span class="chip r">${flagged} flagged</span>` : ""}</summary>
     <div class="body"><div class="field"><label for="cleanRule">What counts as a good company</label><textarea id="cleanRule" class="ctx" style="min-height:90px">${esc(cleanRule(c))}</textarea></div>
+      <label class="toggle"><input type="checkbox" id="autoClean" ${c.autoClean ? "checked" : ""}> Auto-clean every new pull: remove and block non-fits before scoring</label>
       <div class="row"><button class="btn red" id="cleanBtn" type="button" ${b ? "disabled" : ""}>${b ? `Cleaning ${b.done}/${b.of} companies…` : todo ? `Clean ${todo} ${sel.size ? "selected " : ""}lead${todo === 1 ? "" : "s"}` : "All leads cleaned"}</button>
-      <span class="hint">One judgment per company, not per person. Nothing is deleted until you click Remove.${c.getEmails ? " Flagged leads are skipped when finding emails." : ""}</span></div></div></details>`;
+      <span class="hint">One judgment per company, not per person. Nothing is deleted until you click Remove.${c.getEmails ? " Flagged leads are skipped when finding emails." : ""}</span></div>
+      ${arr(c._mem?.blocked).length ? `<div><h3 class="sub-h">Blocked companies · ${arr(c._mem.blocked).length}</h3><span class="hint">Left out of Prospeo searches and new pulls. Click × to allow one again.</span>
+        <div class="chips" style="margin-top:8px">${c._mem.blocked.slice(0, 200).map(b => `<span class="dchip">${esc(b.company || b.id)}${b.kind ? ` <i>${esc(b.kind)}</i>` : ""}<button type="button" data-unblock="${esc(b.id)}" aria-label="Allow ${esc(b.company || b.id)} again">×</button></span>`).join("")}</div></div>` : ""}</div></details>`;
 }
-const emailTargets = c => { const sel = c._sel || new Set(); const pool = sel.size ? arr(c.leads).filter(l => sel.has(l.key)) : arr(c.leads).filter(l => l.pass); return pool.filter(l => !l.email && !l.emailTried && l.verdict !== "drop"); };
+const emailTargets = c => { const sel = c._sel || new Set(); const pool = sel.size ? arr(c.leads).filter(l => sel.has(l.key)) : arr(c.leads).filter(l => l.pass); return (idx => pool.filter(l => !l.email && !l.emailTried && l.verdict !== "drop" && !contactedAs(c, l, idx)))(sentIndex(c)); };
 const emailBtnText = c => { const n = emailTargets(c).length; const sel = (c._sel || new Set()).size; return n ? `Find emails for ${n} ${sel ? "selected" : "passing"}` : (arr(c.leads).some(l => l.email) ? "Emails up to date" : "No passing leads yet"); };
 function leadsPane(c){
   const p = currentPayload(c);
@@ -1692,6 +1713,7 @@ function leadsPane(c){
   return `<div class="stack">
     <details class="input-card" data-sec="whoLeads" ${c._open === "whoLeads" || !leads.length ? "open" : ""}><summary><span class="t">Who to pull<span class="h">${arr(lt.titles).length || lt.locations.length ? esc([arr(lt.titles).length && arr(lt.titles).length + " titles: " + lt.titles.slice(0, 3).join(", ") + (lt.titles.length > 3 ? "…" : ""), lt.locations.length && lt.locations.join(", ")].filter(Boolean).join(" · ")) : "Job titles and location. Applies to every pull and to buyers at signal companies."}</span></span>${arr(lt.titles).length || lt.locations.length ? '<span class="chip y">Custom</span>' : ""}</summary><div class="body">${targetBlock(c, "leads")}</div></details>
     ${leads.length ? cleanPanel(c) : ""}
+    ${outreachPanel(c)}
     <div class="toolbar">
       <button class="btn red" id="runSearch" type="button" ${busy[c.id + ":search"] ? "disabled" : ""}>${busy[c.id + ":search"] ? "Searching…" : "Pull 25 from Prospeo"}</button>
       <span class="hint">using ${esc(p.variant || "ICP filters")}${arr(c.leadTarget?.titles).length ? " · your " + c.leadTarget.titles.length + " titles" : ""}${arr(c.locations).length ? " · " + esc(c.locations.join(", ")) : ""}</span>
@@ -1700,6 +1722,8 @@ function leadsPane(c){
       ${c.getEmails ? `<button class="btn sm" id="findEmails" type="button" ${busy[c.id + ":emails"] ? "disabled" : ""}>${busy[c.id + ":emails"] ? `Finding ${busy[c.id + ":emails"].of} emails…` : emailBtnText(c)}</button>` : ""}
       <button class="btn sm" id="scoreLeads" type="button" ${!leads.length || sb ? "disabled" : ""}>${sb ? `Scoring ${sb.done || 0}/${sb.of || ""}…` : "Score unscored"}</button>
       <button class="btn sm dark" id="csvLeads" type="button" ${leads.length ? "" : "disabled"}>Download CSV</button>
+      <label class="toggle" title="Records everyone in the CSV as contacted, so they're left out of every future pull and download."><input type="checkbox" id="markOnDl" ${c.markOnDl !== false ? "checked" : ""}> Mark as sent</label>
+      <select class="sel" id="sendChan" aria-label="Channel">${["LinkedIn", "Email"].map(x => `<option ${(c.sendChan || "LinkedIn") === x ? "selected" : ""}>${x}</option>`).join("")}</select>
     </div>
     ${c._scoreErr ? `<div class="banner" role="alert">${esc(c._scoreErr)}</div>` : ""}
     ${arr(c._attempts).length ? `<div class="tablewrap"><table class="leads"><thead><tr><th>Try</th><th>Removed</th><th>Prospeo reply</th></tr></thead><tbody>${c._attempts.map((t, n) => `<tr><td class="num">${n + 1}</td><td>${esc(t.dropped || "nothing")}</td><td>${t.ok ? '<span class="chip ok">OK</span>' : `<b>${esc(t.error_code || "HTTP " + t.status)}</b> ${esc(t.filter_error || "")}`}</td></tr>`).join("")}</tbody></table></div>` : ""}
@@ -1756,12 +1780,12 @@ async function runSearch(c){
     const raw = res.results || res.response?.results || res.data || [];
     const seen = new Set(arr(c.leads).map(l => l.key));
     const pullId = "p" + Date.now().toString(36);
-    const fresh = raw.map(normalizeLead).map(l => ({...l, pullId, ...(vi != null ? {variant: c.translation.variants[vi].name} : {})})).filter(l => !seen.has(l.key));
+    const {keep: fresh, nb, nc} = await dropKnown(c, raw.map(normalizeLead).map(l => ({...l, pullId, ...(vi != null ? {variant: c.translation.variants[vi].name} : {})})).filter(l => !seen.has(l.key)));
     const total = res.pagination?.total_count ?? c.prospeoTotal;
     busy[c.id + ":search"] = false;
     await saveClient(c.id, {...(fresh.length ? {_view: "latest", pulls: [...arr(c.pulls), {id: pullId, at: now(), label: vi != null ? c.translation.variants[vi].name : "ICP filters", count: fresh.length}].slice(-30)} : {}), leads: [...arr(c.leads), ...fresh].slice(-500), ...(vi != null ? {variantPages: {...(c.variantPages || {}), [vi]: page}} : {prospeoPage: page}), prospeoTotal: total, lastRaw: raw[0] ? JSON.stringify(raw[0], null, 2).slice(0, 4000) : "", checks: {...(c.checks||{}), listBuilt: true}, checkedAt: {...(c.checkedAt||{}), listBuilt: c.checkedAt?.listBuilt || now()}});
-    toast(fresh.length ? fresh.length + " new leads. Scoring…" : "No new leads on that page");
-    if (fresh.length && status.claude) scoreLeads(clients.find(x => x.id === c.id) || c, [pullId]);
+    toast((fresh.length ? fresh.length + " new leads. Scoring…" : "No new leads on that page") + (nb || nc ? " (left out " + skipNote(nb, nc) + ")" : ""));
+    if (fresh.length) afterPull(clients.find(x => x.id === c.id) || c, pullId);
   } catch(e){ busy[c.id + ":search"] = false; c._err = e.error + (e.detail ? " · " + JSON.stringify(e.detail).slice(0, 300) : ""); render(); }
 }
 // Everything except the rows; identical across batches, so it's sent as a cached prefix
@@ -1843,6 +1867,73 @@ async function scoreLeads(c, onlyIds){
     if (c.getEmails && status.prospeo){ const keys = target.filter(([l], k) => results[k]?.pass && l.verdict !== "drop").map(([l]) => l.key); if (keys.length) await fetchEmails(c, keys, true); }
   } catch(e){ busy[c.id + ":score"] = false; c._scoreErr = e.error; render(); }
 }
+/* ---------- memory: who we've contacted + companies marked "not a fit" (kept on the server, per client, shared with the team) ---------- */
+const liNorm = u => String(u || "").toLowerCase().replace(/^https?:\/\/(www\.)?/, "").split("?")[0].replace(/\/+$/, "");
+// every way we could recognise the same person: Prospeo id, LinkedIn, email, or name at the same company
+const idsOf = l => [l.pid && "pid:" + l.pid, l.linkedin && "li:" + liNorm(l.linkedin), l.email && "em:" + String(l.email).toLowerCase(), l.name && l.domain && "nm:" + String(l.name).toLowerCase().replace(/\s+/g, " ").trim() + "|" + l.domain].filter(Boolean);
+const sentIndex = c => { const m = new Map(); for (const r of arr(c._mem?.sent)) for (const k of arr(r.ids)) m.set(k, r); return m; };
+const contactedAs = (c, l, idx) => { idx = idx || sentIndex(c); for (const k of idsOf(l)) if (idx.has(k)) return idx.get(k); return null; };
+const blockedDomains = c => arr(c._mem?.blocked).map(b => b.id);
+function loadMem(c){
+  return c._memP || (c._memP = (async () => {
+    try { const r = await api("/api/memory/" + c.id); c._mem = {sent: arr(r.sent), blocked: arr(r.blocked)}; }
+    catch { c._mem = {sent: arr(c._mem?.sent), blocked: arr(c._mem?.blocked), failed: true}; }
+  })().finally(() => { c._memP = null; render(); }));
+}
+const memReady = async c => { if (!c._mem || c._mem.failed) await loadMem(c); };
+const memWrite = (c, patch) => api("/api/memory/" + c.id, {body: patch});
+async function markSent(c, leads, channel, campaign){
+  await memReady(c);
+  const idx = sentIndex(c); const at = now();
+  const fresh = leads.filter(l => !contactedAs(c, l, idx));
+  if (!fresh.length) return 0;
+  const recs = fresh.map(l => { const ids = idsOf(l); return {id: ids[0] || "k:" + l.key, ids, name: l.name, first: l.first || "", last: l.last || "", title: l.title || "", company: l.company || "", domain: l.domain || "", linkedin: l.linkedin || "", email: l.email || "", channel, campaign: campaign || "", at}; });
+  try { for (let k = 0; k < recs.length; k += 400) await memWrite(c, {addSent: recs.slice(k, k + 400)}); }
+  catch(e){ toast("Couldn't save the contacted log: " + e.error); return 0; }
+  c._mem.sent = [...recs, ...arr(c._mem.sent).filter(r => !recs.some(x => x.id === r.id))]; render();
+  return recs.length;
+}
+async function unmarkSent(c, ids){
+  try { await memWrite(c, {delSent: ids}); } catch(e){ toast("Couldn't update the log: " + e.error); return; }
+  c._mem.sent = arr(c._mem.sent).filter(r => !ids.includes(r.id)); render();
+}
+async function blockCompanies(c, leads){
+  await memReady(c);
+  const have = new Set(blockedDomains(c)); const at = now(); const byDom = new Map();
+  for (const l of leads) if (l.domain && !have.has(l.domain) && !byDom.has(l.domain)) byDom.set(l.domain, {id: l.domain, company: l.company || "", kind: l.kind || "", why: l.cleanWhy || "", at});
+  const recs = [...byDom.values()]; if (!recs.length) return 0;
+  try { for (let k = 0; k < recs.length; k += 400) await memWrite(c, {addBlocked: recs.slice(k, k + 400)}); }
+  catch(e){ toast("Couldn't save the blocklist: " + e.error); return 0; }
+  c._mem.blocked = [...recs, ...arr(c._mem.blocked)];
+  return recs.length;
+}
+// Remove flagged leads for good: the whole company is blocked, so it's left out of Prospeo searches and new pulls
+async function removeNotFit(c, flagged){
+  const doms = new Set(flagged.map(l => l.domain).filter(Boolean)); const keys = new Set(flagged.map(l => l.key));
+  await blockCompanies(c, flagged);
+  const left = arr(c.leads).filter(l => !(keys.has(l.key) || (l.domain && doms.has(l.domain))));
+  const gone = arr(c.leads).length - left.length;
+  c._sel = new Set();
+  await saveClient(c.id, {leads: left});
+  toast(`Removed ${gone} lead${gone === 1 ? "" : "s"} and blocked ${doms.size} compan${doms.size === 1 ? "y" : "ies"}. They won't come back.`);
+}
+// New pull: drop blocked companies and people we've already contacted before they ever reach the list
+async function dropKnown(c, leads){
+  await memReady(c);
+  const bl = new Set(blockedDomains(c)); const idx = sentIndex(c); let nb = 0, nc = 0;
+  const keep = leads.filter(l => { if (l.domain && bl.has(l.domain)){ nb++; return false; } if (contactedAs(c, l, idx)){ nc++; return false; } return true; });
+  return {keep, nb, nc};
+}
+const skipNote = (nb, nc) => [nb && nb + " from blocked companies", nc && nc + " already contacted"].filter(Boolean).join(", ");
+async function afterPull(c, pullId){
+  if (c.autoClean && status.claude){
+    await cleanLeads(c, {pullId, quiet: true});
+    const drops = arr(c.leads).filter(l => l.pullId === pullId && l.verdict === "drop");
+    if (drops.length) await removeNotFit(c, drops);
+  }
+  if (status.claude) await scoreLeads(c, [pullId]);
+}
+
 /* ---------- clean the list: flag companies that aren't the kind we want ---------- */
 const DEFAULT_CLEAN = "Keep only real brands: companies that make or sell their own products or services to customers. Remove agencies, consultancies, freelancers, software and tool vendors, marketplaces and aggregators, media, investors, recruiters, and anything that isn't an operating company.";
 const cleanRule = c => String(c.cleanRule ?? DEFAULT_CLEAN).trim() || DEFAULT_CLEAN;
@@ -1857,12 +1948,12 @@ Judge the company, not the person. Use the row plus well-known facts about the c
 Reply with only a JSON array, one object per row, in row order:
 [{"i": 0, "verdict": "keep|drop|unsure", "type": "2-3 words, e.g. DTC brand, marketing agency, SaaS tool, marketplace", "reason": "under 12 words"}]`;
 }
-async function cleanLeads(c){
+async function cleanLeads(c, opts = {}){
   if (!status.claude){ toast("Add ANTHROPIC_API_KEY to the Worker first"); return; }
   const cur = () => clients.find(x => x.id === c.id) || c;
   const sig = cleanSig(c); const sel = c._sel || new Set();
-  const pool = arr(cur().leads).filter(l => (sel.size ? sel.has(l.key) : true) && l.cleanSig !== sig);
-  if (!pool.length){ toast(sel.size ? "Selected leads are already cleaned with this rule" : "Every lead is already cleaned with this rule"); return; }
+  const pool = arr(cur().leads).filter(l => (opts.pullId ? l.pullId === opts.pullId : sel.size ? sel.has(l.key) : true) && l.cleanSig !== sig);
+  if (!pool.length){ if (!opts.quiet) toast(sel.size ? "Selected leads are already cleaned with this rule" : "Every lead is already cleaned with this rule"); return; }
   // one row per company, so a company with five people is judged once
   const groups = new Map();
   for (const l of pool){ const g = l.domain || (l.company || l.key).toLowerCase(); if (!groups.has(g)) groups.set(g, []); groups.get(g).push(l); }
@@ -2039,7 +2130,7 @@ function bindClient(c){
   const removeLeads = keys => { const k = new Set(keys); c._sel = new Set(); saveClient(c.id, {leads: arr(c.leads).filter(l => !k.has(l.key))}); toast("Deleted " + k.size + " lead" + (k.size === 1 ? "" : "s")); };
   const ds2 = $("#delSel"); if (ds2) ds2.onclick = () => removeLeads([...(c._sel || [])]);
   const cs = $("#clearSel"); if (cs) cs.onclick = () => { c._sel = new Set(); render(); };
-  const dfl = $("#delFlagged"); if (dfl) dfl.onclick = () => removeLeads(visible().filter(l => l.verdict === "drop").map(l => l.key));
+  const dfl = $("#delFlagged"); if (dfl) dfl.onclick = () => removeNotFit(c, visible().filter(l => l.verdict === "drop"));
   const df = $("#delFail"); if (df) df.onclick = () => { const f = visible().filter(l => l.score != null && !l.pass).map(l => l.key); if (!f.length) toast("No failing leads in this view"); else removeLeads(f); };
   document.querySelectorAll("[data-dellead]").forEach(b => b.onclick = () => removeLeads([b.dataset.dellead]));
   // signals
@@ -2198,10 +2289,36 @@ function bindClient(c){
     const fe = $("#findEmails"); if (fe) fe.onclick = () => fetchEmails(c, emailTargets(c).map(l => l.key));
 
     const cl = $("#clearLeads"); if (cl) cl.onclick = () => saveClient(c.id, {leads: [], pulls: [], prospeoPage: 0, variantPages: {}, prospeoTotal: null, lastRaw: ""});
-    const cv = $("#csvLeads"); if (cv) cv.onclick = () => {
-      const sel = c._sel || new Set(); const rows = sel.size ? arr(c.leads).filter(l => sel.has(l.key)) : leadsInView(c);
+    const cv = $("#csvLeads"); if (cv) cv.onclick = async () => {
+      await memReady(c); const idx = sentIndex(c);
+      const sel = c._sel || new Set(); const all = sel.size ? arr(c.leads).filter(l => sel.has(l.key)) : leadsInView(c);
+      const rows = all.filter(l => !contactedAs(c, l, idx) && l.verdict !== "drop"); const skipped = all.length - rows.length;
+      if (!rows.length){ toast(skipped ? `All ${skipped} are already contacted or flagged not a fit, so there's nothing to download` : "No leads to download"); return; }
+      const chan = c.sendChan || "LinkedIn";
       const blob = new Blob([leadsCSV(c, rows)], {type: "text/csv"}); const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob); a.download = c.company.replace(/\W+/g, "-").toLowerCase() + "-leads-" + new Date().toISOString().slice(0, 10) + ".csv"; toast("Downloaded " + rows.length + " leads"); a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+      a.href = URL.createObjectURL(blob); a.download = c.company.replace(/\W+/g, "-").toLowerCase() + "-leads-" + new Date().toISOString().slice(0, 10) + ".csv"; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+      const marked = c.markOnDl !== false ? await markSent(c, rows, chan, c.sendCamp || "") : 0;
+      toast(`Downloaded ${rows.length} leads${skipped ? ` (left out ${skipped} already contacted or not a fit)` : ""}${marked ? ` · ${marked} marked as sent via ${chan}` : ""}`);
+    };
+    const mod = $("#markOnDl"); if (mod) mod.onchange = () => saveClient(c.id, {markOnDl: mod.checked});
+    const sch = $("#sendChan"); if (sch) sch.onchange = () => saveClient(c.id, {sendChan: sch.value});
+    const scp = $("#sendCamp"); if (scp) scp.onchange = () => saveClient(c.id, {sendCamp: scp.value.trim()});
+    const msb = $("#markSelBtn"); if (msb) msb.onclick = async () => {
+      const keys = c._sel || new Set(); const n = await markSent(c, arr(c.leads).filter(l => keys.has(l.key)), c.sendChan || "LinkedIn", c.sendCamp || "");
+      toast(n ? `${n} marked as sent via ${c.sendChan || "LinkedIn"}` : "Those leads are already marked as sent");
+    };
+    document.querySelectorAll("[data-unsent]").forEach(b => b.onclick = () => unmarkSent(c, [b.dataset.unsent]));
+    document.querySelectorAll("[data-unblock]").forEach(b => b.onclick = async () => {
+      try { await memWrite(c, {delBlocked: [b.dataset.unblock]}); c._mem.blocked = arr(c._mem.blocked).filter(x => x.id !== b.dataset.unblock); render(); } catch(e){ toast(e.error); }
+    });
+    const mr = $("#memRetry"); if (mr) mr.onclick = () => loadMem(c);
+    const ac = $("#autoClean"); if (ac) ac.onchange = () => saveClient(c.id, {autoClean: ac.checked});
+    const lc = $("#logCsv"); if (lc) lc.onclick = () => {
+      const q = v => { v = String(v ?? ""); return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
+      const cols = ["company", "first_name", "last_name", "title", "channel", "campaign", "date", "email", "linkedin", "domain"];
+      const line = r => [r.company, r.first || String(r.name || "").split(" ")[0], r.last || String(r.name || "").split(" ").slice(1).join(" "), r.title, r.channel, r.campaign, String(r.at || "").slice(0, 10), r.email, r.linkedin, r.domain].map(q).join(",");
+      const csv = [cols.join(","), ...arr(c._mem?.sent).slice().sort((a, b) => String(a.company).localeCompare(String(b.company))).map(line)].join("\n");
+      const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([csv], {type: "text/csv"})); a.download = c.company.replace(/\W+/g, "-").toLowerCase() + "-contacted-" + new Date().toISOString().slice(0, 10) + ".csv"; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
     };
     const ml = $("#markList"); if (ml) ml.onclick = () => setCheck(c, "listBuilt", !c.checks?.listBuilt);
   }

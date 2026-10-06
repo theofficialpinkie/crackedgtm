@@ -47,6 +47,14 @@ export class Store extends DurableObject {
     return { id, ...rest, updatedAt: at };
   }
   del(kind, id) { this.sql.exec("DELETE FROM docs WHERE kind = ? AND id = ?", kind, id); return true; }
+  // one row per record, so two people writing at once never overwrite each other's rows
+  putMany(kind, rows) {
+    const at = new Date().toISOString();
+    for (const r of rows) { const { id, updatedAt: _u, ...rest } = r; this.sql.exec("INSERT INTO docs (kind, id, data, updated_at) VALUES (?, ?, ?, ?) ON CONFLICT(kind, id) DO UPDATE SET data = excluded.data, updated_at = excluded.updated_at", kind, String(id), JSON.stringify(rest), at); }
+    return rows.length;
+  }
+  delMany(kind, ids) { for (const id of ids) this.sql.exec("DELETE FROM docs WHERE kind = ? AND id = ?", kind, String(id)); return ids.length; }
+  delKind(kind) { this.sql.exec("DELETE FROM docs WHERE kind = ?", kind); return true; }
 }
 const store = env => env.STORE.get(env.STORE.idFromName("main"));
 
@@ -294,7 +302,26 @@ export default {
           if (body.length > 900_000) return fail(413, "Client record is too large. Trim the pasted inputs.");
           return json(await s.put("client", m[1], JSON.parse(body)));
         }
-        if (req.method === "DELETE") return json({ ok: await s.del("client", m[1]) });
+        if (req.method === "DELETE") { await s.delKind("sent:" + m[1]); await s.delKind("block:" + m[1]); return json({ ok: await s.del("client", m[1]) }); }
+      }
+      // Per-client memory: who we've contacted (so we never contact them twice) and companies marked "not a fit" (so they never come back)
+      const mm = path.match(/^\/api\/memory\/([^/]+)$/);
+      if (mm) {
+        if (!safeId(mm[1])) return fail(400, "Bad client id");
+        const sk = "sent:" + mm[1], bk = "block:" + mm[1];
+        if (req.method === "GET") return json({ sent: await s.list(sk), blocked: await s.list(bk) });
+        if (req.method === "POST") {
+          const text = await req.text();
+          if (text.length > 900_000) return fail(413, "Too much at once. Try fewer leads.");
+          const b = JSON.parse(text);
+          const rows = xs => arr2(xs).slice(0, 500).filter(x => x && typeof x.id === "string" && x.id.length > 0 && x.id.length <= 300);
+          const ids = xs => arr2(xs).slice(0, 500).map(String).filter(x => x.length > 0 && x.length <= 300);
+          if (rows(b.addSent).length) await s.putMany(sk, rows(b.addSent));
+          if (ids(b.delSent).length) await s.delMany(sk, ids(b.delSent));
+          if (rows(b.addBlocked).length) await s.putMany(bk, rows(b.addBlocked));
+          if (ids(b.delBlocked).length) await s.delMany(bk, ids(b.delBlocked));
+          return json({ ok: true });
+        }
       }
       if (path === "/api/settings") {
         if (req.method === "GET") return json((await s.get("settings", "main")) || {});

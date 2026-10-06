@@ -268,6 +268,7 @@ table.leads{border-collapse:collapse;width:100%;font-size:13px;min-width:760px}
 .addloc i{font-style:normal;font-weight:500;color:var(--muted)}
 .addloc:focus-visible{outline:2px solid var(--red)}
 .locbox{display:flex;flex-direction:column;gap:8px;border-top:2px solid var(--line);padding-top:12px}
+.target{display:flex;flex-direction:column;gap:10px}
 .leadbar{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
 .lead-list{display:flex;flex-direction:column;border:2px solid var(--line);background:var(--card)}
 .lead{border-top:1px solid var(--line)}
@@ -719,23 +720,27 @@ function buyerStats(c){
     tenure: ten.length ? Math.round(ten.reduce((a,b) => a + b, 0) / ten.length) : null, list: bs};
 }
 async function researchCustomers(c, force = false){
-  const todo = custDomains(c).filter(d => force || !c.research?.[d]);
+  const todo = Array.isArray(force) ? force : custDomains(c).filter(d => force || !c.research?.[d]);
   if (!todo.length){ toast(custDomains(c).length ? "All customers already researched" : "Add customer URLs first"); return; }
   busy[c.id + ":research"] = {done: 0, of: todo.length}; c._err = ""; render();
   const research = {...(c.research || {})};
+  const target = tgtQuery(tgt(c, "buyers")); const sig = tgtSig(tgt(c, "buyers"));
   let i = 0;
   const worker = async () => {
     while (i < todo.length){
       const d = todo[i++];
       try {
-        const r = await api("/api/research-customer", {body: {domain: d}});
+        const r = await api("/api/research-customer", {body: {domain: d, target}});
         const people = arr(r.people).map(personOf);
         const first = arr(r.people)[0] || {};
         const co = first.company || {};
-        research[d] = {at: now(), site: r.site || "", siteError: r.siteError || "", peopleError: r.peopleError || "", total: r.total ?? people.length,
+        research[d] = {at: now(), sig, targeted: !!r.targeted, fallback: r.fallback || "", site: r.site || "", siteError: r.siteError || "", peopleError: r.peopleError || "", total: r.total ?? people.length,
           company: {id: co.company_id || co.id || "", name: co.name || people[0]?.company || "", industry: co.industry || "", headcount: co.employee_count || co.employee_range || co.headcount || "", location: typeof co.location === "string" ? co.location : [co.location?.city, co.location?.country].filter(Boolean).join(", "), funding: co.funding_stage || co.last_funding_stage || co.funding?.stage || "", description: String(co.description || "").slice(0, 400)},
           people: people.map(({key, name, title, linkedin, location, seniority, department}) => ({key, name, title, linkedin, location, seniority, department}))};
-      } catch(e){ research[d] = {at: now(), site: "", siteError: e.error, peopleError: e.error, people: [], company: {}}; }
+        // keep buyers you already ticked when re-pulling with new filters
+        const old = c.research?.[d]; const kept = arr(old?.people).filter(p => arr(c.buyers?.[d]).includes(p.key) && !research[d].people.some(x => x.key === p.key));
+        if (kept.length) research[d].people = [...kept, ...research[d].people];
+      } catch(e){ research[d] = {at: now(), sig, site: "", siteError: e.error, peopleError: e.error, people: [], company: {}}; }
       busy[c.id + ":research"].done++; c.research = research; render();
     }
   };
@@ -965,7 +970,7 @@ function prospeoPayload(c){
   const own = domainOf(c.website || c.email);
   const excl = [...new Set([own, ...cust].filter(Boolean))].slice(0,500);
   if (excl.length) f.company = {websites: {exclude: excl}};
-  applyLocation(c, f);
+  applyTarget(c, f);
   const dropped = {
     seniority: arr(i.personas?.seniority).filter(x => !sen.includes(x)),
     departments: arr(i.personas?.departments).filter(x => !dep.includes(x)),
@@ -1035,7 +1040,7 @@ Rules:
 3. Don't stack redundant filters (titles + seniority + department saying the same thing). Prefer titles; use seniority only as a guard.
 4. Industry is coarse; only use it when a pattern is clearly industry-bound, otherwise prefer company_keywords.
 5. Build exactly 3 variants: "Tight" (most patterns, expect hundreds to low thousands), "Core" (the 3-5 strongest patterns), "Broad" (buyer title + size/stage only, plus lookalike if available). ${ids.length ? "Use lookalike in at least one variant." : ""}
-6. Never add company websites or exclusions; the tool adds existing customers as exclusions.${arr(c.locations).length ? " Don't add any location filter: the team has set location to " + c.locations.join(", ") + " and the tool applies it to every variant." : ""}
+6. Never add company websites or exclusions; the tool adds existing customers as exclusions.${arr(c.locations).length ? " Don't add any location filter: the team has set location to " + c.locations.join(", ") + " and the tool applies it to every variant." : ""}${arr(c.leadTarget?.titles).length ? " Don't add person_job_title, person_seniority or person_department: the team picked the titles (" + c.leadTarget.titles.slice(0, 8).join(", ") + ") and the tool applies them to every variant. Spend the filters on company patterns instead." : ""}
 7. Everything a filter can't express (signer vs champion, phrasing on their site that keywords can't capture, anti-patterns that aren't filterable) goes in not_expressible with how a reviewer should check it per lead.
 
 Reply with only one JSON object:
@@ -1049,12 +1054,105 @@ Reply with only one JSON object:
  "warnings": ["anything likely to make results bad, e.g. too few buyers to trust a title pattern"]
 }`;
 }
-// The location you pick overrides whatever the ICP or translation chose
-function applyLocation(c, f){
+// The titles and location you pick override whatever the ICP or translation chose
+function applyTarget(c, f){
+  const t = c.leadTarget || {};
+  if (arr(t.titles).length){
+    f.person_job_title = {include: t.titles, ...(arr(t.excludeTitles).length ? {exclude: t.excludeTitles} : {}), match_mode: "CONTAINS"};
+    // your titles define who; the ICP's seniority/departments (often Founder, C-Suite) would fight them
+    if (arr(t.seniority).length) f.person_seniority = {include: t.seniority}; else delete f.person_seniority;
+    if (arr(t.departments).length) f.person_department = {include: t.departments}; else delete f.person_department;
+  }
   const locs = arr(c.locations); if (!locs.length) return f;
   delete f.person_location_search; delete f.company_location_search;
   f[c.locationOn === "company" ? "company_location_search" : "person_location_search"] = {include: locs};
   return f;
+}
+
+/* ---------- who to look for: plain-English titles + location ----------
+   Two scopes: "buyers" = step 3 (people at existing customers), "leads" = Leads pulls and buyers at signal companies.
+   Leads keeps its location in c.locations / c.locationOn so clients set up before this carry over. */
+const ACRONYMS = {ceo:"chief executive officer",cto:"chief technology officer",cfo:"chief financial officer",coo:"chief operating officer",cmo:"chief marketing officer",cro:"chief revenue officer",cpo:"chief product officer",ciso:"chief information security officer",cio:"chief information officer",vp:"vice president"};
+// titles are substring-matched: expand bare acronyms and drop fragments under 4 chars ("cto" would hit "direCTOr")
+const cleanTitles = xs => [...new Set(arr(xs).map(t => String(t).toLowerCase().trim()).flatMap(t => ACRONYMS[t] ? [ACRONYMS[t]] : t.length >= 4 ? [t] : []))].slice(0, 40);
+function tgt(c, scope){
+  if (scope === "leads") return {...(c.leadTarget || {}), locations: arr(c.locations), locationOn: c.locationOn || "person"};
+  return {...(c.buyerTarget || {}), locations: arr(c.buyerTarget?.locations), locationOn: c.buyerTarget?.locationOn || "person"};
+}
+function setTgt(c, scope, patch){
+  if (scope === "leads"){
+    const {locations, locationOn, ...rest} = patch; const out = {};
+    if (locations) out.locations = locations;
+    if (locationOn) out.locationOn = locationOn;
+    if (Object.keys(rest).length) out.leadTarget = {...(c.leadTarget || {}), ...rest};
+    return saveClient(c.id, out);
+  }
+  return saveClient(c.id, {buyerTarget: {...(c.buyerTarget || {}), ...patch}});
+}
+// what the server needs; also the signature that tells us research was pulled with different filters
+const tgtQuery = t => ({titles: arr(t.titles), excludeTitles: arr(t.excludeTitles), seniority: arr(t.seniority), departments: arr(t.departments), locations: arr(t.locations), locationOn: t.locationOn || "person"});
+const tgtSig = t => { const q = tgtQuery(t); return q.titles.length || q.seniority.length || q.departments.length || q.locations.length ? JSON.stringify(q) : ""; };
+function titlesPrompt(c, text, scope){
+  return `You turn a GTM team's plain-English description of the people they want into contact-database filters for Prospeo.
+
+CLIENT: ${c.company} (${c.website || ""}). ${c.icp?.one_liner || String(c.inputs?.site || "").slice(0, 400)}
+WHO THESE PEOPLE ARE: ${scope === "buyers" ? "the person who bought or would buy at a company that is already the client's customer" : "prospects at new companies the client wants to sell to"}
+THE TEAM'S REQUEST: "${text}"
+
+Rules:
+- titles: lowercase full title phrases, substring-matched against each person's current job title. Cover the common ways each role is written (e.g. for marketing leaders: "head of marketing", "vp marketing", "vp of marketing", "vice president of marketing", "marketing director", "director of marketing", "chief marketing officer"). Never a bare acronym under 4 letters ("cto" would also match "director"); write "chief technology officer". 5 to 30 phrases, only roles the request asks for.
+- exclude_titles: phrases that remove false positives and anything the request rules out (e.g. "founder", "chief executive officer", "assistant", "intern", "former", "advisor"). Don't exclude something the request asks for.
+- seniority: only when the request names a level. Exact values only: ${SENIORITY.join(" | ")}
+- departments: only when the request is clearly about a function and titles alone won't cover it. Exact values only: ${DEPARTMENTS.join(" | ")}
+- locations: place names the request mentions (city, state or country), as written. Empty if none.
+- summary: one short line restating who we'll look for.
+
+Reply with only one JSON object:
+{"titles":[],"exclude_titles":[],"seniority":[],"departments":[],"locations":[],"summary":""}`;
+}
+async function parseTarget(c, scope, text){
+  text = String(text || "").trim();
+  if (!text){ toast("Describe who you want, e.g. marketing leaders, no founders"); return; }
+  if (!status.claude){ toast("Add ANTHROPIC_API_KEY to the Worker first"); return; }
+  const key = c.id + ":tgt:" + scope;
+  busy[key] = true; render();
+  try {
+    const {data} = await api("/api/claude", {body: {prompt: titlesPrompt(c, text, scope), maxTokens: 4000}});
+    const keepE = (xs, allowed) => { const m = new Map(allowed.map(a => [a.toLowerCase(), a])); return arr(xs).map(x => m.get(String(x).toLowerCase())).filter(Boolean); };
+    const titles = cleanTitles(data?.titles);
+    if (!titles.length) throw {error: "Couldn't turn that into job titles. Try naming the roles, e.g. head of growth, VP sales."};
+    busy[key] = false; delete drafts[c.id + ":tgt-" + scope];
+    await setTgt(c, scope, {text, titles, excludeTitles: cleanTitles(data.exclude_titles).filter(t => !titles.includes(t)), seniority: keepE(data.seniority, SENIORITY), departments: keepE(data.departments, DEPARTMENTS), summary: String(data.summary || "")});
+    // places mentioned in the request become clickable Prospeo location suggestions
+    const places = arr(data.locations).slice(0, 3);
+    if (places.length && status.prospeo){
+      const found = [];
+      for (const p of places){ try { const r = await api("/api/prospeo/suggest", {body: {location: p}}); found.push(...arr(r.location_suggestions).slice(0, 4)); } catch {} }
+      if (found.length){ c._locSug = {...(c._locSug || {}), [scope]: found}; render(); toast("Titles set. Click a location below to add it."); return; }
+    }
+    toast(titles.length + " job titles set");
+  } catch(e){ busy[key] = false; c._err = e.error || "Couldn't read that request. Try again."; render(); }
+}
+function targetBlock(c, scope){
+  const t = tgt(c, scope); const b = busy[c.id + ":tgt:" + scope];
+  const draft = drafts[c.id + ":tgt-" + scope];
+  const sug = (c._locSug || {})[scope] || [];
+  const ph = scope === "buyers" ? "e.g. marketing and growth leaders, VP sales, no founders or CEOs" : "e.g. heads of RevOps and sales leaders, director level and up";
+  return `<div class="target" data-scope="${scope}">
+    <div class="field"><label for="tgt-${scope}">Job titles, in plain English</label>
+      <div class="mini"><input id="tgt-${scope}" data-tgtin="${scope}" value="${esc(draft ?? t.text ?? "")}" placeholder="${ph}"><button class="btn sm dark" data-tgtgo="${scope}" type="button" ${b ? "disabled" : ""}>${b ? "Working…" : arr(t.titles).length ? "Update" : "Set titles"}</button></div></div>
+    ${arr(t.titles).length ? `${t.summary ? `<p class="hint">${esc(t.summary)}</p>` : ""}
+      <div class="chips">${t.titles.map(x => `<span class="dchip">${esc(x)}<button type="button" data-rmtitle="${esc(x)}" aria-label="Remove ${esc(x)}">×</button></span>`).join("")}</div>
+      <span class="hint">${[arr(t.excludeTitles).length && "Excluding: " + t.excludeTitles.join(", "), arr(t.seniority).length && "Seniority: " + t.seniority.join(", "), arr(t.departments).length && "Departments: " + t.departments.join(", ")].filter(Boolean).map(esc).join(" · ")}${arr(t.excludeTitles).length || arr(t.seniority).length || arr(t.departments).length ? " · " : ""}<a href="#" data-tgtclear="${scope}">Clear titles</a></span>`
+    : `<span class="hint">${scope === "buyers" ? "No titles set: pulls founders, C-suite, VPs, heads and directors." : "No titles set: searches use the titles from the patterns and ICP."}</span>`}
+    <div class="locbox">
+      <div class="row" style="justify-content:space-between"><h3 class="sub-h">Location</h3>
+        <div class="seg"><button type="button" class="${t.locationOn !== "company" ? "on" : ""}" data-locon="person">Where the person is</button><button type="button" class="${t.locationOn === "company" ? "on" : ""}" data-locon="company">Where the company is</button></div></div>
+      <div class="mini"><input data-locin placeholder="Type a city, state or country, e.g. San Francisco" aria-label="Location"><button class="btn sm" data-locfind type="button">Find</button></div>
+      ${sug.length ? `<div class="chips">${sug.map(x => `<button type="button" class="dchip addloc" data-addloc="${esc(x.name)}">+ ${esc(x.name)} <i>${esc(String(x.type || "").toLowerCase())}</i></button>`).join("")}</div>` : ""}
+      ${t.locations.length ? `<div class="chips">${t.locations.map(l => `<span class="dchip">${esc(l)}<button type="button" data-rmloc="${esc(l)}" aria-label="Remove ${esc(l)}">×</button></span>`).join("")}</div>` : `<span class="hint">${scope === "buyers" ? "No location set: anywhere." : "No location set: searches use whatever the ICP picked."}</span>`}
+    </div>
+  </div>`;
 }
 function currentPayload(c){
   if (c.translation && c.variantIdx != null && c.translation.variants[c.variantIdx]) return {...cleanVariant(c, c.translation.variants[c.variantIdx]), variant: c.translation.variants[c.variantIdx].name};
@@ -1083,7 +1181,7 @@ function cleanVariant(c, v){
   if (v.use_lookalike){ const ids = lookalikeIds(c); if (ids.length) f.company_lookalike = {company_oids: ids}; }
   const excl = [...new Set([domainOf(c.website || c.email), ...customerDigest(c.inputs?.customers).domains].filter(Boolean))].slice(0, 500);
   if (excl.length) f.company = {websites: {exclude: excl}};
-  applyLocation(c, f);
+  applyTarget(c, f);
   return {body: {page: 1, filters: f}, dropped, excluded: excl.length};
 }
 async function translate(c){
@@ -1285,12 +1383,13 @@ async function researchSources(c, onlyId, deep = false){
 async function findBuyersAtSignals(c){
   const picks = arr(c.signalCompanies).filter(x => (c._sigSel || new Set()).size ? c._sigSel.has(x.key) : (x.fit || 0) >= 60).filter(x => x.website);
   if (!picks.length){ toast("Select companies with a website, or run research to find some with fit 60+"); return; }
-  const bp = c.buyerPatterns?.prospeo || {};
-  const titles = arr(bp.titles_include).length ? bp.titles_include : arr(c.icp?.personas?.titles_include);
-  const seniority = arr(bp.seniority).length ? bp.seniority : arr(c.icp?.personas?.seniority);
+  const bp = c.buyerPatterns?.prospeo || {}; const lt = c.leadTarget || {};
+  const mine = arr(lt.titles).length;
+  const titles = mine ? lt.titles : arr(bp.titles_include).length ? bp.titles_include : arr(c.icp?.personas?.titles_include);
+  const seniority = mine ? arr(lt.seniority) : arr(bp.seniority).length ? bp.seniority : arr(c.icp?.personas?.seniority);
   busy[c.id + ":sigbuyers"] = true; c._err = ""; render();
   try {
-    const r = await api("/api/prospeo/people-at", {body: {websites: picks.map(x => x.website), titles: titles.map(t => String(t).toLowerCase()), seniority: seniority.filter(x => SENIORITY.includes(x)), page: 1}});
+    const r = await api("/api/prospeo/people-at", {body: {websites: picks.map(x => x.website), titles: cleanTitles(titles), excludeTitles: mine ? arr(lt.excludeTitles) : [], seniority: seniority.filter(x => SENIORITY.includes(x)), departments: mine ? arr(lt.departments) : [], locations: arr(c.locations), locationOn: c.locationOn || "person", page: 1}});
     const byDomain = new Map(picks.map(x => [x.website, x]));
     const pullId = "p" + Date.now().toString(36);
     const seen = new Set(arr(c.leads).map(l => l.key));
@@ -1330,7 +1429,7 @@ function signalsPane(c){
         <div class="lead-b"><p>${esc(x.why || "")}</p><p class="hint">${esc(x.evidence || "")}${x.evidence_url ? ` · <a href="${esc(x.evidence_url)}" target="_blank" rel="noopener">source</a>` : ""}</p></div></details></div>`).join("")}</div>` : ""}`, comps.length ? comps.length + " companies" : "")}
   ${step(4, "Find the buyers", false, comps.length > 0, `
     <div class="row"><button class="btn red" id="sigBuyers" type="button" ${busy[c.id + ":sigbuyers"] || !comps.length ? "disabled" : ""}>${busy[c.id + ":sigbuyers"] ? "Finding buyers…" : `Find buyers at ${sel.size || comps.filter(x => (x.fit || 0) >= 60 && x.website).length} companies`}</button>
-    <span class="hint">Prospeo finds people matching the buyer pattern (${esc(arr(c.buyerPatterns?.prospeo?.titles_include).slice(0, 4).join(", ") || "ICP titles")}) at these companies, 1 credit per 25. They land in Leads, tagged with the signal, and get scored.</span></div>`)}`;
+    <span class="hint">Prospeo finds people matching ${arr(c.leadTarget?.titles).length ? "your titles (" + esc(c.leadTarget.titles.slice(0, 4).join(", ")) + ")" : "the buyer pattern (" + esc(arr(c.buyerPatterns?.prospeo?.titles_include).slice(0, 4).join(", ") || "ICP titles") + ")"}${arr(c.locations).length ? " in " + esc(c.locations.join(", ")) : ""} at these companies, 1 credit per 25. They land in Leads, tagged with the signal, and get scored.</span></div>`)}`;
 }
 
 function inputCard(c, i, auto, openIt){
@@ -1393,16 +1492,6 @@ function buyerPatternsCard(c){
       <div><h4>TITLES FOR PROSPEO</h4><p>${esc(arr(b.prospeo?.titles_include).join(", ")) || "–"}${arr(b.prospeo?.titles_exclude).length ? `<br><span class="hint">Exclude: ${esc(arr(b.prospeo.titles_exclude).join(", "))}</span>` : ""}</p></div>
       <p class="hint">${esc(b.confidence || "")}</p>
     </div>
-  </div>`;
-}
-function locationBlock(c){
-  const locs = arr(c.locations); const sug = c._locSug || [];
-  return `<div class="locbox">
-    <div class="row" style="justify-content:space-between"><h3 class="sub-h">Location</h3>
-      <div class="seg"><button type="button" class="${c.locationOn !== "company" ? "on" : ""}" data-locon="person">Where the person is</button><button type="button" class="${c.locationOn === "company" ? "on" : ""}" data-locon="company">Where the company is</button></div></div>
-    <div class="mini"><input id="locIn" placeholder="Type a city or region, e.g. San Francisco" aria-label="Location"><button class="btn sm" id="locFind" type="button">Find</button></div>
-    ${sug.length ? `<div class="chips">${sug.map(x => `<button type="button" class="dchip addloc" data-addloc="${esc(x.name)}">+ ${esc(x.name)} <i>${esc(String(x.type || "").toLowerCase())}</i></button>`).join("")}</div>` : ""}
-    ${locs.length ? `<div class="chips">${locs.map(l => `<span class="dchip">${esc(l)}<button type="button" data-rmloc="${esc(l)}" aria-label="Remove ${esc(l)}">×</button></span>`).join("")}</div><span class="hint">Applied to every search, replacing any location the ICP picked.</span>` : '<span class="hint">No location set: searches use whatever the ICP picked.</span>'}
   </div>`;
 }
 function leadsInView(c){
@@ -1503,7 +1592,11 @@ function researchBlock(c){
   const ds = custDomains(c); const rb = busy[c.id + ":research"];
   if (!ds.length) return `<div class="note">Add customer URLs above, then the tool reads each customer's site and finds their leadership team so you can tick the real buyer.</div>`;
   const todo = ds.filter(d => !c.research?.[d]).length;
+  const sig = tgtSig(tgt(c, "buyers"));
+  const stale = ds.filter(d => c.research?.[d] && (c.research[d].sig || "") !== sig).length;
   return `<div class="stack" style="gap:12px">
+    <details class="input-card" data-sec="who" ${c._open === "who" || sig ? "open" : ""}><summary><span class="t">Who to look for<span class="h">Pick the roles and location in plain English. By default this pulls founders and the C-suite.</span></span>${sig ? '<span class="chip y">Custom</span>' : ""}</summary><div class="body">${targetBlock(c, "buyers")}</div></details>
+    ${stale && !rb ? `<div class="note"><b>${stale} customer${stale > 1 ? "s were" : " was"} researched with different filters.</b> <button class="btn sm red" id="reresearchStale" type="button">Re-pull people for ${stale}</button> <span class="hint">1 Prospeo credit each (2 if nobody matches and it falls back). Buyers you ticked stay ticked.</span></div>` : ""}
     <div class="row">
       <button class="btn red" id="researchBtn" type="button" ${rb ? "disabled" : ""}>${rb ? `Researching ${rb.done}/${rb.of}…` : todo ? `Research ${todo} customer${todo > 1 ? "s" : ""}` : "Re-research all"}</button>
       <span class="hint">${status.prospeo ? "Reads each site and finds leaders in Prospeo (1 credit per customer)." : "Prospeo isn't connected, so only websites will be read."}</span>
@@ -1513,9 +1606,10 @@ function researchBlock(c){
       const people = showAll ? r.people : r.people.slice(0, 6);
       return `<div class="input-card" style="padding:12px;display:flex;flex-direction:column;gap:8px">
         <div class="row" style="justify-content:space-between"><b>${esc(r.company?.name || d)}</b><span class="hint">${esc(d)}${r.company?.industry ? " · " + esc(r.company.industry) : ""}${r.company?.headcount ? " · " + esc(r.company.headcount) + " people" : ""}</span></div>
-        <div class="row">${r.site ? '<span class="chip ok">Site read</span>' : `<span class="chip miss" title="${esc(r.siteError)}">Site unreadable</span>`}${picks.length ? `<span class="chip y">${picks.length} buyer${picks.length > 1 ? "s" : ""} confirmed</span>` : r.people.length ? '<span class="chip miss">Tick the buyer</span>' : ""}</div>
+        <div class="row">${r.site ? '<span class="chip ok">Site read</span>' : `<span class="chip miss" title="${esc(r.siteError)}">Site unreadable</span>`}${r.targeted ? '<span class="chip ok">Matches your filters</span>' : ""}${picks.length ? `<span class="chip y">${picks.length} buyer${picks.length > 1 ? "s" : ""} confirmed</span>` : r.people.length ? '<span class="chip miss">Tick the buyer</span>' : ""}</div>
         ${r.people.length ? `<div style="display:flex;flex-direction:column;gap:4px">${people.map(pp => `<label class="toggle" style="font-weight:500"><input type="checkbox" data-buyer="${esc(d)}" value="${esc(pp.key)}" ${picks.includes(pp.key) ? "checked" : ""}><span><b>${esc(pp.name)}</b> · ${esc(pp.title)}</span></label>`).join("")}</div>
           ${r.people.length > 6 ? `<button class="btn sm ghost" data-showall="${esc(d)}" type="button">${showAll ? "Show fewer" : "Show all " + r.people.length}</button>` : ""}` : `<span class="hint">${esc(r.peopleError || "No leaders found in Prospeo.")}</span>`}
+        ${r.fallback ? `<span class="hint">⚠ ${esc(r.fallback)}</span>` : ""}
         <div class="mini"><input data-li="${esc(d)}" placeholder="Add the buyer's LinkedIn URL" aria-label="Buyer LinkedIn URL for ${esc(d)}"><button class="btn sm" data-liadd="${esc(d)}" type="button" ${busy[c.id + ":li:" + d] ? "disabled" : ""}>${busy[c.id + ":li:" + d] ? "Pulling…" : "Add buyer"}</button></div>
       </div>`;
     }).join("")}
@@ -1580,10 +1674,12 @@ function leadsPane(c){
   const leads = arr(c.leads);
   const dropped = Array.isArray(p.dropped) ? (p.dropped.length ? [["unsupported filters", p.dropped]] : []) : Object.entries(p.dropped).filter(([,v]) => v.length);
   const sb = busy[c.id + ":score"];
+  const lt = tgt(c, "leads");
   return `<div class="stack">
+    <details class="input-card" data-sec="whoLeads" ${c._open === "whoLeads" || !leads.length ? "open" : ""}><summary><span class="t">Who to pull<span class="h">${arr(lt.titles).length || lt.locations.length ? esc([arr(lt.titles).length && arr(lt.titles).length + " titles: " + lt.titles.slice(0, 3).join(", ") + (lt.titles.length > 3 ? "…" : ""), lt.locations.length && lt.locations.join(", ")].filter(Boolean).join(" · ")) : "Job titles and location. Applies to every pull and to buyers at signal companies."}</span></span>${arr(lt.titles).length || lt.locations.length ? '<span class="chip y">Custom</span>' : ""}</summary><div class="body">${targetBlock(c, "leads")}</div></details>
     <div class="toolbar">
       <button class="btn red" id="runSearch" type="button" ${busy[c.id + ":search"] ? "disabled" : ""}>${busy[c.id + ":search"] ? "Searching…" : "Pull 25 from Prospeo"}</button>
-      <span class="hint">using ${esc(p.variant || "ICP filters")}${arr(c.locations).length ? " · " + esc(c.locations.join(", ")) : ""}</span>
+      <span class="hint">using ${esc(p.variant || "ICP filters")}${arr(c.leadTarget?.titles).length ? " · your " + c.leadTarget.titles.length + " titles" : ""}${arr(c.locations).length ? " · " + esc(c.locations.join(", ")) : ""}</span>
       <span class="spacer"></span>
       <button class="btn sm" id="scoreLeads" type="button" ${!leads.length || sb ? "disabled" : ""}>${sb ? `Scoring ${sb.done || 0}/${sb.of || ""}…` : "Score unscored"}</button>
       <button class="btn sm dark" id="csvLeads" type="button" ${leads.length ? "" : "disabled"}>Download CSV</button>
@@ -1591,9 +1687,8 @@ function leadsPane(c){
     ${c._scoreErr ? `<div class="banner" role="alert">${esc(c._scoreErr)}</div>` : ""}
     ${arr(c._attempts).length ? `<div class="tablewrap"><table class="leads"><thead><tr><th>Try</th><th>Removed</th><th>Prospeo reply</th></tr></thead><tbody>${c._attempts.map((t, n) => `<tr><td class="num">${n + 1}</td><td>${esc(t.dropped || "nothing")}</td><td>${t.ok ? '<span class="chip ok">OK</span>' : `<b>${esc(t.error_code || "HTTP " + t.status)}</b> ${esc(t.filter_error || "")}`}</td></tr>`).join("")}</tbody></table></div>` : ""}
     ${leads.length ? leadList(c) : `<div class="note">No leads yet. Pull from Prospeo above, or find buyers at signal companies in the Signals tab.</div>`}
-    <details class="input-card" ${!leads.length || c._open === "search" ? "open" : ""} data-sec="search"><summary><span class="t">Search setup<span class="h">Location, how patterns translate into Prospeo filters, and the exact prompts.</span></span></summary>
+    <details class="input-card" ${!leads.length || c._open === "search" ? "open" : ""} data-sec="search"><summary><span class="t">Search setup<span class="h">How patterns translate into Prospeo filters, and the exact prompts.</span></span></summary>
       <div class="body" style="gap:16px">
-        ${locationBlock(c)}
         ${translationBlock(c)}
         ${pipelineView(c)}
         ${dropped.length ? `<div class="note">Dropped values Prospeo won't accept: ${dropped.map(([k,v]) => `<b>${k}</b> ${esc(v.join(", "))}`).join(" · ")}</div>` : ""}
@@ -1944,16 +2039,29 @@ function bindClient(c){
     document.querySelectorAll("[data-pipe]").forEach(b => b.onclick = () => { c._pipe = b.dataset.pipe; render(); });
     document.querySelectorAll("[data-view]").forEach(b => b.onclick = () => { c._view = b.dataset.view; render(); });
     const po = $("#passOnly"); if (po) po.onchange = () => { c._passOnly = po.checked; render(); };
-    const findLoc = async () => {
-      const q = $("#locIn").value.trim(); if (!q) return;
-      try { const r = await api("/api/prospeo/suggest", {body: {location: q}}); c._locSug = arr(r.location_suggestions).slice(0, 8); if (!c._locSug.length) toast("No Prospeo locations match " + q); render(); const li = $("#locIn"); if (li) li.value = q; }
-      catch(e){ toast(e.error); }
-    };
-    const lf = $("#locFind"); if (lf) lf.onclick = findLoc;
-    const lin = $("#locIn"); if (lin) lin.onkeydown = e => { if (e.key === "Enter"){ e.preventDefault(); findLoc(); } };
-    document.querySelectorAll("[data-addloc]").forEach(b => b.onclick = () => { c._locSug = []; saveClient(c.id, {locations: [...new Set([...arr(c.locations), b.dataset.addloc])]}); });
-    document.querySelectorAll("[data-rmloc]").forEach(b => b.onclick = () => saveClient(c.id, {locations: arr(c.locations).filter(x => x !== b.dataset.rmloc)}));
-    document.querySelectorAll("[data-locon]").forEach(b => b.onclick = () => saveClient(c.id, {locationOn: b.dataset.locon}));
+    // "who to look for" panels (step 3 buyers, Leads): titles in plain English + Prospeo location lookup
+    document.querySelectorAll(".target[data-scope]").forEach(box => {
+      const scope = box.dataset.scope; const t = tgt(c, scope);
+      const inp = box.querySelector("[data-tgtin]");
+      inp.addEventListener("input", () => { drafts[c.id + ":tgt-" + scope] = inp.value; });
+      const go = () => parseTarget(c, scope, inp.value);
+      box.querySelector("[data-tgtgo]").onclick = go;
+      inp.onkeydown = e => { if (e.key === "Enter"){ e.preventDefault(); go(); } };
+      box.querySelectorAll("[data-rmtitle]").forEach(b => b.onclick = () => setTgt(c, scope, {titles: arr(t.titles).filter(x => x !== b.dataset.rmtitle)}));
+      const clr = box.querySelector("[data-tgtclear]"); if (clr) clr.onclick = e => { e.preventDefault(); setTgt(c, scope, {text: "", titles: [], excludeTitles: [], seniority: [], departments: [], summary: ""}); };
+      const li = box.querySelector("[data-locin]");
+      const findLoc = async () => {
+        const q = li.value.trim(); if (!q) return;
+        try { const r = await api("/api/prospeo/suggest", {body: {location: q}}); c._locSug = {...(c._locSug || {}), [scope]: arr(r.location_suggestions).slice(0, 8)}; if (!c._locSug[scope].length) toast("No Prospeo locations match " + q); render(); }
+        catch(e){ toast(e.error); }
+      };
+      box.querySelector("[data-locfind]").onclick = findLoc;
+      li.onkeydown = e => { if (e.key === "Enter"){ e.preventDefault(); findLoc(); } };
+      box.querySelectorAll("[data-addloc]").forEach(b => b.onclick = () => { c._locSug = {...(c._locSug || {}), [scope]: []}; setTgt(c, scope, {locations: [...new Set([...t.locations, b.dataset.addloc])]}); });
+      box.querySelectorAll("[data-rmloc]").forEach(b => b.onclick = () => setTgt(c, scope, {locations: t.locations.filter(x => x !== b.dataset.rmloc)}));
+      box.querySelectorAll("[data-locon]").forEach(b => b.onclick = () => setTgt(c, scope, {locationOn: b.dataset.locon}));
+    });
+    const rrs = $("#reresearchStale"); if (rrs) rrs.onclick = () => { const sig = tgtSig(tgt(c, "buyers")); researchCustomers(c, custDomains(c).filter(d => c.research?.[d] && (c.research[d].sig || "") !== sig)); };
     const trb = $("#translateBtn"); if (trb) trb.onclick = () => translate(c);
     const tvb = $("#testVariants"); if (tvb) tvb.onclick = () => testVariants(c);
     document.querySelectorAll("[data-usevar]").forEach(b => b.onclick = () => saveClient(c.id, {variantIdx: Number(b.dataset.usevar)}));

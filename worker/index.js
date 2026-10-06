@@ -324,16 +324,33 @@ export default {
       }
       if (path === "/api/research-customer" && req.method === "POST") {
         // One customer: read their site and find their leadership team in Prospeo.
-        const { domain } = await req.json();
-        const out = { domain, site: "", siteError: "", people: [], peopleError: "", company: null };
+        // `target` (optional) narrows who we look for: titles, seniority, departments and location picked by the team.
+        const { domain, target = {} } = await req.json();
+        const out = { domain, site: "", siteError: "", people: [], peopleError: "", company: null, targeted: false, fallback: "" };
         try { const r = await pullSite(domain, env, url.hostname); out.site = r.text.slice(0, 6000); } catch (e) { out.siteError = e.error || "Couldn't read site"; }
         if (env.PROSPEO_API_KEY) {
+          const site = { company: { websites: { include: [rootDomain(domain) || domain] } } };
+          const leaders = { person_seniority: { include: ["Founder/Owner", "C-Suite", "Partner", "Vice President", "Head", "Director"] } };
+          const titles = arr2(target.titles).map(String).filter(t => t.length >= 3).slice(0, 40);
+          const excl = arr2(target.excludeTitles).map(String).filter(t => t.length >= 3).slice(0, 40);
+          const narrowed = {
+            ...site,
+            ...(titles.length ? { person_job_title: { include: titles, ...(excl.length ? { exclude: excl } : {}), match_mode: "CONTAINS" } } : {}),
+            ...(arr2(target.seniority).length ? { person_seniority: { include: target.seniority } } : titles.length ? {} : leaders),
+            ...(arr2(target.departments).length ? { person_department: { include: target.departments } } : {}),
+            ...(arr2(target.locations).length ? { [target.locationOn === "company" ? "company_location_search" : "person_location_search"]: { include: target.locations } } : {}),
+          };
+          const isTargeted = Object.keys(narrowed).length > 1 && JSON.stringify(narrowed) !== JSON.stringify({ ...site, ...leaders });
           try {
-            const d = await prospeoSearch(env, { page: 1, filters: {
-              company: { websites: { include: [rootDomain(domain) || domain] } },
-              person_seniority: { include: ["Founder/Owner", "C-Suite", "Partner", "Vice President", "Head", "Director"] },
-            } });
-            out.people = (d.results || []).slice(0, 25); out.credits = (d.results || []).length && !d.free ? 1 : 0;
+            let d = null; out.credits = 0;
+            const charge = r => (r.results || []).length && !r.free ? 1 : 0;
+            if (isTargeted) {
+              try { d = await prospeoSearch(env, { page: 1, filters: narrowed }); out.targeted = true; out.credits += charge(d); }
+              catch (e) { out.fallback = "Prospeo rejected your filters (" + (e.error || "error") + "), so these are the default leaders."; }
+              if (d && !(d.results || []).length) { d = null; out.targeted = false; out.fallback = "Nobody here matches your titles or location, so these are the default leaders."; }
+            }
+            if (!d) { d = await prospeoSearch(env, { page: 1, filters: { ...site, ...leaders } }); out.credits += charge(d); }
+            out.people = (d.results || []).slice(0, 25);
             out.total = d.pagination?.total_count;
           } catch (e) { out.peopleError = e.error || "Prospeo search failed"; }
         } else out.peopleError = "PROSPEO_API_KEY is not set, so team members can't be looked up.";
@@ -435,12 +452,13 @@ Reply with only: {"companies":[{"company":"","website":"","signal":"","evidence"
       if (path === "/api/prospeo/people-at" && req.method === "POST") {
         // Buyers at specific companies (from signals): websites include + buyer-pattern titles/seniority
         if (!env.PROSPEO_API_KEY) return fail(503, "PROSPEO_API_KEY is not set on the Worker.");
-        const { websites = [], titles = [], seniority = [], page = 1 } = await req.json();
+        const { websites = [], titles = [], excludeTitles = [], seniority = [], departments = [], locations = [], locationOn = "person", page = 1 } = await req.json();
         const sites = [...new Set(websites.map(rootDomain).filter(Boolean))].slice(0, 500);
         if (!sites.length) return fail(400, "No valid company websites to search.");
-        const base = { company: { websites: { include: sites } } };
+        const base = { company: { websites: { include: sites } },
+          ...(locations.length ? { [locationOn === "company" ? "company_location_search" : "person_location_search"]: { include: locations } } : {}) };
         const tries = [
-          { ...base, ...(titles.length ? { person_job_title: { include: titles, match_mode: "CONTAINS" } } : {}), ...(seniority.length ? { person_seniority: { include: seniority } } : {}) },
+          { ...base, ...(titles.length ? { person_job_title: { include: titles, ...(excludeTitles.length ? { exclude: excludeTitles } : {}), match_mode: "CONTAINS" } } : {}), ...(seniority.length ? { person_seniority: { include: seniority } } : {}), ...(departments.length ? { person_department: { include: departments } } : {}) },
           { ...base, ...(seniority.length ? { person_seniority: { include: seniority } } : { person_seniority: { include: ["Founder/Owner", "C-Suite"] } }) },
         ];
         let last = {};

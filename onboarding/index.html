@@ -1524,6 +1524,7 @@ function leadList(c){
       <label class="toggle"><input type="checkbox" id="passOnly" ${c._passOnly ? "checked" : ""}> Passing only</label>
       <span class="hint">${scored.filter(l => l.pass).length} of ${scored.length} pass${c.getEmails ? " · " + rows.filter(l => l.email).length + " with email" : ""}</span>
       ${sel.size ? `<span class="spacer"></span><span class="hint"><b>${sel.size} selected</b></span><button class="btn sm ghost" id="delSel" type="button">Delete selected</button><button class="btn sm ghost" id="clearSel" type="button">Clear</button>` : '<span class="spacer"></span><button class="btn sm ghost" id="delFail" type="button">Delete failing</button>'}
+      <label class="hint" style="display:flex;align-items:center;gap:6px">Removing because <select class="sel" id="rmWhy" aria-label="Why you remove leads">${WHY.map(x => `<option ${(c.rmWhy || WHY[0][1]) === x[1] ? "selected" : ""}>${x[1]}</option>`).join("")}</select></label>
       ${rows.some(l => l.verdict === "drop") ? `<button class="btn sm red" id="delFlagged" type="button">Remove + block ${rows.filter(l => l.verdict === "drop").length} not a fit</button>` : ""}
     </div>
     <div class="lead-list">${rows.length ? rows.map(l => {
@@ -1698,6 +1699,7 @@ function cleanPanel(c){
       <label class="toggle"><input type="checkbox" id="autoClean" ${c.autoClean ? "checked" : ""}> Auto-clean every new pull: remove and block non-fits before scoring</label>
       <div class="row"><button class="btn red" id="cleanBtn" type="button" ${b ? "disabled" : ""}>${b ? `Cleaning ${b.done}/${b.of} companies…` : todo ? `Clean ${todo} ${sel.size ? "selected " : ""}lead${todo === 1 ? "" : "s"}` : "All leads cleaned"}</button>
       <span class="hint">One judgment per company, not per person. Nothing is deleted until you click Remove.${c.getEmails ? " Flagged leads are skipped when finding emails." : ""}</span></div>
+      ${learnBlock(c)}
       ${arr(c._mem?.blocked).length ? `<div><h3 class="sub-h">Blocked companies · ${arr(c._mem.blocked).length}</h3><span class="hint">Left out of Prospeo searches and new pulls. Click × to allow one again.</span>
         <div class="chips" style="margin-top:8px">${c._mem.blocked.slice(0, 200).map(b => `<span class="dchip">${esc(b.company || b.id)}${b.kind ? ` <i>${esc(b.kind)}</i>` : ""}<button type="button" data-unblock="${esc(b.id)}" aria-label="Allow ${esc(b.company || b.id)} again">×</button></span>`).join("")}</div></div>` : ""}</div></details>`;
 }
@@ -1817,7 +1819,7 @@ Rules:
 - Never invent signals.
 - A disqualifier applies only when it is clearly true. Name it in "disqualifier", otherwise null.
 - "hook" is one specific line we could open an email with, grounded in the row. Empty string if nothing specific.
-
+${feedbackBlock(c, "person")}
 Reply with only a JSON array, one object per row, in row order:
 [{"i": 0, "hits": ["Q1","Q3"], "archetype": "name or empty", "disqualifier": null, "reason": "one sentence on fit, naming the strongest evidence", "hook": ""}]
 "hits" lists every qualification criterion (Q-number) the lead meets. Give credit when the row or well-known facts about the company clearly support it, including strong implication from title, company name and description; leave it out when unknown.`;
@@ -1852,6 +1854,7 @@ async function scoreRows(c, rows, onProgress){
 }
 async function scoreLeads(c, onlyIds){
   if (!status.claude){ toast("Add ANTHROPIC_API_KEY to the Worker first"); return; }
+  await memReady(c);
   const leads = arr(c.leads);
   const target = leads.map((l, n) => [l, n]).filter(([l]) => onlyIds ? onlyIds.includes(l.pullId) : (l.score == null || l.icpV !== c.icp.version));
   if (!target.length){ toast("Every lead is already scored against ICP v" + c.icp.version); return; }
@@ -1876,8 +1879,8 @@ const contactedAs = (c, l, idx) => { idx = idx || sentIndex(c); for (const k of 
 const blockedDomains = c => arr(c._mem?.blocked).map(b => b.id);
 function loadMem(c){
   return c._memP || (c._memP = (async () => {
-    try { const r = await api("/api/memory/" + c.id); c._mem = {sent: arr(r.sent), blocked: arr(r.blocked)}; }
-    catch { c._mem = {sent: arr(c._mem?.sent), blocked: arr(c._mem?.blocked), failed: true}; }
+    try { const r = await api("/api/memory/" + c.id); c._mem = {sent: arr(r.sent), blocked: arr(r.blocked), feedback: arr(r.feedback)}; }
+    catch { c._mem = {sent: arr(c._mem?.sent), blocked: arr(c._mem?.blocked), feedback: arr(c._mem?.feedback), failed: true}; }
   })().finally(() => { c._memP = null; render(); }));
 }
 const memReady = async c => { if (!c._mem || c._mem.failed) await loadMem(c); };
@@ -1887,7 +1890,7 @@ async function markSent(c, leads, channel, campaign){
   const idx = sentIndex(c); const at = now();
   const fresh = leads.filter(l => !contactedAs(c, l, idx));
   if (!fresh.length) return 0;
-  const recs = fresh.map(l => { const ids = idsOf(l); return {id: ids[0] || "k:" + l.key, ids, name: l.name, first: l.first || "", last: l.last || "", title: l.title || "", company: l.company || "", domain: l.domain || "", linkedin: l.linkedin || "", email: l.email || "", channel, campaign: campaign || "", at}; });
+  const recs = fresh.map(l => { const ids = idsOf(l); return {id: ids[0] || "k:" + l.key, ids, name: l.name, first: l.first || "", last: l.last || "", title: l.title || "", company: l.company || "", domain: l.domain || "", industry: l.industry || "", desc: String(l.description || "").slice(0, 160), linkedin: l.linkedin || "", email: l.email || "", channel, campaign: campaign || "", at}; });
   try { for (let k = 0; k < recs.length; k += 400) await memWrite(c, {addSent: recs.slice(k, k + 400)}); }
   catch(e){ toast("Couldn't save the contacted log: " + e.error); return 0; }
   c._mem.sent = [...recs, ...arr(c._mem.sent).filter(r => !recs.some(x => x.id === r.id))]; render();
@@ -1907,8 +1910,92 @@ async function blockCompanies(c, leads){
   c._mem.blocked = [...recs, ...arr(c._mem.blocked)];
   return recs.length;
 }
+/* ---------- learning: every removal is a labelled example the next clean and score uses ---------- */
+const WHY = [["company", "Wrong kind of company"], ["person", "Wrong role / title"], ["company", "Wrong size or stage"], ["company", "Wrong location"], ["person", "Other"]];
+const whyScope = why => (WHY.find(x => x[1] === why) || WHY[0])[0];
+const normT = t => String(t || "").toLowerCase().replace(/[^a-z0-9 ]+/g, " ").replace(/\s+/g, " ").trim();
+// label: "removed" (the team said no) or "kept" (the team changed their mind). Latest decision on the same company/role wins.
+async function recordFeedback(c, leads, {label = "removed", scope = "company", why = ""} = {}){
+  await memReady(c);
+  const at = now(); const byId = new Map();
+  for (const l of leads){
+    const co = (l.domain || l.company || "").toLowerCase(); if (!co) continue;
+    const id = (co + (scope === "person" ? "|" + normT(l.title) : "")).slice(0, 280);
+    byId.set(id, {id, label, scope, company: l.company || "", domain: l.domain || "", title: scope === "person" ? String(l.title || "").slice(0, 120) : "", industry: l.industry || "", headcount: String(l.headcount || ""), desc: String(l.description || "").slice(0, 200), kind: l.kind || "", why: String(why || l.cleanWhy || l.kind || "").slice(0, 160), at});
+  }
+  const recs = [...byId.values()]; if (!recs.length) return;
+  try { for (let k = 0; k < recs.length; k += 400) await memWrite(c, {addFeedback: recs.slice(k, k + 400)}); } catch { return; }
+  c._mem.feedback = [...recs, ...arr(c._mem.feedback).filter(f => !byId.has(f.id))];
+}
+function feedbackBlock(c, scope){
+  const fb = arr(c._mem?.feedback).filter(f => f.scope === scope && f.label === "removed").slice(0, 14);
+  const keptFb = arr(c._mem?.feedback).filter(f => f.scope === scope && f.label === "kept").slice(0, 6);
+  const sent = arr(c._mem?.sent).slice(0, 10);
+  if (!fb.length && !sent.length && !keptFb.length) return "";
+  const co = f => [f.company, f.domain, f.industry, f.desc].filter(Boolean).join(" | ");
+  const out = ["", "THE TEAM'S PAST DECISIONS FOR THIS CLIENT. Treat them as precedent: judge similar cases the same way (same kind of company or role, not just the same name)."];
+  if (fb.length) out.push("Removed by the team:", ...fb.map(f => scope === "person" ? `- ${f.title || "(title unknown)"} at ${f.company || f.domain}${f.why ? " → " + f.why : ""}` : `- ${co(f)} → ${f.why || f.kind || "not a fit"}`));
+  const good = [...sent.map(r => scope === "person" ? `- ${r.title || "(title unknown)"} at ${r.company || r.domain}` : `- ${co(r)}`), ...keptFb.map(f => scope === "person" ? `- ${f.title} at ${f.company || f.domain}` : `- ${co(f)}`)].slice(0, 12);
+  if (good.length) out.push("Kept and contacted by the team (these were good):", ...good);
+  return out.join("\n") + "\n";
+}
+function learnPrompt(c){
+  const rem = arr(c._mem?.feedback).filter(f => f.label === "removed");
+  const co = rem.filter(f => f.scope === "company").slice(0, 60), pe = rem.filter(f => f.scope === "person").slice(0, 40);
+  const kept = arr(c._mem?.sent).slice(0, 40);
+  return `You help a GTM team tighten a prospect list for ${c.company}${c.icp?.one_liner ? " (" + c.icp.one_liner + ")" : ""}. The team removed some leads by hand and contacted others. Find what the removals have in common and how to avoid them next time.
+
+CURRENT RULE for what counts as a good company: ${cleanRule(c)}
+TITLES ALREADY SET: ${arr(c.leadTarget?.titles).join(", ") || "(none)"}   TITLES ALREADY EXCLUDED: ${arr(c.leadTarget?.excludeTitles).join(", ") || "(none)"}
+
+COMPANIES THE TEAM REMOVED (${co.length}):
+${co.map(f => `- ${[f.company, f.domain, f.industry, f.headcount && f.headcount + " ppl", f.desc].filter(Boolean).join(" | ")} → ${f.why || f.kind || "no reason"}`).join("\n") || "(none)"}
+
+PEOPLE THE TEAM REMOVED FOR ROLE OR OTHER REASONS (${pe.length}):
+${pe.map(f => `- ${f.title || "(title unknown)"} at ${f.company || f.domain} → ${f.why || "no reason"}`).join("\n") || "(none)"}
+
+COMPANIES AND PEOPLE THE TEAM CONTACTED (the good ones, ${kept.length}):
+${kept.map(r => `- ${r.title || "?"} at ${[r.company, r.domain, r.industry, r.desc].filter(Boolean).join(" | ")}`).join("\n") || "(none)"}
+
+Rules:
+- Only report a pattern when at least 2 removals show it. Say how many.
+- Don't contradict the contacted examples: if a pattern also describes companies they contacted, say it's mixed instead of calling it a rule.
+- "rule" is a rewrite of the CURRENT RULE that keeps what still holds and adds what the removals teach. Plain language, under 90 words.
+- "exclude_titles" are lowercase full title phrases to exclude, only when removals show a clear title pattern. Never bare acronyms under 4 letters.
+
+Reply with only one JSON object:
+{"patterns":[{"finding":"plain language","count":0,"examples":["company or title"]}],"rule":"","exclude_titles":[],"notes":"what you couldn't tell, or empty"}`;
+}
+async function learnFromRemovals(c){
+  await memReady(c);
+  const rem = arr(c._mem?.feedback).filter(f => f.label === "removed");
+  if (rem.length < 3){ toast("Remove a few more leads first so there's something to learn from"); return; }
+  busy[c.id + ":learn"] = true; c._err = ""; render();
+  try {
+    const {data} = await api("/api/claude", {body: {prompt: learnPrompt(c), maxTokens: 5000}, step: "Learning"});
+    if (!data || !data.rule) throw {error: "The analysis came back incomplete. Try again."};
+    busy[c.id + ":learn"] = false;
+    await saveClient(c.id, {learned: {at: now(), n: rem.length, patterns: arr(data.patterns).slice(0, 8), rule: String(data.rule), excludeTitles: cleanTitles(data.exclude_titles), notes: String(data.notes || "")}});
+  } catch(e){ busy[c.id + ":learn"] = false; c._err = e.error || "Couldn't analyze the removals."; render(); }
+}
+function learnBlock(c){
+  const fb = arr(c._mem?.feedback).filter(f => f.label === "removed"); const l = c.learned; const b = busy[c.id + ":learn"];
+  const n = fb.length, m = arr(c._mem?.sent).length;
+  return `<div class="stack" style="gap:10px"><h3 class="sub-h">What it has learned</h3>
+    <span class="hint">${n ? `Every removal is saved with its reason: <b>${n}</b> removed, <b>${m}</b> contacted. The next clean and score use the latest examples as precedent.` : "Nothing yet. When you remove leads, pick why next to the delete buttons and the system learns from it."}</span>
+    <div class="row"><button class="btn sm" id="learnBtn" type="button" ${b || n < 3 ? "disabled" : ""}>${b ? "Analyzing…" : l ? "Re-analyze removals" : "Find patterns in what I removed"}</button><span class="hint">${n < 3 ? "Needs at least 3 removals." : "Suggests a sharper rule and titles to exclude. Nothing changes until you apply it."}</span></div>
+    ${l ? `<div class="note"><b>${l.n} removals analyzed · ${esc(fmtDate(l.at))}</b>
+      <ul class="crit" style="margin-top:8px">${arr(l.patterns).map(p => `<li><span><b>${esc(p.finding)}</b><br><span class="hint">${esc(arr(p.examples).slice(0, 4).join(" · "))}</span></span><span class="w">${Number(p.count) || "?"}×</span></li>`).join("")}</ul>
+      <p style="margin-top:8px"><b>Suggested rule:</b> ${esc(l.rule)}</p>
+      ${arr(l.excludeTitles).length ? `<p><b>Suggested titles to exclude:</b> ${esc(l.excludeTitles.join(", "))}</p>` : ""}
+      ${l.notes ? `<p class="hint">${esc(l.notes)}</p>` : ""}
+      <div class="row"><button class="btn sm red" id="useLearnedRule" type="button" ${cleanRule(c) === l.rule ? "disabled" : ""}>${cleanRule(c) === l.rule ? "Rule applied" : "Use this rule"}</button>
+        ${arr(l.excludeTitles).length ? `<button class="btn sm" id="useLearnedTitles" type="button">Add title exclusions</button>` : ""}</div>
+      ${arr(l.excludeTitles).length ? '<span class="hint">Title exclusions apply once titles are set in Who to pull.</span>' : ""}</div>` : ""}</div>`;
+}
 // Remove flagged leads for good: the whole company is blocked, so it's left out of Prospeo searches and new pulls
 async function removeNotFit(c, flagged){
+  await recordFeedback(c, flagged, {label: "removed", scope: "company"});
   const doms = new Set(flagged.map(l => l.domain).filter(Boolean)); const keys = new Set(flagged.map(l => l.key));
   await blockCompanies(c, flagged);
   const left = arr(c.leads).filter(l => !(keys.has(l.key) || (l.domain && doms.has(l.domain))));
@@ -1945,11 +2032,13 @@ THE RULE: ${cleanRule(c)}
 
 Judge the company, not the person. Use the row plus well-known facts about the company. If the row doesn't show enough and you don't recognise the company, answer "unsure" rather than guessing. Only answer "drop" when it clearly breaks the rule.
 
+${feedbackBlock(c, "company")}
 Reply with only a JSON array, one object per row, in row order:
 [{"i": 0, "verdict": "keep|drop|unsure", "type": "2-3 words, e.g. DTC brand, marketing agency, SaaS tool, marketplace", "reason": "under 12 words"}]`;
 }
 async function cleanLeads(c, opts = {}){
   if (!status.claude){ toast("Add ANTHROPIC_API_KEY to the Worker first"); return; }
+  await memReady(c);
   const cur = () => clients.find(x => x.id === c.id) || c;
   const sig = cleanSig(c); const sel = c._sel || new Set();
   const pool = arr(cur().leads).filter(l => (opts.pullId ? l.pullId === opts.pullId : sel.size ? sel.has(l.key) : true) && l.cleanSig !== sig);
@@ -2127,11 +2216,16 @@ function bindClient(c){
   const visible = () => leadsInView(c);
   document.querySelectorAll("[data-sel]").forEach(cb => cb.onchange = () => { c._sel = c._sel || new Set(); cb.checked ? c._sel.add(cb.dataset.sel) : c._sel.delete(cb.dataset.sel); render(); });
   const sa = $("#selAll"); if (sa) sa.onchange = () => { c._sel = sa.checked ? new Set(visible().map(l => l.key)) : new Set(); render(); };
-  const removeLeads = keys => { const k = new Set(keys); c._sel = new Set(); saveClient(c.id, {leads: arr(c.leads).filter(l => !k.has(l.key))}); toast("Deleted " + k.size + " lead" + (k.size === 1 ? "" : "s")); };
+  // learn=true: a human decision, so save it with the reason picked next to the delete buttons. "Delete failing" is the model's own verdict, so it isn't learned from.
+  const removeLeads = (keys, learn = true) => {
+    const k = new Set(keys); const gone = arr(c.leads).filter(l => k.has(l.key)); c._sel = new Set();
+    if (learn && gone.length){ const why = c.rmWhy || WHY[0][1]; recordFeedback(c, gone, {label: "removed", scope: whyScope(why), why}); }
+    saveClient(c.id, {leads: arr(c.leads).filter(l => !k.has(l.key))}); toast("Deleted " + k.size + " lead" + (k.size === 1 ? "" : "s") + (learn && gone.length ? ". Saved as a decision to learn from." : ""));
+  };
   const ds2 = $("#delSel"); if (ds2) ds2.onclick = () => removeLeads([...(c._sel || [])]);
   const cs = $("#clearSel"); if (cs) cs.onclick = () => { c._sel = new Set(); render(); };
   const dfl = $("#delFlagged"); if (dfl) dfl.onclick = () => removeNotFit(c, visible().filter(l => l.verdict === "drop"));
-  const df = $("#delFail"); if (df) df.onclick = () => { const f = visible().filter(l => l.score != null && !l.pass).map(l => l.key); if (!f.length) toast("No failing leads in this view"); else removeLeads(f); };
+  const df = $("#delFail"); if (df) df.onclick = () => { const f = visible().filter(l => l.score != null && !l.pass).map(l => l.key); if (!f.length) toast("No failing leads in this view"); else removeLeads(f, false); };
   document.querySelectorAll("[data-dellead]").forEach(b => b.onclick = () => removeLeads([b.dataset.dellead]));
   // signals
   const sd = $("#sigDraft"); if (sd) sd.onclick = () => { const t = arr(c.icp?.buying_signals).map(x => "- " + x).join("\n"); saveClient(c.id, {signalsText: t}); };
@@ -2309,9 +2403,13 @@ function bindClient(c){
     };
     document.querySelectorAll("[data-unsent]").forEach(b => b.onclick = () => unmarkSent(c, [b.dataset.unsent]));
     document.querySelectorAll("[data-unblock]").forEach(b => b.onclick = async () => {
-      try { await memWrite(c, {delBlocked: [b.dataset.unblock]}); c._mem.blocked = arr(c._mem.blocked).filter(x => x.id !== b.dataset.unblock); render(); } catch(e){ toast(e.error); }
+      try { const was = arr(c._mem.blocked).find(x => x.id === b.dataset.unblock); await memWrite(c, {delBlocked: [b.dataset.unblock]}); c._mem.blocked = arr(c._mem.blocked).filter(x => x.id !== b.dataset.unblock); if (was) await recordFeedback(c, [{company: was.company, domain: was.id, kind: was.kind}], {label: "kept", scope: "company", why: "unblocked by the team"}); render(); } catch(e){ toast(e.error); }
     });
     const mr = $("#memRetry"); if (mr) mr.onclick = () => loadMem(c);
+    const rw = $("#rmWhy"); if (rw) rw.onchange = () => saveClient(c.id, {rmWhy: rw.value});
+    const lb = $("#learnBtn"); if (lb) lb.onclick = () => learnFromRemovals(c);
+    const ulr = $("#useLearnedRule"); if (ulr) ulr.onclick = () => { saveClient(c.id, {cleanRule: c.learned.rule}); toast("Rule updated. Click Clean to apply it to the current list."); };
+    const ult = $("#useLearnedTitles"); if (ult) ult.onclick = () => { saveClient(c.id, {leadTarget: {...(c.leadTarget || {}), excludeTitles: [...new Set([...arr(c.leadTarget?.excludeTitles), ...arr(c.learned.excludeTitles)])]}}); toast("Title exclusions added to Who to pull"); };
     const ac = $("#autoClean"); if (ac) ac.onchange = () => saveClient(c.id, {autoClean: ac.checked});
     const lc = $("#logCsv"); if (lc) lc.onclick = () => {
       const q = v => { v = String(v ?? ""); return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };

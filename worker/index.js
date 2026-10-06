@@ -302,14 +302,14 @@ export default {
           if (body.length > 900_000) return fail(413, "Client record is too large. Trim the pasted inputs.");
           return json(await s.put("client", m[1], JSON.parse(body)));
         }
-        if (req.method === "DELETE") { await s.delKind("sent:" + m[1]); await s.delKind("block:" + m[1]); return json({ ok: await s.del("client", m[1]) }); }
+        if (req.method === "DELETE") { await s.delKind("sent:" + m[1]); await s.delKind("block:" + m[1]); await s.delKind("learn:" + m[1]); return json({ ok: await s.del("client", m[1]) }); }
       }
       // Per-client memory: who we've contacted (so we never contact them twice) and companies marked "not a fit" (so they never come back)
       const mm = path.match(/^\/api\/memory\/([^/]+)$/);
       if (mm) {
         if (!safeId(mm[1])) return fail(400, "Bad client id");
-        const sk = "sent:" + mm[1], bk = "block:" + mm[1];
-        if (req.method === "GET") return json({ sent: await s.list(sk), blocked: await s.list(bk) });
+        const sk = "sent:" + mm[1], bk = "block:" + mm[1], fk = "learn:" + mm[1];
+        if (req.method === "GET") return json({ sent: await s.list(sk), blocked: await s.list(bk), feedback: (await s.list(fk)).slice(0, 400) });
         if (req.method === "POST") {
           const text = await req.text();
           if (text.length > 900_000) return fail(413, "Too much at once. Try fewer leads.");
@@ -320,6 +320,8 @@ export default {
           if (ids(b.delSent).length) await s.delMany(sk, ids(b.delSent));
           if (rows(b.addBlocked).length) await s.putMany(bk, rows(b.addBlocked));
           if (ids(b.delBlocked).length) await s.delMany(bk, ids(b.delBlocked));
+          if (rows(b.addFeedback).length) await s.putMany(fk, rows(b.addFeedback));
+          if (ids(b.delFeedback).length) await s.delMany(fk, ids(b.delFeedback));
           return json({ ok: true });
         }
       }

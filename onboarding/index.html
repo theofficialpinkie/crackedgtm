@@ -1519,16 +1519,18 @@ function leadList(c){
       <label class="toggle"><input type="checkbox" id="passOnly" ${c._passOnly ? "checked" : ""}> Passing only</label>
       <span class="hint">${scored.filter(l => l.pass).length} of ${scored.length} pass${c.getEmails ? " · " + rows.filter(l => l.email).length + " with email" : ""}</span>
       ${sel.size ? `<span class="spacer"></span><span class="hint"><b>${sel.size} selected</b></span><button class="btn sm ghost" id="delSel" type="button">Delete selected</button><button class="btn sm ghost" id="clearSel" type="button">Clear</button>` : '<span class="spacer"></span><button class="btn sm ghost" id="delFail" type="button">Delete failing</button>'}
+      ${rows.some(l => l.verdict === "drop") ? `<button class="btn sm red" id="delFlagged" type="button">Remove ${rows.filter(l => l.verdict === "drop").length} not a fit</button>` : ""}
     </div>
     <div class="lead-list">${rows.length ? rows.map(l => {
       const s = l.score == null ? null : Math.round(l.score / tot * 100);
-      return `<div class="lead-row"><input type="checkbox" data-sel="${esc(l.key)}" ${sel.has(l.key) ? "checked" : ""} aria-label="Select ${esc(l.name)}"><details class="lead ${l.score != null && !l.pass ? "fail" : ""}">
+      return `<div class="lead-row"><input type="checkbox" data-sel="${esc(l.key)}" ${sel.has(l.key) ? "checked" : ""} aria-label="Select ${esc(l.name)}"><details class="lead ${l.score != null && !l.pass || l.verdict === "drop" ? "fail" : ""}">
         <summary>
           <span class="pill ${s == null ? "" : l.pass ? "pass" : "no"}">${s == null ? "–" : s + "%"}</span>
-          <span class="who"><b>${esc(l.name)}${l.email ? " ✉" : ""}</b><span>${esc(l.title)}</span></span>
+          <span class="who"><b>${esc(l.name)}${l.email ? " ✉" : ""}${l.verdict === "drop" ? ' <span class="chip r">Not a fit</span>' : ""}</b><span>${esc(l.title)}</span></span>
           <span class="co"><b>${esc(l.company)}</b><span>${esc([l.location, l.headcount && l.headcount + " ppl"].filter(Boolean).join(" · "))}</span></span>
         </summary>
         <div class="lead-b">
+          ${l.verdict ? `<p><span class="chip ${l.verdict === "drop" ? "r" : l.verdict === "unsure" ? "y" : "ok"}">${esc(l.kind || l.verdict)}</span> <span class="hint">${esc(l.cleanWhy || "")}</span></p>` : ""}
           ${c.getEmails || l.email ? `<p><b>Email:</b> ${l.email ? `<a href="mailto:${esc(l.email)}">${esc(l.email)}</a> <span class="chip ok">${esc(String(l.emailStatus || "verified").toLowerCase())}</span>` : l.emailTried ? '<span class="hint">No verified email found</span>' : '<span class="hint">Not looked up yet</span>'}</p>` : ""}
           ${l.disqualifier ? `<span class="chip r">Disqualified: ${esc(l.disqualifier)}</span>` : ""}
           ${l.reason ? `<p>${esc(l.reason)}</p>` : '<p class="hint">Not scored yet.</p>'}
@@ -1669,7 +1671,16 @@ function promptPane(c){
   </div>`;
 }
 
-const emailTargets = c => { const sel = c._sel || new Set(); const pool = sel.size ? arr(c.leads).filter(l => sel.has(l.key)) : arr(c.leads).filter(l => l.pass); return pool.filter(l => !l.email && !l.emailTried); };
+function cleanPanel(c){
+  const sig = cleanSig(c); const b = busy[c.id + ":clean"]; const sel = (c._sel || new Set());
+  const todo = arr(c.leads).filter(l => (sel.size ? sel.has(l.key) : true) && l.cleanSig !== sig).length;
+  const flagged = arr(c.leads).filter(l => l.verdict === "drop").length;
+  return `<details class="input-card" data-sec="clean" ${c._open === "clean" ? "open" : ""}><summary><span class="t">Clean the list<span class="h">${flagged ? flagged + " flagged as not a fit. Review them, then remove." : "Flag companies that aren't the kind you want, in plain English."}</span></span>${flagged ? `<span class="chip r">${flagged} flagged</span>` : ""}</summary>
+    <div class="body"><div class="field"><label for="cleanRule">What counts as a good company</label><textarea id="cleanRule" class="ctx" style="min-height:90px">${esc(cleanRule(c))}</textarea></div>
+      <div class="row"><button class="btn red" id="cleanBtn" type="button" ${b ? "disabled" : ""}>${b ? `Cleaning ${b.done}/${b.of} companies…` : todo ? `Clean ${todo} ${sel.size ? "selected " : ""}lead${todo === 1 ? "" : "s"}` : "All leads cleaned"}</button>
+      <span class="hint">One judgment per company, not per person. Nothing is deleted until you click Remove.${c.getEmails ? " Flagged leads are skipped when finding emails." : ""}</span></div></div></details>`;
+}
+const emailTargets = c => { const sel = c._sel || new Set(); const pool = sel.size ? arr(c.leads).filter(l => sel.has(l.key)) : arr(c.leads).filter(l => l.pass); return pool.filter(l => !l.email && !l.emailTried && l.verdict !== "drop"); };
 const emailBtnText = c => { const n = emailTargets(c).length; const sel = (c._sel || new Set()).size; return n ? `Find emails for ${n} ${sel ? "selected" : "passing"}` : (arr(c.leads).some(l => l.email) ? "Emails up to date" : "No passing leads yet"); };
 function leadsPane(c){
   const p = currentPayload(c);
@@ -1680,6 +1691,7 @@ function leadsPane(c){
   const lt = tgt(c, "leads");
   return `<div class="stack">
     <details class="input-card" data-sec="whoLeads" ${c._open === "whoLeads" || !leads.length ? "open" : ""}><summary><span class="t">Who to pull<span class="h">${arr(lt.titles).length || lt.locations.length ? esc([arr(lt.titles).length && arr(lt.titles).length + " titles: " + lt.titles.slice(0, 3).join(", ") + (lt.titles.length > 3 ? "…" : ""), lt.locations.length && lt.locations.join(", ")].filter(Boolean).join(" · ")) : "Job titles and location. Applies to every pull and to buyers at signal companies."}</span></span>${arr(lt.titles).length || lt.locations.length ? '<span class="chip y">Custom</span>' : ""}</summary><div class="body">${targetBlock(c, "leads")}</div></details>
+    ${leads.length ? cleanPanel(c) : ""}
     <div class="toolbar">
       <button class="btn red" id="runSearch" type="button" ${busy[c.id + ":search"] ? "disabled" : ""}>${busy[c.id + ":search"] ? "Searching…" : "Pull 25 from Prospeo"}</button>
       <span class="hint">using ${esc(p.variant || "ICP filters")}${arr(c.leadTarget?.titles).length ? " · your " + c.leadTarget.titles.length + " titles" : ""}${arr(c.locations).length ? " · " + esc(c.locations.join(", ")) : ""}</span>
@@ -1828,8 +1840,53 @@ async function scoreLeads(c, onlyIds){
     if (failed) c._scoreErr = `${failed} lead${failed > 1 ? "s" : ""} couldn't be scored (${lastErr}). Click Score again to retry them.`;
     await saveClient(c.id, {leads: next});
     toast(results.filter(r => r && r.pass).length + " of " + (target.length - failed) + " pass");
-    if (c.getEmails && status.prospeo){ const keys = target.filter(([, n], k) => results[k]?.pass).map(([l]) => l.key); if (keys.length) await fetchEmails(c, keys, true); }
+    if (c.getEmails && status.prospeo){ const keys = target.filter(([l], k) => results[k]?.pass && l.verdict !== "drop").map(([l]) => l.key); if (keys.length) await fetchEmails(c, keys, true); }
   } catch(e){ busy[c.id + ":score"] = false; c._scoreErr = e.error; render(); }
+}
+/* ---------- clean the list: flag companies that aren't the kind we want ---------- */
+const DEFAULT_CLEAN = "Keep only real brands: companies that make or sell their own products or services to customers. Remove agencies, consultancies, freelancers, software and tool vendors, marketplaces and aggregators, media, investors, recruiters, and anything that isn't an operating company.";
+const cleanRule = c => String(c.cleanRule ?? DEFAULT_CLEAN).trim() || DEFAULT_CLEAN;
+const cleanSig = c => { let h = 0; for (const ch of cleanRule(c)) h = (h * 31 + ch.charCodeAt(0)) | 0; return String(h); };
+function cleanPrompt(c){
+  return `You clean a prospect list for ${c.company}${c.icp?.one_liner ? " (" + c.icp.one_liner + ")" : ""}. Each row is one COMPANY. Decide whether it fits the rule below.
+
+THE RULE: ${cleanRule(c)}
+
+Judge the company, not the person. Use the row plus well-known facts about the company. If the row doesn't show enough and you don't recognise the company, answer "unsure" rather than guessing. Only answer "drop" when it clearly breaks the rule.
+
+Reply with only a JSON array, one object per row, in row order:
+[{"i": 0, "verdict": "keep|drop|unsure", "type": "2-3 words, e.g. DTC brand, marketing agency, SaaS tool, marketplace", "reason": "under 12 words"}]`;
+}
+async function cleanLeads(c){
+  if (!status.claude){ toast("Add ANTHROPIC_API_KEY to the Worker first"); return; }
+  const cur = () => clients.find(x => x.id === c.id) || c;
+  const sig = cleanSig(c); const sel = c._sel || new Set();
+  const pool = arr(cur().leads).filter(l => (sel.size ? sel.has(l.key) : true) && l.cleanSig !== sig);
+  if (!pool.length){ toast(sel.size ? "Selected leads are already cleaned with this rule" : "Every lead is already cleaned with this rule"); return; }
+  // one row per company, so a company with five people is judged once
+  const groups = new Map();
+  for (const l of pool){ const g = l.domain || (l.company || l.key).toLowerCase(); if (!groups.has(g)) groups.set(g, []); groups.get(g).push(l); }
+  const cos = [...groups.entries()].map(([g, ls]) => ({g, row: [ls[0].company, ls[0].domain, ls[0].industry, ls[0].headcount && ls[0].headcount + " ppl", ls[0].description].filter(Boolean).join(" | ")}));
+  busy[c.id + ":clean"] = {done: 0, of: cos.length}; c._scoreErr = ""; render();
+  const verdicts = new Map(); let failed = 0, lastErr = "";
+  const size = 30;
+  const work = async start => {
+    const chunk = cos.slice(start, start + size);
+    try {
+      const {data} = await api("/api/claude", {body: {prefix: cleanPrompt(c), prompt: "Rows:\n" + chunk.map((x, n) => `#${n} ${x.row}`).join("\n"), maxTokens: 6000, tier: "fast"}, step: "Cleaning"});
+      const list = Array.isArray(data) ? data : arr(data?.results);
+      chunk.forEach((x, n) => { const r = list.find(y => Number(y.i) === n) || list[n]; if (r && /^(keep|drop|unsure)$/i.test(String(r.verdict))) verdicts.set(x.g, {verdict: String(r.verdict).toLowerCase(), kind: String(r.type || "").slice(0, 40), cleanWhy: String(r.reason || "").slice(0, 160)}); else failed++; });
+    } catch(e){ failed += chunk.length; lastErr = e.error || "Cleaning failed"; }
+    busy[c.id + ":clean"].done += chunk.length; render();
+  };
+  const starts = []; for (let k = 0; k < cos.length; k += size) starts.push(k);
+  for (let k = 0; k < starts.length; k += 2) await Promise.all(starts.slice(k, k + 2).map(work));
+  busy[c.id + ":clean"] = false;
+  if (!verdicts.size){ cur()._scoreErr = "Cleaning failed: " + (lastErr || "no answers came back"); render(); return; }
+  const next = arr(cur().leads).map(l => { const g = l.domain || (l.company || l.key).toLowerCase(); const v = verdicts.get(g); return v && groups.get(g)?.some(x => x.key === l.key) ? {...l, ...v, cleanSig: sig} : l; });
+  await saveClient(c.id, {leads: next});
+  const drops = [...verdicts.values()].filter(v => v.verdict === "drop").length;
+  toast(`${drops} of ${verdicts.size} companies flagged${failed ? `. ${failed} couldn't be judged, click Clean again to retry` : ""}`);
 }
 // Reveal verified emails (Prospeo bulk enrich). Billed only when a verified email is found.
 async function fetchEmails(c, keys, quiet = false){
@@ -1856,7 +1913,7 @@ function nameParts(l){
 }
 function leadsCSV(c, rows){
   const tot = totalPts(c);
-  const cols = [["score_pct", l => l.score == null ? "" : Math.round(l.score / tot * 100)], ["pass", l => l.pass ? "yes" : l.score == null ? "" : "no"], ["first_name", l => nameParts(l)[0]], ["last_name", l => nameParts(l)[1]], ["title"], ["email"], ["email_status", l => l.emailStatus], ["company"], ["domain"], ["location"], ["linkedin"], ["headline"], ["past_roles", l => l.past], ["source", l => l.variant || "Prospeo"], ["signal"], ["signal_source", l => l.evidenceUrl], ["archetype"], ["disqualifier"], ["reason"], ["opener", l => l.hook]];
+  const cols = [["score_pct", l => l.score == null ? "" : Math.round(l.score / tot * 100)], ["pass", l => l.pass ? "yes" : l.score == null ? "" : "no"], ["first_name", l => nameParts(l)[0]], ["last_name", l => nameParts(l)[1]], ["title"], ["email"], ["email_status", l => l.emailStatus], ["company"], ["domain"], ["location"], ["linkedin"], ["headline"], ["past_roles", l => l.past], ["source", l => l.variant || "Prospeo"], ["signal"], ["signal_source", l => l.evidenceUrl], ["company_type", l => l.kind], ["clean", l => l.verdict === "drop" ? "not a fit" : l.verdict === "unsure" ? "unsure" : l.verdict ? "ok" : ""], ["archetype"], ["disqualifier"], ["reason"], ["opener", l => l.hook]];
   const q = v => { v = String(v ?? ""); return /[",\n]/.test(v) ? '"' + v.replace(/"/g,'""') + '"' : v; };
   return [cols.map(x => x[0]).join(","), ...rows.map(l => cols.map(([k, f]) => q(f ? f(l) : l[k])).join(","))].join("\n");
 }
@@ -1982,6 +2039,7 @@ function bindClient(c){
   const removeLeads = keys => { const k = new Set(keys); c._sel = new Set(); saveClient(c.id, {leads: arr(c.leads).filter(l => !k.has(l.key))}); toast("Deleted " + k.size + " lead" + (k.size === 1 ? "" : "s")); };
   const ds2 = $("#delSel"); if (ds2) ds2.onclick = () => removeLeads([...(c._sel || [])]);
   const cs = $("#clearSel"); if (cs) cs.onclick = () => { c._sel = new Set(); render(); };
+  const dfl = $("#delFlagged"); if (dfl) dfl.onclick = () => removeLeads(visible().filter(l => l.verdict === "drop").map(l => l.key));
   const df = $("#delFail"); if (df) df.onclick = () => { const f = visible().filter(l => l.score != null && !l.pass).map(l => l.key); if (!f.length) toast("No failing leads in this view"); else removeLeads(f); };
   document.querySelectorAll("[data-dellead]").forEach(b => b.onclick = () => removeLeads([b.dataset.dellead]));
   // signals
@@ -2134,6 +2192,8 @@ function bindClient(c){
     const cc = $("#copyCurl"); if (cc) cc.onclick = () => copy($("#curlText").textContent);
     const rs = $("#runSearch"); if (rs) rs.onclick = () => runSearch(c);
     const sl = $("#scoreLeads"); if (sl) sl.onclick = () => scoreLeads(c);
+    const cr = $("#cleanRule"); if (cr) cr.onchange = () => saveClient(c.id, {cleanRule: cr.value.trim() || null});
+    const cb2 = $("#cleanBtn"); if (cb2) cb2.onclick = () => cleanLeads(c);
     const ge = $("#getEmails"); if (ge) ge.onchange = () => saveClient(c.id, {getEmails: ge.checked});
     const fe = $("#findEmails"); if (fe) fe.onclick = () => fetchEmails(c, emailTargets(c).map(l => l.key));
 

@@ -473,6 +473,33 @@ Reply with only: {"companies":[{"company":"","website":"","signal":"","evidence"
         if (last.error_code === "NO_RESULTS") return json({ results: [], pagination: { total_count: 0 } });
         return fail(502, "Prospeo said: " + ([last.error_code, last.filter_error].filter(Boolean).join(" · ") || "error"));
       }
+      if (path === "/api/prospeo/emails" && req.method === "POST") {
+        // Reveal verified emails for leads we already pulled (Prospeo bulk enrich, 50 per call). Only verified emails are billed.
+        if (!env.PROSPEO_API_KEY) return fail(503, "PROSPEO_API_KEY is not set on the Worker.");
+        const { people = [] } = await req.json();
+        const out = {}; let credits = 0, error = "";
+        const rows = arr2(people).slice(0, 200).map(p => {
+          const item = { identifier: String(p.id) };
+          if (p.pid) item.person_id = p.pid;
+          else if (/linkedin\.com\/in\//i.test(p.linkedin || "")) item.linkedin_url = p.linkedin;
+          else if (p.name && rootDomain(p.domain)) { item.full_name = p.name; item.company_website = rootDomain(p.domain); }
+          else return null;
+          return item;
+        });
+        const todo = rows.filter(Boolean);
+        for (const p of arr2(people).slice(0, 200)) out[String(p.id)] = { email: "", status: "no_identifier" };
+        for (let i = 0; i < todo.length; i += 50) {
+          if (i) await new Promise(r => setTimeout(r, 1200));
+          const r = await fetch("https://api.prospeo.io/bulk-enrich-person", { method: "POST", headers: { "X-KEY": env.PROSPEO_API_KEY, "content-type": "application/json" }, body: JSON.stringify({ only_verified_email: true, enrich_mobile: false, data: todo.slice(i, i + 50) }) });
+          const d = await r.json().catch(() => ({}));
+          if (!r.ok || d.error) { error = "Prospeo said: " + (d.error_code || d.message || r.status); if (["INSUFFICIENT_CREDITS", "INVALID_API_KEY"].includes(d.error_code) || r.status === 429) break; continue; }
+          credits += Number(d.total_cost) || 0;
+          for (const m of d.matched || []) { const e = m.person?.email || {}; out[String(m.identifier)] = { email: e.email || "", status: e.status || (e.email ? "VERIFIED" : "none") }; }
+          for (const id of (d.not_matched || []).concat(d.invalid_datapoints || [])) out[String(id?.identifier ?? id)] = { email: "", status: "none" };
+        }
+        if (error && !credits && !Object.values(out).some(x => x.email)) return fail(502, error);
+        return json({ emails: out, credits, ...(error ? { warning: error } : {}) });
+      }
       if (path === "/api/prospeo/suggest" && req.method === "POST") {
         // Free Prospeo lookup that returns location names exactly as Prospeo stores them
         if (!env.PROSPEO_API_KEY) return fail(503, "PROSPEO_API_KEY is not set on the Worker.");
@@ -495,7 +522,8 @@ Reply with only: {"companies":[{"company":"","website":"","signal":"","evidence"
           filters.company = { websites: { ...(w.include ? { include: cleanSites(w.include) } : {}), ...(w.exclude ? { exclude: cleanSites(w.exclude) } : {}) } };
           if (!filters.company.websites.include?.length && !filters.company.websites.exclude?.length) delete filters.company;
         }
-        const order = [null, "company_website_search", "company_job_posting_hiring_for", "company_headcount_growth", "person_job_change", "person_past_job_title", "company_type", "company_technology", "company_founded", "company_funding", "person_location_search", "company_location_search", "company_industry", "company_keywords", "person_time_in_current_role", "person_year_of_experience", "company_lookalike", "person_job_title", "company_headcount_range", "person_department", "person_seniority"];
+        const order = [null, "company_website_search", "company_job_posting_hiring_for", "company_headcount_growth", "person_job_change", "person_past_job_title", "company_type", "company_technology", "company_founded", "company_funding", "company_location_search", "company_industry", "company_keywords", "person_time_in_current_role", "person_year_of_experience", "company_lookalike", "company_headcount_range", "person_department", "person_seniority"];
+        // person_location_search and person_job_title are never dropped: a list of the wrong people in the wrong place is worse than an error
         const attempts = [];
         const send = async () => {
           const sent = { page: body.page || 1, filters: JSON.parse(JSON.stringify(filters)) };
@@ -504,7 +532,7 @@ Reply with only: {"companies":[{"company":"","website":"","signal":"","evidence"
           const raw = await r.text(); let d = {}; try { d = JSON.parse(raw); } catch {}
           return { r, d, raw, sent };
         };
-        let k = 0, badSiteFixes = 0;
+        let k = 0, badSiteFixes = 0, badValueFixes = 0;
         while (k < order.length && attempts.length < 10) {
           const drop = order[k];
           if (drop && !filters[drop]) { k++; continue; }
@@ -523,6 +551,23 @@ Reply with only: {"companies":[{"company":"","website":"","signal":"","evidence"
             for (const key of ["include", "exclude"]) if (w[key]) w[key] = w[key].filter(x => x.toLowerCase() !== b);
             attempts[attempts.length - 1].dropped = (drop ? drop + " + " : "") + "website " + b;
             continue; // same k, so no filter is dropped
+          }
+          // "Invalid department(s) in include list: ['X']": remove just those values from whichever filter holds them
+          const badVals = /Invalid [\w ]+\(s\) in (?:include|exclude) list:\s*\[(.*)\]/i.exec(d.filter_error || "");
+          if (badVals && badValueFixes < 6) {
+            const names = [...badVals[1].matchAll(/(['"])(.*?)\1/g)].map(m => m[2].toLowerCase());
+            const removed = [];
+            for (const [key, v] of Object.entries(filters)) {
+              const list = Array.isArray(v) ? v : v && typeof v === "object" ? (v.include || v.stage) : null;
+              if (!Array.isArray(list)) continue;
+              const keep = list.filter(x => !names.includes(String(x).toLowerCase()));
+              if (keep.length === list.length) continue;
+              removed.push(key + " value " + list.filter(x => !keep.includes(x)).join(", "));
+              if (!keep.length) delete filters[key];
+              else if (Array.isArray(v)) filters[key] = keep;
+              else if (v.include) v.include = keep; else v.stage = keep;
+            }
+            if (removed.length) { badValueFixes++; attempts[attempts.length - 1].dropped = removed.join("; "); continue; }
           }
           k++;
         }

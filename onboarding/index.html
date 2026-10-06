@@ -381,7 +381,7 @@ table.leads{border-collapse:collapse;width:100%;font-size:13px;min-width:760px}
 const SENIORITY = ["Founder/Owner","C-Suite","Partner","Vice President","Head","Director","Manager","Senior","Entry","Intern"];
 const HEADCOUNT = ["1-10","11-20","21-50","51-100","101-200","201-500","501-1000","1001-2000","2001-5000","5001-10000","10000+"];
 const FUNDING = ["Series unknown","Pre seed","Seed","Series A","Series B","Series C","Series D","Series E-J","Grant","Angel","Private equity","Debt financing","Non equity assistance","Post IPO equity","Undisclosed","Post IPO debt","Product crowdfunding","Equity crowdfunding","Corporate round","Convertible note","Secondary market","Initial coin offering","Post IPO secondary"];
-const DEPARTMENTS = ["C-Suite","Chief Executive","Finance Executive","Founder","Human Resources Executive","Information Technology Executive","Legal Executive","Marketing Executive","Operations Executive","Sales Leader","Product","Product Development","Product Management","Engineering & Technical","Artificial Intelligence / Machine Learning","Data Science & Analysis","DevOps","Digital Transformation","Software Development","Project Management","Research & Development","Design","Finance","Accounting","Financial Planning Strategy & Analysis","Sourcing / Procurement","Human Resources","People Operations","Recruiting & Talent Acquisition","Learning & Development","Information Technology","Information Security","IT Strategy","Cloud Engineering","Legal","Compliance","Legal Counsel","Legal Operations","Privacy","Marketing","Brand Management","Content Marketing","Customer Marketing","Growth & Demand Generation","Digital Marketing","Event & Field Marketing","Lead Generation","Marketing Operations","Product Marketing","Social Media Marketing","Sales","Sales Operations","Sales Engineering","Sales Enablement","Revenue Operations","Partnerships","Sales Development","Account Executive","Customer Success","Account Management","Operations","Supply Chain","Logistics","Facilities Management","Customer Service / Support","Corporate Strategy","Construction","Consulting","Medical & Health","Education & Coaching"];
+const DEPARTMENTS = ["C-Suite","Chief Executive","Finance Executive","Founder","Human Resources Executive","Information Technology Executive","Legal Executive","Marketing Executive","Operations Executive","Sales Leader","Product","Product Development","Product Management","Engineering & Technical","Artificial Intelligence / Machine Learning","Data Science & Analysis","DevOps","Digital Transformation","Software Development","Project Management","Research & Development","Design","Finance","Accounting","Sourcing / Procurement","Human Resources","People Operations","Recruiting & Talent Acquisition","Learning & Development","Information Technology","Information Security","IT Strategy","Cloud Engineering","Legal","Compliance","Legal Counsel","Legal Operations","Privacy","Marketing","Brand Management","Content Marketing","Customer Marketing","Growth & Demand Generation","Digital Marketing","Event & Field Marketing","Lead Generation","Marketing Operations","Product Marketing","Social Media Marketing","Sales","Sales Operations","Sales Engineering","Sales Enablement","Revenue Operations","Partnerships","Sales Development","Account Executive","Customer Success","Account Management","Operations","Supply Chain","Logistics","Facilities Management","Customer Service / Support","Corporate Strategy","Construction","Consulting","Medical & Health","Education & Coaching"];
 const INDUSTRIES = ["IT Services and IT Consulting", "Construction", "Business Consulting and Services", "General Retail", "Advertising Services", "Real Estate", "Software Development", "Medical Practices", "Financial Services", "Technology, Information and Internet", "Restaurants", "Hospitals and Health Care", "Wellness and Fitness Services", "Design Services", "Non-profit Organizations", "Individual and Family Services", "Hospitality", "Appliances, Electrical, and Electronics Manufacturing", "Motor Vehicle Manufacturing", "Professional Training and Coaching", "Food and Beverage Services", "Education Administration Programs", "Consumer Services", "Accounting", "General Wholesale", "Civic and Social Organizations", "Architecture and Planning", "Truck and Railroad Transportation", "Spectator Sports", "Entertainment Providers", "Retail Apparel and Fashion", "Higher Education", "Industrial Machinery Manufacturing", "Insurance", "Machinery Manufacturing", "Legal Services", "General Manufacturing", "Events Services", "Travel Arrangements", "Human Resources Services", "Law Practice", "Media Production and Publishing", "Food and Beverage Manufacturing", "Staffing and Recruiting", "Marketing Services", "Renewable Energy", "Research Services", "Facilities Services", "Environmental Services", "Telecommunications", "Transportation, Logistics, Supply Chain and Storage", "Electric Power Generation", "E-Learning Providers", "Oil, Gas, and Mining", "Arts and Crafts", "Photography", "Venture Capital and Private Equity Principals", "Music", "Retail Office Equipment", "Farming", "Wholesale Building Materials", "Furniture and Home Furnishings Manufacturing", "Government Administration", "Investment Management", "Civil Engineering", "Primary and Secondary Education", "Medical Equipment Manufacturing", "Textile Manufacturing", "Public Relations and Communications Services", "Printing Services", "Religious Institutions", "Artists and Writers", "Personal Care Product Manufacturing", "International Trade and Development", "Mental Health Care", "Chemical Manufacturing", "Pharmaceutical Manufacturing", "Utilities", "Information Services", "Security and Investigations", "Wholesale Import and Export", "Banking", "Biotechnology Research", "Recreational Facilities", "Automation Machinery Manufacturing", "Plastics Manufacturing", "Automotive", "Retail Groceries", "Freight and Package Transportation", "Computer and Network Security", "Computer Games", "Veterinary Services", "Airlines and Aviation", "Maritime Transportation", "Executive Offices", "Sporting Goods Manufacturing", "Market Research", "Mechanical or Industrial Engineering", "Aviation and Aerospace Component Manufacturing", "Strategic Management Services", "Consumer Goods", "Engineering Services", "Museums, Historical Sites, and Zoos", "Investment, Funds and Trusts", "Philanthropic Fundraising Services", "Human Resources", "Computer Hardware", "E-Learning", "Translation and Localization", "Public Safety", "Business Supplies and Equipment", "Defense and Space Manufacturing", "Glass, Ceramics and Concrete Manufacturing", "Warehousing and Storage", "Alternative Medicine", "Animation and Post-production", "Think Tanks", "Semiconductor Manufacturing", "Building Materials", "Capital Markets", "Interior Design", "Political Organizations", "Fundraising", "Law Enforcement", "Cosmetics", "Wireless Services", "Sports Teams and Clubs", "Retail Health and Personal Care Products", "Professional Services", "Social Networking Platforms", "Dairy Product Manufacturing", "Gambling Facilities and Casinos", "Internet Marketplace Platforms", "Shipbuilding", "Luxury Goods and Jewelry", "Libraries", "Ranching and Fisheries", "Online and Mail Order Retail", "Community Services", "Blockchain Services", "Food and Beverage Retail", "Retail Motor Vehicles", "Data Infrastructure and Analytics", "Wine and Spirits", "Sports and Recreation Instruction", "Paper and Forest Products", "Agriculture, Construction, Mining Machinery Manufacturing", "Home Health Care Services", "Vehicle Repair and Maintenance", "Business Content", "General Repair and Maintenance", "Maritime", "Packaging and Containers", "Industry Associations", "Retail Furniture and Home Furnishings", "Tobacco Manufacturing", "Pet Services", "Landscaping Services", "Alternative Dispute Resolution", "Dentists", "Wholesale Food and Beverage", "Fabricated Metal Products", "Aviation & Aerospace", "Railroad Equipment Manufacturing", "Mobile Gaming Apps", "Administrative and Support Services", "Apparel Manufacturing", "Nanotechnology Research", "Specialty Trade Contractors", "Janitorial Services", "Physical, Occupational and Speech Therapists", "Medical and Diagnostic Laboratories", "Professional Organizations", "Philanthropy", "Digital Accessibility Services", "Fashion Accessories Manufacturing", "Semiconductors", "Wholesale Motor Vehicles and Parts", "HVAC and Refrigeration Equipment Manufacturing", "Schools", "Wood Product Manufacturing", "Fire Protection", "Retail Office Supplies and Gifts", "Equipment Rental Services", "Movies, Videos and Sound", "Ground Passenger Transportation", "Wholesale Hardware, Plumbing, Heating Equipment", "Housing and Community Development", "Robotics Engineering", "Wholesale Chemical and Allied Products", "Building Finishing Contractors", "Child Day Care Services", "Radio and Television Broadcasting", "Paint, Coating, and Adhesive Manufacturing", "Building Structure and Exterior Contractors", "Retail Pharmacies", "Retail Building Materials and Garden Equipment", "Waste Treatment and Disposal", "Wholesale Machinery", "Metal Treatments", "Accommodation Services", "Horticulture", "Water Supply and Irrigation Systems", "Building Equipment Contractors", "Waste Collection", "Executive Search Services", "Telephone Call Centers", "Mobile Food Services", "Data Security Software Products", "Taxi and Limousine Services", "Retail Florists", "Metalworking Machinery Manufacturing", "Plastics and Rubber Product Manufacturing", "Climate Technology Product Manufacturing", "Golf Courses and Country Clubs", "Loan Brokers", "Water, Waste, Steam, and Air Conditioning Services", "Office Administration", "Wholesale Metals and Minerals", "Construction Hardware Manufacturing", "Surveying and Mapping Services", "Air, Water, and Waste Program Management", "Measuring and Control Instrument Manufacturing", "Leather Product Manufacturing", "Animal Feed Manufacturing", "Wholesale Furniture and Home Furnishings", "Wholesale Recyclable Materials", "Wholesale Drugs and Sundries", "Theater Companies", "Wholesale Apparel and Sewing Supplies", "Wholesale Computer Equipment", "Household, Laundry and Drycleaning Services", "Distilleries", "Breweries", "Wineries", "Optometrists", "Dance Companies", "Retail Recyclable Materials & Used Merchandise", "Utility System Construction", "Vocational Rehabilitation Services", "Amusement Parks and Arcades", "Retail Musical Instruments", "Turned Products and Fastener Manufacturing", "Engines and Power Transmission Equipment Manufacturing", "Transportation Equipment Manufacturing", "Collection Agencies", "Utilities Administration", "Credit Intermediation", "Housing and Socio-Economic Programs", "Securities and Commodity Exchanges", "Boilers, Tanks, and Shipping Container Manufacturing", "Claims Adjusting, Actuarial Services", "Ambulance Services", "Mattress and Blinds Manufacturing", "Regenerative Design", "Primary Metal Manufacturing"];
 const FREEMAIL = new Set(["gmail.com","googlemail.com","yahoo.com","hotmail.com","outlook.com","live.com","icloud.com","me.com","aol.com","proton.me","protonmail.com","hey.com","msn.com"]);
 
@@ -475,7 +475,7 @@ function customerDigest(raw){
 
 /* ---------- storage ---------- */
 // Spend meter: Claude $ and Prospeo credits per client, per step
-const STEP_OF = {"/api/claude": "Claude", "/api/research-source": "Signal research", "/api/research-customer": "Customer research", "/api/prospeo/search": "Prospeo search", "/api/prospeo/people-at": "Buyers at signal companies", "/api/enrich-buyer": "Buyer profiles"};
+const STEP_OF = {"/api/claude": "Claude", "/api/research-source": "Signal research", "/api/research-customer": "Customer research", "/api/prospeo/search": "Prospeo search", "/api/prospeo/people-at": "Buyers at signal companies", "/api/enrich-buyer": "Buyer profiles", "/api/prospeo/emails": "Lead emails"};
 let spendTimer = null;
 function track(path, b, label){
   const c = clients.find(x => x.id === selected); if (!c || (!b.cost && !b.credits)) return;
@@ -1517,7 +1517,7 @@ function leadList(c){
       <label class="toggle"><input type="checkbox" id="selAll" ${rows.length && rows.every(l => sel.has(l.key)) ? "checked" : ""} aria-label="Select all in view"></label>
       <div class="seg">${latest ? `<button type="button" class="${view === "latest" ? "on" : ""}" data-view="latest">Latest pull · ${esc(latest.label)} (${leads.filter(l => l.pullId === latest.id).length})</button>` : ""}<button type="button" class="${view === "all" ? "on" : ""}" data-view="all">All (${leads.length})</button></div>
       <label class="toggle"><input type="checkbox" id="passOnly" ${c._passOnly ? "checked" : ""}> Passing only</label>
-      <span class="hint">${scored.filter(l => l.pass).length} of ${scored.length} pass</span>
+      <span class="hint">${scored.filter(l => l.pass).length} of ${scored.length} pass${c.getEmails ? " · " + rows.filter(l => l.email).length + " with email" : ""}</span>
       ${sel.size ? `<span class="spacer"></span><span class="hint"><b>${sel.size} selected</b></span><button class="btn sm ghost" id="delSel" type="button">Delete selected</button><button class="btn sm ghost" id="clearSel" type="button">Clear</button>` : '<span class="spacer"></span><button class="btn sm ghost" id="delFail" type="button">Delete failing</button>'}
     </div>
     <div class="lead-list">${rows.length ? rows.map(l => {
@@ -1525,10 +1525,11 @@ function leadList(c){
       return `<div class="lead-row"><input type="checkbox" data-sel="${esc(l.key)}" ${sel.has(l.key) ? "checked" : ""} aria-label="Select ${esc(l.name)}"><details class="lead ${l.score != null && !l.pass ? "fail" : ""}">
         <summary>
           <span class="pill ${s == null ? "" : l.pass ? "pass" : "no"}">${s == null ? "–" : s + "%"}</span>
-          <span class="who"><b>${esc(l.name)}</b><span>${esc(l.title)}</span></span>
+          <span class="who"><b>${esc(l.name)}${l.email ? " ✉" : ""}</b><span>${esc(l.title)}</span></span>
           <span class="co"><b>${esc(l.company)}</b><span>${esc([l.location, l.headcount && l.headcount + " ppl"].filter(Boolean).join(" · "))}</span></span>
         </summary>
         <div class="lead-b">
+          ${c.getEmails || l.email ? `<p><b>Email:</b> ${l.email ? `<a href="mailto:${esc(l.email)}">${esc(l.email)}</a> <span class="chip ok">${esc(String(l.emailStatus || "verified").toLowerCase())}</span>` : l.emailTried ? '<span class="hint">No verified email found</span>' : '<span class="hint">Not looked up yet</span>'}</p>` : ""}
           ${l.disqualifier ? `<span class="chip r">Disqualified: ${esc(l.disqualifier)}</span>` : ""}
           ${l.reason ? `<p>${esc(l.reason)}</p>` : '<p class="hint">Not scored yet.</p>'}
           ${l.hook ? `<p><b>Opener:</b> <em>${esc(l.hook)}</em></p>` : ""}
@@ -1668,6 +1669,8 @@ function promptPane(c){
   </div>`;
 }
 
+const emailTargets = c => { const sel = c._sel || new Set(); const pool = sel.size ? arr(c.leads).filter(l => sel.has(l.key)) : arr(c.leads).filter(l => l.pass); return pool.filter(l => !l.email && !l.emailTried); };
+const emailBtnText = c => { const n = emailTargets(c).length; const sel = (c._sel || new Set()).size; return n ? `Find emails for ${n} ${sel ? "selected" : "passing"}` : (arr(c.leads).some(l => l.email) ? "Emails up to date" : "No passing leads yet"); };
 function leadsPane(c){
   const p = currentPayload(c);
   if (!p) return `<div class="note"><b>Build the ICP first</b> (Research tab).</div>`;
@@ -1680,7 +1683,9 @@ function leadsPane(c){
     <div class="toolbar">
       <button class="btn red" id="runSearch" type="button" ${busy[c.id + ":search"] ? "disabled" : ""}>${busy[c.id + ":search"] ? "Searching…" : "Pull 25 from Prospeo"}</button>
       <span class="hint">using ${esc(p.variant || "ICP filters")}${arr(c.leadTarget?.titles).length ? " · your " + c.leadTarget.titles.length + " titles" : ""}${arr(c.locations).length ? " · " + esc(c.locations.join(", ")) : ""}</span>
+      <label class="toggle" title="Reveal verified emails for leads that pass scoring. Off = LinkedIn-only outreach, no extra credits."><input type="checkbox" id="getEmails" ${c.getEmails ? "checked" : ""}> Emails</label>
       <span class="spacer"></span>
+      ${c.getEmails ? `<button class="btn sm" id="findEmails" type="button" ${busy[c.id + ":emails"] ? "disabled" : ""}>${busy[c.id + ":emails"] ? `Finding ${busy[c.id + ":emails"].of} emails…` : emailBtnText(c)}</button>` : ""}
       <button class="btn sm" id="scoreLeads" type="button" ${!leads.length || sb ? "disabled" : ""}>${sb ? `Scoring ${sb.done || 0}/${sb.of || ""}…` : "Score unscored"}</button>
       <button class="btn sm dark" id="csvLeads" type="button" ${leads.length ? "" : "disabled"}>Download CSV</button>
     </div>
@@ -1717,6 +1722,7 @@ function normalizeLead(r){
     tenure: Number((arr(p.job_history).find(h => h.current) || {}).duration_in_months) || null,
     past: arr(p.job_history).filter(h => !h.current).slice(0, 3).map(h => `${h.title || ""} @ ${h.company_name || ""}`).join("; "),
     funding: co.funding?.last_funding_stage || co.funding?.stage || "",
+    pid: p.person_id || "",
     key: p.person_id || p.id || p.linkedin_url || name + "|" + (co.name || ""),
   };
 }
@@ -1821,11 +1827,29 @@ async function scoreLeads(c, onlyIds){
     if (failed) c._scoreErr = `${failed} lead${failed > 1 ? "s" : ""} couldn't be scored (${lastErr}). Click Score again to retry them.`;
     await saveClient(c.id, {leads: next});
     toast(results.filter(r => r && r.pass).length + " of " + (target.length - failed) + " pass");
+    if (c.getEmails && status.prospeo){ const keys = target.filter(([, n], k) => results[k]?.pass).map(([l]) => l.key); if (keys.length) await fetchEmails(c, keys, true); }
   } catch(e){ busy[c.id + ":score"] = false; c._scoreErr = e.error; render(); }
+}
+// Reveal verified emails (Prospeo bulk enrich). Billed only when a verified email is found.
+async function fetchEmails(c, keys, quiet = false){
+  if (!status.prospeo){ toast("Add PROSPEO_API_KEY to the Worker first"); return; }
+  const cur = () => clients.find(x => x.id === c.id) || c;
+  const want = new Set(keys);
+  const todo = arr(cur().leads).filter(l => want.has(l.key) && !l.email && !l.emailTried);
+  if (!todo.length){ if (!quiet) toast("No leads need emails: they already have one or were already tried"); return; }
+  busy[c.id + ":emails"] = {of: todo.length}; render();
+  try {
+    const r = await api("/api/prospeo/emails", {body: {people: todo.map(l => ({id: l.key, pid: l.pid, linkedin: l.linkedin, name: l.name, domain: l.domain}))}});
+    const next = arr(cur().leads).map(l => r.emails?.[l.key] ? {...l, email: r.emails[l.key].email || "", emailStatus: r.emails[l.key].status || "", emailTried: true} : l);
+    busy[c.id + ":emails"] = false;
+    await saveClient(c.id, {leads: next});
+    const found = todo.filter(l => r.emails?.[l.key]?.email).length;
+    toast(`${found} of ${todo.length} verified email${todo.length === 1 ? "" : "s"} found${r.credits ? " · " + r.credits + " credit" + (r.credits === 1 ? "" : "s") : ""}${r.warning ? ". " + r.warning : ""}`);
+  } catch(e){ busy[c.id + ":emails"] = false; cur()._scoreErr = "Emails: " + e.error; render(); }
 }
 function leadsCSV(c, rows){
   const tot = totalPts(c);
-  const cols = [["score_pct", l => l.score == null ? "" : Math.round(l.score / tot * 100)], ["pass", l => l.pass ? "yes" : l.score == null ? "" : "no"], ["name"], ["title"], ["company"], ["domain"], ["location"], ["linkedin"], ["headline"], ["past_roles", l => l.past], ["source", l => l.variant || "Prospeo"], ["signal"], ["signal_source", l => l.evidenceUrl], ["archetype"], ["disqualifier"], ["reason"], ["opener", l => l.hook]];
+  const cols = [["score_pct", l => l.score == null ? "" : Math.round(l.score / tot * 100)], ["pass", l => l.pass ? "yes" : l.score == null ? "" : "no"], ["name"], ["title"], ["email"], ["email_status", l => l.emailStatus], ["company"], ["domain"], ["location"], ["linkedin"], ["headline"], ["past_roles", l => l.past], ["source", l => l.variant || "Prospeo"], ["signal"], ["signal_source", l => l.evidenceUrl], ["archetype"], ["disqualifier"], ["reason"], ["opener", l => l.hook]];
   const q = v => { v = String(v ?? ""); return /[",\n]/.test(v) ? '"' + v.replace(/"/g,'""') + '"' : v; };
   return [cols.map(x => x[0]).join(","), ...rows.map(l => cols.map(([k, f]) => q(f ? f(l) : l[k])).join(","))].join("\n");
 }
@@ -2103,6 +2127,8 @@ function bindClient(c){
     const cc = $("#copyCurl"); if (cc) cc.onclick = () => copy($("#curlText").textContent);
     const rs = $("#runSearch"); if (rs) rs.onclick = () => runSearch(c);
     const sl = $("#scoreLeads"); if (sl) sl.onclick = () => scoreLeads(c);
+    const ge = $("#getEmails"); if (ge) ge.onchange = () => saveClient(c.id, {getEmails: ge.checked});
+    const fe = $("#findEmails"); if (fe) fe.onclick = () => fetchEmails(c, emailTargets(c).map(l => l.key));
 
     const cl = $("#clearLeads"); if (cl) cl.onclick = () => saveClient(c.id, {leads: [], pulls: [], prospeoPage: 0, variantPages: {}, prospeoTotal: null, lastRaw: ""});
     const cv = $("#csvLeads"); if (cv) cv.onclick = () => {

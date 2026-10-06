@@ -9,7 +9,16 @@
 
 import { DurableObject } from "cloudflare:workers";
 
-const DEFAULT_MODEL = "claude-sonnet-5-5";
+const DEFAULT_MODEL = "claude-sonnet-5-5";           // judgment steps: patterns, ICP, translation, source planning
+const DEFAULT_FAST_MODEL = "claude-haiku-4-5-20251001"; // volume steps: scoring, reading source pages
+// $ per million tokens: [input, output, cache write, cache read]
+const PRICES = { "claude-opus-5-5": [4, 20, 5, 0.2], "claude-sonnet-5-5": [2, 10, 2.5, 0.2], "claude-haiku-4-5": [1, 5, 1.25, 0.1], "claude-haiku-4-5-20251001": [1, 5, 1.25, 0.1], "claude-fable-5-1": [10, 50, 12.5, 0.25] };
+function costOf(model, u = {}) {
+  const p = PRICES[model] || PRICES[DEFAULT_MODEL];
+  const tok = ((u.input_tokens || 0) * p[0] + (u.output_tokens || 0) * p[1] + (u.cache_creation_input_tokens || 0) * p[2] + (u.cache_read_input_tokens || 0) * p[3]) / 1e6;
+  return tok + (u.server_tool_use?.web_search_requests || 0) * 0.01;
+}
+const modelFor = (env, tier) => tier === "fast" ? (env.CLAUDE_FAST_MODEL || DEFAULT_FAST_MODEL) : (env.CLAUDE_MODEL || DEFAULT_MODEL);
 const COOKIE = "cgtm_session";
 const SESSION_DAYS = 90;
 
@@ -117,22 +126,25 @@ function extractJSON(text) {
 }
 
 /* ---------------- Claude ---------------- */
-async function askClaude(env, prompt, { maxTokens = 8000, system } = {}) {
+// prefix: the part of the prompt that repeats across calls (criteria, patterns). It's marked for
+// prompt caching, so repeat calls within 5 minutes pay 10% for it instead of full price.
+async function askClaude(env, prompt, { maxTokens = 8000, system, tier = "smart", prefix = "" } = {}) {
   if (!env.ANTHROPIC_API_KEY) throw { status: 503, error: "ANTHROPIC_API_KEY is not set on the Worker. Add it in Cloudflare > Workers > Settings > Variables and secrets." };
+  const model = modelFor(env, tier);
+  const content = prefix ? [{ type: "text", text: prefix, cache_control: { type: "ephemeral" } }, { type: "text", text: prompt }] : prompt;
   const r = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: { "x-api-key": env.ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01", "content-type": "application/json" },
     body: JSON.stringify({
-      model: env.CLAUDE_MODEL || DEFAULT_MODEL,
-      max_tokens: maxTokens,
+      model, max_tokens: maxTokens,
       system: system || "You are a precise GTM research analyst. When asked for JSON, reply with one valid JSON value and nothing else.",
-      messages: [{ role: "user", content: prompt }],
+      messages: [{ role: "user", content }],
     }),
   });
   const body = await r.json().catch(() => ({}));
   if (!r.ok) throw { status: 502, error: "Claude API error: " + (body?.error?.message || r.status) };
   const text = (body.content || []).filter(b => b.type === "text").map(b => b.text).join("");
-  return { text, stop: body.stop_reason, usage: body.usage };
+  return { text, stop: body.stop_reason, usage: body.usage, model, cost: costOf(model, body.usage) };
 }
 
 /* ---------------- website pull ---------------- */
@@ -289,23 +301,23 @@ export default {
         if (req.method === "PUT") return json(await s.put("settings", "main", await req.json()));
       }
       if (path === "/api/claude" && req.method === "POST") {
-        const { prompt, maxTokens, expectJson = true } = await req.json();
+        const { prompt, maxTokens, expectJson = true, tier = "smart", prefix = "" } = await req.json();
         if (!prompt || prompt.length > 400_000) return fail(400, "Prompt missing or too long");
         // If the answer runs out of room, retry once with double the room and a "be concise" instruction.
         // If it's still cut off, salvage every complete item from the partial JSON instead of failing.
         let budget = Math.min(Math.max(Number(maxTokens) || 8000, 4000), 32000);
-        let out = await askClaude(env, prompt, { maxTokens: budget });
+        let out = await askClaude(env, prompt, { maxTokens: budget, tier, prefix }); let cost = out.cost;
         if (!expectJson) return json({ text: out.text, stop: out.stop });
         let parsed = extractJSON(out.text);
         if (parsed == null && out.stop === "max_tokens") {
           budget = Math.min(budget * 2, 32000);
-          out = await askClaude(env, prompt + "\n\nKeep it tight: every string under 25 words, no extra fields. The JSON must be complete.", { maxTokens: budget });
+          out = await askClaude(env, prompt + "\n\nKeep it tight: every string under 25 words, no extra fields. The JSON must be complete.", { maxTokens: budget, tier, prefix }); cost += out.cost;
           parsed = extractJSON(out.text);
         }
         let salvaged = false;
         if (parsed == null && out.stop === "max_tokens") { parsed = repairTruncatedJSON(out.text); salvaged = parsed != null; }
-        if (parsed == null) return fail(502, out.stop === "max_tokens" ? "Claude's answer was still too long after a retry. Try again; if it repeats, remove a few customers or sources." : "Claude's answer didn't parse as JSON. Retry.", { raw: out.text.slice(0, 2000) });
-        return json({ data: parsed, stop: out.stop, usage: out.usage, salvaged });
+        if (parsed == null) return fail(502, out.stop === "max_tokens" ? "Claude's answer was still too long after a retry. Try again; if it repeats, remove a few customers or sources." : "Claude's answer didn't parse as JSON. Retry.", { raw: out.text.slice(0, 2000), cost });
+        return json({ data: parsed, stop: out.stop, usage: out.usage, salvaged, cost, model: out.model });
       }
       if (path === "/api/pull-site" && req.method === "POST") {
         const { url: u } = await req.json(); return json(await pullSite(u, env, url.hostname));
@@ -321,7 +333,7 @@ export default {
               company: { websites: { include: [rootDomain(domain) || domain] } },
               person_seniority: { include: ["Founder/Owner", "C-Suite", "Partner", "Vice President", "Head", "Director"] },
             } });
-            out.people = (d.results || []).slice(0, 25);
+            out.people = (d.results || []).slice(0, 25); out.credits = (d.results || []).length && !d.free ? 1 : 0;
             out.total = d.pagination?.total_count;
           } catch (e) { out.peopleError = e.error || "Prospeo search failed"; }
         } else out.peopleError = "PROSPEO_API_KEY is not set, so team members can't be looked up.";
@@ -339,68 +351,86 @@ export default {
         });
         const d = await r.json().catch(() => ({}));
         if (!r.ok || d.error) return fail(502, d.error_code === "NO_MATCH" ? "Prospeo couldn't find that LinkedIn profile." : "Prospeo said: " + (d.error_code || d.message || r.status));
-        return json({ person: d.person || null, company: d.company || null });
+        return json({ person: d.person || null, company: d.company || null, credits: !d.free_enrichment && d.person?.email?.email ? 1 : 0 });
       }
       if (path === "/api/pull-stripe" && req.method === "POST") {
         const { key } = await req.json(); return json(await pullStripe(key));
       }
       if (path === "/api/research-source" && req.method === "POST") {
-        // Research one signal source: pre-read the page (renders JavaScript via the reader fallback),
-        // then let Claude browse with web search + web fetch and return the companies showing the signal.
+        // FAST (default): the server reads the source like a browser (the reader renders JavaScript),
+        // follows its own listing/pagination links without AI, then a small model reads the compact
+        // text once per chunk and extracts companies. No AI-driven browsing, so it costs cents.
+        // DEEP: the old agent (web search + web fetch), capped, for sources the fast path can't read.
         if (!env.ANTHROPIC_API_KEY) return fail(503, "ANTHROPIC_API_KEY is not set on the Worker.");
-        const { source, brief, exclude = [], limit = 30 } = await req.json();
+        const { source, brief, exclude = [], limit = 30, mode = "fast" } = await req.json();
         if (!source?.url && !source?.query) return fail(400, "Source needs a URL or a search query.");
-        let pageText = "", pageErr = "";
-        if (source.url) {
-          try { const p = await pullSite(source.url, env, url.hostname); pageText = p.text.slice(0, 30000); } catch (e) { pageErr = e.error || "couldn't read"; }
-        }
-        const prompt = `You are a lead researcher. Find companies that show a specific buying signal, using the source below. Browse as needed: web_search to find the right pages (e.g. the latest batch or cohort list, news of the signal), web_fetch to open them. Stay focused on this one source and signal.
-
-SIGNAL WE'RE TRACKING: ${source.signal || ""}
+        const max = Math.min(Number(limit) || 30, 50);
+        const ask = `SIGNAL WE'RE TRACKING: ${source.signal || ""}
 SOURCE: ${source.name || ""} ${source.url || ""}
 WHAT TO EXTRACT: ${source.extract || "company name, website, and the evidence of the signal with a date"}
-${source.query ? "SUGGESTED SEARCH: " + source.query : ""}
+WHO WE'RE LOOKING FOR:
+${String(brief || "").slice(0, 3000)}
+Skip these existing customers: ${exclude.slice(0, 150).join(", ") || "none"}
+Rules: only companies you see evidence for on the page; never invent companies or websites (leave website empty if not shown); prefer the most recent signals; rate fit 0-100 against WHO WE'RE LOOKING FOR from what the page says, with a one-line why; at most ${max} companies, best fit first.
+Reply with only: {"companies":[{"company":"","website":"","signal":"","evidence":"","evidence_url":"","what_they_do":"","fit":0,"why":""}],"notes":""}`;
+        let cost = 0, pages = [], searches = 0, fetches = 0;
 
-WHO WE'RE LOOKING FOR (from the client's customer and buyer research):
-${String(brief || "").slice(0, 6000)}
+        if (mode === "fast") {
+          if (source.url) {
+            const first = await readPage(source.url, env, url.hostname).catch(() => null);
+            if (first) {
+              pages.push({ url: source.url, text: first.text, via: first.via });
+              // Follow up to 3 pagination / listing links on the same site, no AI involved
+              const base = new URL(source.url);
+              const more = [...new Set(first.links || [])].filter(l => { try { const x = new URL(l); return x.hostname === base.hostname && x.href !== base.href && /([?&](page|p|batch|offset|cursor)=|\/page\/\d|\/(companies|portfolio|startups|batch|cohort|directory|list)\b)/i.test(x.pathname + x.search); } catch { return false; } }).slice(0, 3);
+              for (const l of more) { const p = await readPage(l, env, url.hostname).catch(() => null); if (p) pages.push({ url: l, text: p.text, via: p.via }); }
+            }
+          }
+          if (!pages.length && source.query) {
+            // No page to read: one capped search with the small model
+            const r = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "x-api-key": env.ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01", "content-type": "application/json" },
+              body: JSON.stringify({ model: modelFor(env, "fast"), max_tokens: 6000, tools: [{ type: "web_search_20250305", name: "web_search", max_uses: 2 }], messages: [{ role: "user", content: `Search for: ${source.query}\n\n${ask}` }] }) });
+            const b = await r.json().catch(() => ({}));
+            if (!r.ok) return fail(502, "Claude API error: " + (b?.error?.message || r.status));
+            cost += costOf(modelFor(env, "fast"), b.usage); searches = b.usage?.server_tool_use?.web_search_requests || 0;
+            const txt = (b.content || []).filter(x => x.type === "text").map(x => x.text).join("");
+            const parsed = extractJSON(txt) || repairTruncatedJSON(txt);
+            return json({ companies: arr2(parsed?.companies), notes: parsed?.notes || "", mode, pages: 0, searches, cost });
+          }
+          if (!pages.length) return fail(422, "Couldn't read this source. Try Deep research, or replace it with a direct listing URL.");
+          // Trim each page to the useful part and read in chunks with the small model
+          const textAll = pages.map(p => `## PAGE: ${p.url}\n${p.text.replace(/\n{2,}/g, "\n").slice(0, 14000)}`).join("\n\n");
+          const chunks = []; for (let k = 0; k < textAll.length && chunks.length < 4; k += 14000) chunks.push(textAll.slice(k, k + 14000));
+          let companies = [], notes = [];
+          for (const ch of chunks) {
+            const out = await askClaude(env, "PAGE TEXT:\n" + ch, { maxTokens: 6000, tier: "fast", prefix: "You extract companies showing a buying signal from page text a browser captured.\n" + ask });
+            cost += out.cost;
+            const parsed = extractJSON(out.text) || repairTruncatedJSON(out.text);
+            companies = companies.concat(arr2(parsed?.companies)); if (parsed?.notes) notes.push(parsed.notes);
+          }
+          const seen = new Set(); companies = companies.filter(x => { const k = (x.website || x.company || "").toLowerCase(); if (!k || seen.has(k)) return false; seen.add(k); return true; }).sort((a, b) => (b.fit || 0) - (a.fit || 0)).slice(0, max);
+          return json({ companies, notes: notes.join(" ").slice(0, 400), mode, pages: pages.length, searches: 0, fetches: pages.length, cost, read: true });
+        }
 
-${pageText ? "THE SOURCE PAGE, ALREADY READ FOR YOU (may be partial):\n" + pageText : "The source page couldn't be pre-read (" + (pageErr || "no URL") + "). Use web_search and web_fetch."}
-
-Skip these existing customers: ${exclude.slice(0, 200).join(", ") || "none"}
-
-Rules:
-- Only include companies where you saw evidence of the signal. Put the evidence and the page URL in each item. Never invent companies or websites; leave website empty if you didn't see it.
-- Prefer the most recent signals (latest batch, last 12 months).
-- Rate fit 0-100 against WHO WE'RE LOOKING FOR using what you saw (what they do, stage, size), and say why in one line.
-- At most ${Math.min(Number(limit) || 30, 50)} companies, best fit first.
-
-Finish with only one JSON object (no prose after it):
-{"companies":[{"company":"","website":"","signal":"e.g. YC W26","evidence":"one line","evidence_url":"","what_they_do":"one line","fit":0,"why":""}],"notes":"what you covered and what you couldn't reach"}`;
-        const tools = [
-          { type: "web_search_20250305", name: "web_search", max_uses: 4 },
-          { type: "web_fetch_20250910", name: "web_fetch", max_uses: 5, max_content_tokens: 40000 },
-        ];
-        let messages = [{ role: "user", content: prompt }];
-        let text = "", turns = 0, searches = 0, fetches = 0;
-        while (turns++ < 4) {
-          const r = await fetch("https://api.anthropic.com/v1/messages", {
-            method: "POST",
-            headers: { "x-api-key": env.ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01", "content-type": "application/json" },
-            body: JSON.stringify({ model: env.CLAUDE_MODEL || DEFAULT_MODEL, max_tokens: 20000, tools, messages }),
-          });
+        // DEEP: capped agent
+        let pageText = "";
+        if (source.url) { const p = await readPage(source.url, env, url.hostname).catch(() => null); if (p) pageText = p.text.slice(0, 12000); }
+        const tools = [{ type: "web_search_20250305", name: "web_search", max_uses: 3 }, { type: "web_fetch_20250910", name: "web_fetch", max_uses: 3, max_content_tokens: 12000 }];
+        let messages = [{ role: "user", content: `You are a lead researcher. Use web_search and web_fetch to find companies showing this signal from this source.\n${ask}\n\n${pageText ? "SOURCE PAGE (pre-read, may be partial):\n" + pageText : ""}` }];
+        let text = "", turns = 0; const model = modelFor(env, "fast");
+        while (turns++ < 3) {
+          const r = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "x-api-key": env.ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01", "content-type": "application/json" }, body: JSON.stringify({ model, max_tokens: 10000, tools, messages }) });
           const body = await r.json().catch(() => ({}));
           if (!r.ok) return fail(502, "Claude API error: " + (body?.error?.message || r.status));
-          for (const b of body.content || []) {
-            if (b.type === "server_tool_use") b.name === "web_search" ? searches++ : fetches++;
-            if (b.type === "text") text += b.text;
-          }
+          cost += costOf(model, body.usage);
+          for (const b of body.content || []) { if (b.type === "server_tool_use") b.name === "web_search" ? searches++ : fetches++; if (b.type === "text") text += b.text; }
           if (body.stop_reason === "pause_turn") { messages = [...messages, { role: "assistant", content: body.content }]; continue; }
           break;
         }
         const tail = text.slice(text.lastIndexOf('{"companies"') >= 0 ? text.lastIndexOf('{"companies"') : 0);
         const parsed = extractJSON(tail) || repairTruncatedJSON(tail);
-        if (!parsed || !Array.isArray(parsed.companies)) return fail(502, "The research didn't return a company list. Try again or tighten the source.", { raw: text.slice(-1500) });
-        return json({ companies: parsed.companies, notes: parsed.notes || "", read: !!pageText, searches, fetches });
+        if (!parsed || !Array.isArray(parsed.companies)) return fail(502, "Deep research didn't return a company list.", { cost });
+        return json({ companies: parsed.companies, notes: parsed.notes || "", mode, searches, fetches, cost, read: !!pageText });
       }
       if (path === "/api/prospeo/people-at" && req.method === "POST") {
         // Buyers at specific companies (from signals): websites include + buyer-pattern titles/seniority
@@ -417,7 +447,7 @@ Finish with only one JSON object (no prose after it):
         for (const filters of tries) {
           const r = await fetch("https://api.prospeo.io/search-person", { method: "POST", headers: { "X-KEY": env.PROSPEO_API_KEY, "content-type": "application/json" }, body: JSON.stringify({ page, filters }) });
           const d = await r.json().catch(() => ({}));
-          if (r.ok && !d.error) return json({ ...d, usedTitles: !!filters.person_job_title });
+          if (r.ok && !d.error) return json({ ...d, usedTitles: !!filters.person_job_title, credits: (d.results || []).length && !d.free ? 1 : 0 });
           last = d;
           if (d.error_code !== "NO_RESULTS" && d.error_code !== "INVALID_FILTERS") break;
           await new Promise(res => setTimeout(res, 1200));
@@ -464,7 +494,7 @@ Finish with only one JSON object (no prose after it):
           const { r, d, raw, sent } = await send();
           const ok = r.ok && !d.error;
           attempts.push({ dropped: drop, status: r.status, ok, error_code: d.error_code || "", filter_error: d.filter_error || "", message: d.message || (ok ? "" : raw.slice(0, 300)), filters: Object.keys(sent.filters) });
-          if (ok) return json({ ...d, attempts });
+          if (ok) return json({ ...d, attempts, credits: (d.results || []).length && !d.free ? 1 : 0 });
           if (d.error_code === "NO_RESULTS") return json({ results: [], pagination: { total_count: 0 }, attempts });
           if (["INVALID_API_KEY", "INSUFFICIENT_CREDITS"].includes(d.error_code) || r.status === 429 || /rate limit/i.test(d.error_code || "")) break;
           // A bad website in the include/exclude list: remove just that site and retry, keep every other filter

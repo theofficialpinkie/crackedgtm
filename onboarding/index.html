@@ -233,6 +233,11 @@ table.leads{border-collapse:collapse;width:100%;font-size:13px;min-width:760px}
 .guide .gbar i{display:block;height:100%;background:var(--good)}
 @media (max-width:760px){.bt-grid{grid-template-columns:1fr}}
 .chips{display:flex;flex-wrap:wrap;gap:6px}
+.spend{font-size:13px}
+.spend summary{cursor:pointer;color:var(--muted)}
+.spend summary b{color:var(--ink)}
+.spend .body{padding-top:8px;display:flex;flex-direction:column;gap:6px}
+.spend table.leads{min-width:0}
 .clientbar{max-width:900px;margin:0 auto;padding:12px 16px 0;display:flex;gap:8px;flex-wrap:wrap}
 .cpill{all:unset;cursor:pointer;display:flex;flex-direction:column;padding:6px 12px;border:2px solid var(--line);background:var(--card);font-weight:700;font-size:13px}
 .cpill span{font-size:11px;font-weight:500;color:var(--muted)}
@@ -468,10 +473,25 @@ function customerDigest(raw){
 }
 
 /* ---------- storage ---------- */
+// Spend meter: Claude $ and Prospeo credits per client, per step
+const STEP_OF = {"/api/claude": "Claude", "/api/research-source": "Signal research", "/api/research-customer": "Customer research", "/api/prospeo/search": "Prospeo search", "/api/prospeo/people-at": "Buyers at signal companies", "/api/enrich-buyer": "Buyer profiles"};
+let spendTimer = null;
+function track(path, b, label){
+  const c = clients.find(x => x.id === selected); if (!c || (!b.cost && !b.credits)) return;
+  const sp = c.spend = c.spend || {usd: 0, credits: 0, steps: {}};
+  const step = label || STEP_OF[path] || path;
+  sp.usd = (sp.usd || 0) + (b.cost || 0); sp.credits = (sp.credits || 0) + (b.credits || 0);
+  const st = sp.steps[step] = sp.steps[step] || {usd: 0, credits: 0, calls: 0};
+  st.usd += b.cost || 0; st.credits += b.credits || 0; st.calls++;
+  clearTimeout(spendTimer); spendTimer = setTimeout(() => saveClient(c.id, {spend: c.spend}, true), 1500);
+  const m = $("#spendMeter"); if (m) m.innerHTML = spendText(c);
+}
+function spendText(c){ const sp = c.spend || {}; return `Spent on ${esc(c.company)}: <b>$${(sp.usd || 0).toFixed(2)}</b> Claude · <b>${sp.credits || 0}</b> Prospeo credits`; }
 async function api(path, opts = {}){
   const r = await fetch(path, {method: opts.method || (opts.body ? "POST" : "GET"), headers: {"content-type":"application/json"}, body: opts.body ? JSON.stringify(opts.body) : undefined, credentials: "same-origin"});
   const b = await r.json().catch(() => ({}));
   if (r.status === 401 && path !== "/api/login"){ location.reload(); throw {error:"Signed out"}; }
+  track(path, b, opts.step);
   if (!r.ok) throw {status: r.status, error: b.error || ("Request failed (" + r.status + ")"), raw: b.raw, detail: b.detail, attempts: b.attempts};
   return b;
 }
@@ -625,7 +645,7 @@ async function sharpen(id){
   if (!filled(c) && !c.patterns){ toast("Add their website or customers first"); return; }
   busy[id] = true; c._err = ""; render();
   try {
-    const {data: out} = await api("/api/claude", {body: {prompt: icpPrompt(c), maxTokens: 12000}});
+    const {data: out} = await api("/api/claude", {body: {prompt: icpPrompt(c), maxTokens: 12000}, step: "ICP"});
     if (!out || typeof out !== "object" || !out.archetypes) throw {error:"Claude's answer was missing the ICP fields. Try again."};
     const v = (c.icp?.version || 0) + 1;
     out.version = v; out.builtAt = now(); out.inputsUsed = INPUTS.filter(i => String(c.inputs?.[i.k]||"").trim()).map(i => i.k).concat(c.patterns ? ["patterns"] : []);
@@ -774,7 +794,7 @@ async function findPatterns(c){
   if (researched(c).length < 2){ toast("Research at least 2 customers first"); return false; }
   busy[c.id + ":patterns"] = true; c._err = ""; render();
   try {
-    const {data} = await api("/api/claude", {body: {prompt: patternPrompt(c), maxTokens: 16000}});
+    const {data} = await api("/api/claude", {body: {prompt: patternPrompt(c), maxTokens: 16000}, step: "Company patterns"});
     if (!data || !Array.isArray(data.patterns)) throw {error: "The pattern analysis came back incomplete. Try again."};
     data.at = now(); data.n = researched(c).length; data.buyers = buyerCount(c);
     busy[c.id + ":patterns"] = false;
@@ -822,7 +842,7 @@ async function findBuyerPatterns(c){
   if (buyerList(c).length < 2) return false;
   busy[c.id + ":bpatterns"] = true; render();
   try {
-    const {data} = await api("/api/claude", {body: {prompt: buyerPatternPrompt(c), maxTokens: 10000}});
+    const {data} = await api("/api/claude", {body: {prompt: buyerPatternPrompt(c), maxTokens: 10000}, step: "Buyer patterns"});
     if (!data || !data.persona) throw {error: "The buyer analysis came back incomplete. Try again."};
     data.at = now(); data.n = buyerList(c).length; data.enriched = enrichedCount(c);
     busy[c.id + ":bpatterns"] = false;
@@ -1071,7 +1091,7 @@ async function translate(c){
   if (!c.icp){ toast("Build the ICP first"); return false; }
   busy[c.id + ":translate"] = true; c._err = ""; render();
   try {
-    const {data} = await api("/api/claude", {body: {prompt: translatorPrompt(c), maxTokens: 12000}});
+    const {data} = await api("/api/claude", {body: {prompt: translatorPrompt(c), maxTokens: 12000}, step: "Translation"});
     if (!data || !arr(data.variants).length) throw {error: "The translation came back without search variants. Try again."};
     data.at = now(); data.icpV = c.icp.version; data.bpAt = c.buyerPatterns?.at || null;
     busy[c.id + ":translate"] = false;
@@ -1180,6 +1200,9 @@ function clientView(c){
     </section>`;
   return `
   <div class="chead"><h1>${esc(c.company)}</h1><div class="sub">${esc(c.first)} · ${esc(c.email)} · ${esc(c.website || "")}</div></div>
+  <details class="spend"><summary id="spendMeter">${spendText(c)}</summary>
+    <div class="body"><table class="leads"><thead><tr><th>Step</th><th>Calls</th><th>Claude</th><th>Prospeo credits</th></tr></thead><tbody>${Object.entries((c.spend || {}).steps || {}).sort((a, b) => b[1].usd - a[1].usd).map(([k, v]) => `<tr><td>${esc(k)}</td><td class="num">${v.calls}</td><td class="num">$${v.usd.toFixed(3)}</td><td class="num">${v.credits}</td></tr>`).join("") || '<tr><td colspan="4" class="hint">Nothing tracked yet. Counting starts with this version.</td></tr>'}</tbody></table>
+    <p class="hint">Claude cost is estimated from token counts at list price. Prospeo credits count searches that returned people and enrichments that found an email.</p></div></details>
   <div class="tabs" role="tablist">${TABS.map(([k, l]) => `<button class="tab ${t === k ? "on" : ""}" role="tab" aria-selected="${t === k}" data-tab="${k}" type="button">${l}${k === "leads" && leads.length ? ` <span class="tcount">${leads.length}</span>` : k === "signals" && arr(c.signalCompanies).length ? ` <span class="tcount">${arr(c.signalCompanies).length}</span>` : ""}</button>`).join("")}</div>
   ${c._err ? `<div class="banner" role="alert">${esc(c._err)} <button class="x" id="clearErr" type="button" aria-label="Dismiss">×</button></div>` : ""}
   ${body}`;
@@ -1224,7 +1247,7 @@ async function generateSources(c){
   if (!status.claude){ toast("Add ANTHROPIC_API_KEY to the Worker first"); return; }
   busy[c.id + ":sources"] = true; c._err = ""; render();
   try {
-    const {data} = await api("/api/claude", {body: {prompt: sourcesPrompt(c), maxTokens: 12000}});
+    const {data} = await api("/api/claude", {body: {prompt: sourcesPrompt(c), maxTokens: 12000}, step: "Source planning"});
     data.sources = arr(data?.sources).filter(x => x && x.name && (x.url || x.query)); // drop items cut off mid-way
     if (!data.sources.length) throw {error: "No sources came back. Add more detail to the signals and try again."};
     const keepCustom = arr(c.sources).filter(x => x.custom);
@@ -1233,7 +1256,7 @@ async function generateSources(c){
     await saveClient(c.id, {sources, signalList: arr(data.signals)});
   } catch(e){ busy[c.id + ":sources"] = false; c._err = e.error; render(); }
 }
-async function researchSources(c, onlyId){
+async function researchSources(c, onlyId, deep = false){
   const list = arr(c.sources).filter(x => onlyId ? x.id === onlyId : x.on);
   if (!list.length){ toast("Tick at least one source"); return; }
   const exclude = [...custDomains(c), domainOf(c.website)].filter(Boolean);
@@ -1244,12 +1267,12 @@ async function researchSources(c, onlyId){
     const set = st => { cur.sources = arr(cur.sources).map(x => x.id === src.id ? {...x, ...st} : x); render(); };
     set({status: "running", note: ""});
     try {
-      const r = await api("/api/research-source", {body: {source: src, brief: signalBrief(c), exclude, limit: 30}});
+      const r = await api("/api/research-source", {body: {source: src, brief: signalBrief(c), exclude, limit: 30, mode: deep ? "deep" : "fast"}});
       const have = new Set(found.map(f => domainOf(f.website) || f.company.toLowerCase()));
       const fresh = arr(r.companies).filter(x => x && x.company).map(x => ({...x, website: domainOf(x.website), source: src.name, sourceId: src.id, at: now(), key: (domainOf(x.website) || x.company.toLowerCase())}))
         .filter(x => !exclude.includes(x.website) && !have.has(x.key));
       found = [...found, ...fresh];
-      set({status: "done", found: arr(r.companies).length, added: fresh.length, note: r.notes || "", ranAt: now(), read: r.read, searches: r.searches, fetches: r.fetches});
+      set({status: "done", found: arr(r.companies).length, added: fresh.length, note: r.notes || "", ranAt: now(), read: r.read, searches: r.searches, fetches: r.fetches, pages: r.pages, mode: r.mode, cost: r.cost});
     } catch(e){ set({status: "error", note: e.error}); }
     busy[c.id + ":sigrun"].done++; render();
   };
@@ -1293,12 +1316,12 @@ function signalsPane(c){
       <input type="checkbox" data-srcon="${esc(x.id)}" ${x.on ? "checked" : ""} aria-label="Use ${esc(x.name)}">
       <div class="src-m"><b>${esc(x.name)}</b> <span class="chip">${esc(x.type || "source")}</span>${x.access === "login" ? ' <span class="chip miss">needs login</span>' : ""}
         <span class="hint">${x.url ? `<a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.url)}</a>` : "Search: " + esc(x.query || "")} · ${esc(x.signal || "")}</span>
-        ${x.status ? `<span class="hint">${x.status === "running" ? "Researching…" : x.status === "error" ? "⚠ " + esc(x.note) : `${x.added} new of ${x.found} found · ${x.searches || 0} searches, ${x.fetches || 0} pages${x.note ? " · " + esc(x.note) : ""}`}</span>` : ""}</div>
-      <div class="src-a"><button class="btn sm" data-srcrun="${esc(x.id)}" type="button" ${run ? "disabled" : ""}>Run</button><button class="x" data-srcdel="${esc(x.id)}" type="button" aria-label="Remove ${esc(x.name)}">×</button></div>
+        ${x.status ? `<span class="hint">${x.status === "running" ? "Researching…" : x.status === "error" ? "⚠ " + esc(x.note) : `${x.added} new of ${x.found} found · ${x.mode === "deep" ? "deep, " + (x.searches || 0) + " searches" : (x.pages || x.fetches || 0) + " pages read"} · $${(x.cost || 0).toFixed(3)}${x.note ? " · " + esc(x.note) : ""}`}</span>` : ""}</div>
+      <div class="src-a"><button class="btn sm" data-srcrun="${esc(x.id)}" type="button" ${run ? "disabled" : ""}>Run</button>${x.status === "done" && !x.found || x.status === "error" ? `<button class="btn sm ghost" data-srcdeep="${esc(x.id)}" type="button" ${run ? "disabled" : ""} title="Lets the agent search and browse. About 10x the cost.">Deep</button>` : ""}<button class="x" data-srcdel="${esc(x.id)}" type="button" aria-label="Remove ${esc(x.name)}">×</button></div>
     </div>`).join("")}</div>` : ""}
     <div class="mini"><input id="srcUrl" placeholder="Add your own source URL, e.g. https://www.ycombinator.com/companies?batch=Winter%202026"><input id="srcSig" placeholder="Signal it shows" style="max-width:220px"><button class="btn sm" id="srcAdd" type="button">Add</button></div>`, srcs.length ? srcs.filter(x => x.on).length + " selected" : "")}
   ${step(3, "Research the sources", comps.length > 0, srcs.length > 0 && !comps.length, `
-    <div class="row"><button class="btn red" id="runSources" type="button" ${run || !srcs.some(x => x.on) ? "disabled" : ""}>${run ? `Researching ${run.done}/${run.of}…` : `Research ${srcs.filter(x => x.on).length} selected sources`}</button><span class="hint">An agent reads each source, browses and searches for more, and pulls companies showing the signal. About 30 to 90 seconds per source.</span></div>
+    <div class="row"><button class="btn red" id="runSources" type="button" ${run || !srcs.some(x => x.on) ? "disabled" : ""}>${run ? `Researching ${run.done}/${run.of}…` : `Research ${srcs.filter(x => x.on).length} selected sources`}</button><span class="hint">The server reads each source and its listing pages like a browser, then a small model pulls out companies showing the signal. About 1 to 3 cents per source. If a source comes back empty, use Deep on it (agent browsing, about 10x the cost).</span></div>
     ${comps.length ? `<div class="leadbar"><label class="toggle"><input type="checkbox" id="sigAll" ${sel.size && sel.size === comps.length ? "checked" : ""}> Select all</label><span class="hint">${sel.size ? sel.size + " selected" : "None selected: Find buyers uses every company with fit 60+"}</span><button class="btn sm ghost" id="sigDelSel" type="button" ${sel.size ? "" : "disabled"}>Remove selected</button></div>
     <div class="lead-list">${comps.map(x => `<div class="lead-row"><input type="checkbox" data-sigsel="${esc(x.key)}" ${sel.has(x.key) ? "checked" : ""} aria-label="Select ${esc(x.company)}"><details class="lead ${(x.fit || 0) < 60 ? "fail" : ""}"><summary>
         <span class="pill ${(x.fit || 0) >= 60 ? "pass" : "no"}">${x.fit ?? "–"}</span>
@@ -1627,7 +1650,8 @@ async function runSearch(c){
     if (fresh.length && status.claude) scoreLeads(clients.find(x => x.id === c.id) || c, [pullId]);
   } catch(e){ busy[c.id + ":search"] = false; c._err = e.error + (e.detail ? " · " + JSON.stringify(e.detail).slice(0, 300) : ""); render(); }
 }
-function scorePrompt(c, rows){
+// Everything except the rows; identical across batches, so it's sent as a cached prefix
+function scorePrompt(c){
   const i = c.icp, total = totalPts(c);
   return `You qualify prospects for ${c.company}. ${i.one_liner || ""}
 ${i.summary || ""}
@@ -1656,9 +1680,6 @@ Rules:
 - A disqualifier applies only when it is clearly true. Name it in "disqualifier", otherwise null.
 - "hook" is one specific line we could open an email with, grounded in the row. Empty string if nothing specific.
 
-Rows:
-${rows.map((r,n) => `#${n} ${r}`).join("\n")}
-
 Reply with only a JSON array, one object per row, in row order:
 [{"i": 0, "hits": ["Q1","Q3"], "archetype": "name or empty", "disqualifier": null, "reason": "one sentence on fit, naming the strongest evidence", "hook": ""}]
 "hits" lists every qualification criterion (Q-number) the lead meets. Give credit when the row or well-known facts about the company clearly support it, including strong implication from title, company name and description; leave it out when unknown.`;
@@ -1669,13 +1690,13 @@ function pointsFromHits(c, hits){
   return arr(hits).map(h => Number(String(h).replace(/\D/g, "")) - 1).filter(n => q[n]).reduce((sum, n) => sum + (Number(q[n].weight) || 1), 0);
 }
 async function scoreRows(c, rows, onProgress){
-  const out = new Array(rows.length); const size = 15; const chunks = [];
+  const out = new Array(rows.length); const size = 25; const chunks = [];
   for (let k = 0; k < rows.length; k += size) chunks.push(k);
   let done = 0, failed = 0, lastErr = "";
   const work = async start => {
     const chunk = rows.slice(start, start + size);
     try {
-      const {data} = await api("/api/claude", {body: {prompt: scorePrompt(c, chunk), maxTokens: 8000}});
+      const {data} = await api("/api/claude", {body: {prefix: scorePrompt(c), prompt: "Rows:\n" + chunk.map((r, n) => `#${n} ${r}`).join("\n"), maxTokens: 6000, tier: "fast"}, step: "Scoring"});
       const list = Array.isArray(data) ? data : arr(data?.results || data?.leads);
       chunk.forEach((_, n) => {
         const r = list.find(x => Number(x.i) === n) || list[n] || {};
@@ -1847,6 +1868,7 @@ function bindClient(c){
   const gs = $("#genSources"); if (gs) gs.onclick = () => generateSources(c);
   const rs2 = $("#runSources"); if (rs2) rs2.onclick = () => researchSources(c);
   document.querySelectorAll("[data-srcrun]").forEach(b => b.onclick = () => researchSources(c, b.dataset.srcrun));
+  document.querySelectorAll("[data-srcdeep]").forEach(b => b.onclick = () => researchSources(c, b.dataset.srcdeep, true));
   document.querySelectorAll("[data-srcon]").forEach(cb => cb.onchange = () => saveClient(c.id, {sources: arr(c.sources).map(x => x.id === cb.dataset.srcon ? {...x, on: cb.checked} : x)}));
   document.querySelectorAll("[data-srcdel]").forEach(b => b.onclick = () => saveClient(c.id, {sources: arr(c.sources).filter(x => x.id !== b.dataset.srcdel)}));
   const sad = $("#srcAdd"); if (sad) sad.onclick = () => {

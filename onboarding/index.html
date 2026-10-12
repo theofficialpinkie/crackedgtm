@@ -234,6 +234,21 @@ table.leads{border-collapse:collapse;width:100%;font-size:13px;min-width:760px}
 @media (max-width:760px){.bt-grid{grid-template-columns:1fr}}
 .chips{display:flex;flex-wrap:wrap;gap:6px}
 .seg.wrap{flex-wrap:wrap}
+.review{border:3px solid var(--line);background:var(--card);box-shadow:5px 5px 0 var(--red);display:flex;flex-direction:column}
+.campbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:10px 14px;border-bottom:2px solid var(--line);background:var(--band)}
+.campbar input[type=number]{width:64px;padding:3px 6px;border:2px solid var(--line);background:var(--card)}
+.cprog{width:120px;height:10px;border:2px solid var(--line);background:var(--card)}
+.cprog i{display:block;height:100%;background:var(--good)}
+.rv-card{padding:16px 18px;display:flex;flex-direction:column;gap:8px}
+.rv-card p{margin:0}
+.rv-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.rv-flags{display:flex;gap:6px;flex-wrap:wrap;flex:1}
+.rv-name{font-family:var(--f-display);font-size:24px;letter-spacing:-.02em}
+.rv-name a{color:inherit}
+.rv-title{font-size:15px}
+.rv-acts{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px}
+.rv-acts kbd{font-family:var(--f-mono);font-size:11px;padding:0 5px;border:1.5px solid currentColor;opacity:.75}
+.rv-empty{padding:18px;display:flex;flex-direction:column;gap:10px}
 .addloc.on{border-style:solid;background:var(--ink);color:var(--paper)}
 .spend{font-size:13px}
 .spend summary{cursor:pointer;color:var(--muted)}
@@ -502,11 +517,18 @@ async function api(path, opts = {}){
   return b;
 }
 let status = {claude:false, prospeo:false};
+// When this tab last changed each client. The 20-second sync keeps the local copy of anything changed
+// in the last few seconds, so a save still on its way (or a client just created) isn't overwritten or dropped.
+const touched = {};
+const recent = (id, ms) => Date.now() - (touched[id] || 0) < ms;
 async function refresh(){
   try {
     const list = await api("/api/clients");
+    const onServer = new Set(list.map(c => c.id));
     // keep local-only fields (errors, results) when the server copy comes back
-    clients = list.sort((a,b) => String(b.createdAt).localeCompare(String(a.createdAt))).map(c => { const old = clients.find(x => x.id === c.id); if (!old) return c; const keep = {}; for (const k in old) if (k.startsWith("_")) keep[k] = old[k]; return {...c, ...keep}; });
+    const merged = list.map(c => { const old = clients.find(x => x.id === c.id); if (!old) return c; if (recent(c.id, 8000)) return old; const keep = {}; for (const k in old) if (k.startsWith("_")) keep[k] = old[k]; return {...c, ...keep}; });
+    const pending = clients.filter(c => !onServer.has(c.id) && recent(c.id, 30000));
+    clients = [...pending, ...merged].sort((a,b) => String(b.createdAt).localeCompare(String(a.createdAt)));
     if (!selected && clients.length) selected = clients[0].id;
     if (selected && !clients.find(c => c.id === selected)) selected = clients[0]?.id || null;
   } catch(e){ $("#storeNote").textContent = e.error || "Couldn't load clients."; }
@@ -525,12 +547,14 @@ async function boot(){
 function strip(c){ const out = {}; for (const [k,v] of Object.entries(c)) if (!k.startsWith("_") && k !== "id" && k !== "updatedAt") out[k] = v; return out; }
 async function saveClient(id, patch, quiet = false){
   const c = clients.find(x => x.id === id); if (!c) return;
+  touched[id] = Date.now();
   Object.assign(c, patch);
   if (!quiet) render();
-  try { const saved = await api("/api/clients/" + id, {method:"PUT", body: strip(c)}); c.updatedAt = saved.updatedAt; }
+  try { const saved = await api("/api/clients/" + id, {method:"PUT", body: strip(c)}); c.updatedAt = saved.updatedAt; touched[id] = Date.now(); }
   catch(e){ toast("Save failed: " + e.error); }
 }
 async function createClient(c){
+  touched[c.id] = Date.now();
   clients.unshift(c); selected = c.id; render();
   try { await api("/api/clients/" + c.id, {method:"PUT", body: strip(c)}); }
   catch(e){ toast("Couldn't create client: " + e.error); }
@@ -1063,13 +1087,28 @@ Reply with only one JSON object:
    "Who to pull" can cap company size and pick funding stages. They're applied to every lead search
    (ICP filters, translated variants, buyers at signal companies) and enforced again after each pull,
    since Prospeo's lookalike and keyword searches can still surface large companies. */
-const SIZE_CAPS = [["", "Any size"], ["1-10", "Up to 10"], ["11-20", "Up to 20"], ["21-50", "Up to 50"], ["51-100", "Up to 100"], ["101-200", "Up to 200"], ["201-500", "Up to 500"]];
+const SIZE_CAPS = [["", "Any size"], ["2", "Up to 2"], ["5", "Up to 5"], ["10", "Up to 10"], ["20", "Up to 20"], ["50", "Up to 50"], ["100", "Up to 100"]];
 const STAGE_PICKS = ["Pre seed", "Seed", "Series A", "Series B", "Angel"];
+// Job posts that mean "they need GTM help now" (Prospeo matches these against the company's open roles)
+const HIRING_GTM = ["gtm engineer", "go-to-market engineer", "growth engineer", "founding account executive", "founding ae", "account executive", "founding sales", "first sales", "sales development", "business development", "head of sales", "head of growth", "growth marketer", "revenue operations"];
+const FOUNDER_PRIORITIES = `1. Hiring for a GTM engineer, founding AE or first sales/growth person: top of the list
+2. Solo founder
+3. Founder-led with only 1-2 engineers and no sales team yet
+4. B2B only; consumer products are not a fit
+5. Came out of an accelerator (YC, a16z speedrun, Pear VC and similar)`;
+const FOUNDER_CLEAN = "Keep only B2B startups selling software or services to other businesses. Remove consumer apps and consumer brands, agencies, consultancies, investors and funds, recruiters, and anything that isn't an operating startup.";
+const priorities = c => String(c.leadTarget?.priorities || "").trim();
+// Review order: hiring for GTM first, then the scorer's priority tier, then score
+function rankLeads(rows){
+  return rows.slice().sort((a, b) => (b.hiring ? 1 : 0) - (a.hiring ? 1 : 0) || (a.tier || 4) - (b.tier || 4) || (b.score ?? -1) - (a.score ?? -1));
+}
 // "founder" is substring-matched, so these titles at big companies would otherwise count as founders
 const FOUNDER_FALSE = ["founder relations", "founders program", "founder program", "founder success", "founder experience", "founder in residence", "entrepreneur in residence", "founders associate", "founder associate", "founder's associate", "office of the founder", "founder's office", "chief of staff to the founder", "founder community", "founders fund", "former founder", "ex-founder", "advisor", "investor", "venture partner"];
-const capOf = c => String(c.leadTarget?.maxSize || "");
-const sizeAllowed = c => { const cap = capOf(c); if (!cap) return null; const k = HEADCOUNT.indexOf(cap); return k < 0 ? null : HEADCOUNT.slice(0, k + 1); };
-const capNum = c => { const cap = capOf(c); return cap ? Number(cap.split("-").pop().replace(/\D/g, "")) : null; };
+// maxSize is a people count ("5"); older saves used a Prospeo bucket ("21-50"), read as its upper bound
+const capOf = c => { const v = String(c.leadTarget?.maxSize || ""); return v.includes("-") ? v.split("-").pop() : v.replace(/\D/g, ""); };
+const capNum = c => { const v = capOf(c); return v ? Number(v) : null; };
+// Prospeo only filters by bucket, so search the buckets that can hold a company this small; the exact cap is enforced after the pull
+const sizeAllowed = c => { const cap = capNum(c); if (!cap) return null; const ok = HEADCOUNT.filter(b => (minHeadcount(b) || 0) <= cap); return ok.length ? ok : null; };
 // smallest headcount a lead's company could have, from "12", "11-20", "10000+" or "1,001-5,000"
 function minHeadcount(v){ const m = String(v ?? "").replace(/,/g, "").match(/\d+/); return m ? Number(m[0]) : null; }
 const overSize = (c, l) => { const cap = capNum(c); const h = minHeadcount(l.headcount); return cap != null && h != null && h > cap; };
@@ -1221,11 +1260,14 @@ function targetBlock(c, scope){
     : `<span class="hint">${scope === "buyers" ? "No titles set: pulls founders, C-suite, VPs, heads and directors." : "No titles set: searches use the titles from the patterns and ICP."}</span>`}
     ${scope === "leads" ? industryBlock(c) : ""}
     ${scope === "leads" ? `<div class="locbox">
-      <div class="row" style="justify-content:space-between"><h3 class="sub-h">Company size and stage</h3><button class="btn sm" data-founders type="button">Founders only, small startups</button></div>
+      <div class="row" style="justify-content:space-between"><h3 class="sub-h">Company size and stage</h3><button class="btn sm" data-founders type="button">Founder-led preset</button></div>
       <div class="seg wrap">${SIZE_CAPS.map(([v, l]) => `<button type="button" class="${capOf(c) === v ? "on" : ""}" data-cap="${v}">${l}</button>`).join("")}</div>
       <div class="chips">${STAGE_PICKS.map(st => `<button type="button" class="dchip addloc ${arr(c.leadTarget?.stages).includes(st) ? "on" : ""}" data-stage="${esc(st)}">${arr(c.leadTarget?.stages).includes(st) ? "✓ " : "+ "}${esc(st)}</button>`).join("")}</div>
-      <span class="hint">${capOf(c) ? `Every search is limited to companies ${esc(SIZE_CAPS.find(x => x[0] === capOf(c))[1].toLowerCase())} people, and anything bigger that slips through is left out after the pull.` : "No size limit: big companies can come back, especially from lookalike and keyword searches."}${arr(c.leadTarget?.stages).length ? " Stages: " + esc(c.leadTarget.stages.join(", ")) + "." : ""}</span>
-    </div>` : ""}
+      <span class="hint">${capNum(c) ? `Only companies of up to ${capNum(c)} people. Prospeo can only filter to "1-10", so anything bigger that slips through is left out after the pull.` : "No size limit: big companies can come back, especially from lookalike and keyword searches."}${arr(c.leadTarget?.stages).length ? " Stages: " + esc(c.leadTarget.stages.join(", ")) + ". Leave stages off to keep unfunded and newly funded startups, which Prospeo often has no funding data for." : ""}</span>
+    </div>
+    <div class="field"><label for="pri-leads">What puts a lead at the top (one per line, most important first)</label>
+      <textarea id="pri-leads" data-pri class="ctx" style="min-height:96px" placeholder="e.g. 1. Hiring a GTM engineer  2. Solo founder  3. B2B only">${esc(priorities(c))}</textarea>
+      <span class="hint">The scorer sorts every lead into tier 1, 2 or 3 using these, and review shows tier 1 first.</span></div>` : ""}
     <div class="locbox">
       <div class="row" style="justify-content:space-between"><h3 class="sub-h">Location</h3>
         <div class="seg"><button type="button" class="${t.locationOn !== "company" ? "on" : ""}" data-locon="person">Where the person is</button><button type="button" class="${t.locationOn === "company" ? "on" : ""}" data-locon="company">Where the company is</button></div></div>
@@ -1475,7 +1517,7 @@ async function findBuyersAtSignals(c){
     const byDomain = new Map(picks.map(x => [x.website, x]));
     const pullId = "p" + Date.now().toString(36);
     const seen = new Set(arr(c.leads).map(l => l.key));
-    const fresh0 = arr(r.results).map(normalizeLead).filter(l => !seen.has(l.key)).map(l => { const sc = byDomain.get(l.domain) || [...byDomain.values()].find(x => l.domain && l.domain.endsWith(x.website)); return {...l, pullId, variant: "Signal: " + (sc?.source || "custom"), signal: sc ? sc.signal + " · " + sc.evidence : "", evidenceUrl: sc?.evidence_url || ""}; });
+    const fresh0 = arr(r.results).map(normalizeLead).filter(l => !seen.has(l.key)).map(l => { const sc = byDomain.get(l.domain) || [...byDomain.values()].find(x => l.domain && l.domain.endsWith(x.website)); return {...l, pullId, ...(/hir|job|role|opening/i.test((sc?.signal || "") + " " + (sc?.source || "")) ? {hiring: sc?.signal || "Hiring"} : {}), variant: "Signal: " + (sc?.source || "custom"), signal: sc ? sc.signal + " · " + sc.evidence : "", evidenceUrl: sc?.evidence_url || ""}; });
     const {keep: fresh} = await dropKnown(c, fresh0);
     busy[c.id + ":sigbuyers"] = false;
     await saveClient(c.id, {_tab: "leads", _view: "latest", pulls: [...arr(c.pulls), {id: pullId, at: now(), label: "Signals", count: fresh.length}].slice(-30), leads: [...arr(c.leads), ...fresh].slice(-500)});
@@ -1483,6 +1525,14 @@ async function findBuyersAtSignals(c){
     if (fresh.length) afterPull(clients.find(x => x.id === c.id) || c, pullId);
   } catch(e){ busy[c.id + ":sigbuyers"] = false; c._err = e.error; render(); }
 }
+const ACCEL_PACK = [
+  {name: "YC startups hiring sales and GTM", url: "https://www.ycombinator.com/jobs/role/sales", signal: "Hiring first sales/GTM", type: "job board", extract: "company, YC batch, the open role (prefer founding AE, GTM engineer, first sales hire)"},
+  {name: "a16z speedrun companies", url: "https://speedrun.a16z.com/companies", signal: "In a16z speedrun", type: "accelerator", extract: "company, cohort, one-line description"},
+  {name: "Pear VC portfolio", url: "https://pear.vc/companies/", signal: "Backed by Pear VC", type: "accelerator", extract: "company and description; skip well-known large companies, keep recent early-stage ones"},
+  {name: "Y Combinator directory, latest batch", url: "https://www.ycombinator.com/companies", query: "Y Combinator latest batch B2B startups list", signal: "In the latest YC batch", type: "accelerator", extract: "company, batch, one-line description, team size; latest batch only"},
+  {name: "Techstars current class", query: "Techstars 2026 accelerator class B2B startups list", signal: "In a Techstars class", type: "accelerator", extract: "company and description"},
+  {name: "South Park Commons, Neo, EF, HF0 recent cohorts", query: "South Park Commons OR Neo Accelerator OR Entrepreneur First OR HF0 2026 cohort startups", signal: "In a top accelerator cohort", type: "accelerator", extract: "company, program, description"},
+];
 function signalsPane(c){
   if (!c.icp) return `<div class="note"><b>Build the ICP first</b> (Research tab). Signals use the patterns and buyer research to pick sources.</div>`;
   const srcs = arr(c.sources); const run = busy[c.id + ":sigrun"]; const comps = arr(c.signalCompanies);
@@ -1501,6 +1551,7 @@ function signalsPane(c){
         ${x.status ? `<span class="hint">${x.status === "running" ? "Researching…" : x.status === "error" ? "⚠ " + esc(x.note) : `${x.added} new of ${x.found} found · ${x.mode === "deep" ? "deep, " + (x.searches || 0) + " searches" : (x.pages || x.fetches || 0) + " pages read"} · $${(x.cost || 0).toFixed(3)}${x.note ? " · " + esc(x.note) : ""}`}</span>` : ""}</div>
       <div class="src-a"><button class="btn sm" data-srcrun="${esc(x.id)}" type="button" ${run ? "disabled" : ""}>Run</button>${x.status === "done" && !x.found || x.status === "error" ? `<button class="btn sm ghost" data-srcdeep="${esc(x.id)}" type="button" ${run ? "disabled" : ""} title="Lets the agent search and browse. About 10x the cost.">Deep</button>` : ""}<button class="x" data-srcdel="${esc(x.id)}" type="button" aria-label="Remove ${esc(x.name)}">×</button></div>
     </div>`).join("")}</div>` : ""}
+    <div class="row"><button class="btn sm" id="addAccel" type="button">+ Accelerator and hiring sources</button><span class="hint">Adds YC sales jobs, a16z speedrun, Pear VC, the YC directory and other cohorts.</span></div>
     <div class="mini"><input id="srcUrl" placeholder="Add your own source URL, e.g. https://www.ycombinator.com/companies?batch=Winter%202026"><input id="srcSig" placeholder="Signal it shows" style="max-width:220px"><button class="btn sm" id="srcAdd" type="button">Add</button></div>`, srcs.length ? srcs.filter(x => x.on).length + " selected" : "")}
   ${step(3, "Research the sources", comps.length > 0, srcs.length > 0 && !comps.length, `
     <div class="row"><button class="btn red" id="runSources" type="button" ${run || !srcs.some(x => x.on) ? "disabled" : ""}>${run ? `Researching ${run.done}/${run.of}…` : `Research ${srcs.filter(x => x.on).length} selected sources`}</button><span class="hint">The server reads each source and its listing pages like a browser, then a small model pulls out companies showing the signal. About 1 to 3 cents per source. If a source comes back empty, use Deep on it (agent browsing, about 10x the cost).</span></div>
@@ -1577,10 +1628,69 @@ function buyerPatternsCard(c){
     </div>
   </div>`;
 }
+/* ---------- review → campaign ----------
+   Pull, review one lead at a time (add / skip / not a fit), pull more, and download the campaign when it's full. */
+function campaigns(c){ return arr(c.campaigns).length ? c.campaigns : [{id: "c1", name: "Campaign 1", keys: [], target: 100}]; }
+function activeCamp(c){ const cs = campaigns(c); return cs.find(x => x.id === c.activeCamp) || cs[0]; }
+function toReview(c){
+  const inCamp = new Set(campaigns(c).flatMap(x => arr(x.keys))); const idx = sentIndex(c);
+  return rankLeads(arr(c.leads).filter(l => !l.review && !inCamp.has(l.key) && l.verdict !== "drop" && !contactedAs(c, l, idx)));
+}
+function saveCamps(c, cs, extra = {}){ return saveClient(c.id, {campaigns: cs, activeCamp: c.activeCamp || cs[0].id, ...extra}); }
+function reviewAct(c, key, act){
+  const l = arr(c.leads).find(x => x.key === key); if (!l) return;
+  if (act === "add"){
+    const cs = campaigns(c).map(x => ({...x})); const ac = cs.find(x => x.id === activeCamp(c).id);
+    ac.keys = [...new Set([...arr(ac.keys), key])];
+    saveCamps(c, cs, {leads: arr(c.leads).map(x => x.key === key ? {...x, review: "added"} : x)});
+  } else if (act === "skip"){
+    saveClient(c.id, {leads: arr(c.leads).map(x => x.key === key ? {...x, review: "skipped"} : x)});
+  } else if (act === "nofit"){
+    const why = c.rmWhy || WHY[0][1];
+    recordFeedback(c, [l], {label: "removed", scope: whyScope(why), why});
+    saveClient(c.id, {leads: arr(c.leads).filter(x => x.key !== key)});
+  }
+}
+function reviewPanel(c){
+  const q = toReview(c); const l = q[0]; const ac = activeCamp(c); const n = arr(ac.keys).length; const target = Number(ac.target) || 100;
+  const tot = totalPts(c);
+  const camp = `<div class="campbar">
+      <label class="hint" for="campSel">Adding to</label>
+      <select class="sel" id="campSel">${campaigns(c).map(x => `<option value="${esc(x.id)}" ${x.id === ac.id ? "selected" : ""}>${esc(x.name)} (${arr(x.keys).length})</option>`).join("")}<option value="__new">+ New campaign</option></select>
+      <div class="cprog" title="${n} of ${target}"><i style="width:${Math.min(100, Math.round(n / target * 100))}%"></i></div>
+      <span class="hint"><b>${n}</b> / <input id="campTarget" type="number" min="1" value="${target}" aria-label="Campaign target size"> leads</span>
+      <span class="spacer"></span>
+      <button class="btn sm" data-view="campaign" type="button">View campaign</button>
+      <button class="btn sm dark" id="campCsv" type="button" ${n ? "" : "disabled"}>Download campaign CSV</button>
+    </div>`;
+  if (!l) return `<section class="review">${camp}<div class="rv-empty"><b>Nothing left to review.</b> ${n >= target ? "Your campaign is full: download it above." : `Pull more to keep filling ${esc(ac.name)}.`}
+      <div class="row"><button class="btn red" data-pullmore type="button">Pull 25 more</button><button class="btn" data-pullhiring type="button">Pull 25 hiring for GTM</button></div></div></section>`;
+  const s = l.score == null ? null : Math.round(l.score / tot * 100);
+  return `<section class="review">${camp}
+    <div class="rv-card" data-rvkey="${esc(l.key)}">
+      <div class="rv-top"><span class="hint">${q.length} to review${l.tier ? " · tier " + l.tier : ""}</span>
+        <span class="rv-flags">${l.hiring ? `<span class="chip r">🔥 ${esc(l.hiring)}</span>` : ""}${arr(l.flags).map(f => `<span class="chip ok">${esc(f)}</span>`).join("")}${l.disqualifier ? `<span class="chip r">${esc(l.disqualifier)}</span>` : ""}</span>
+        <span class="pill ${s == null ? "" : l.pass ? "pass" : "no"}">${s == null ? "–" : s + "%"}</span></div>
+      <h3 class="rv-name">${l.linkedin ? `<a href="${esc(l.linkedin)}" target="_blank" rel="noopener">${esc(l.name)}</a>` : esc(l.name)}</h3>
+      <p class="rv-title">${esc(l.title)} · <b>${esc(l.company)}</b>${l.domain ? ` · <a href="https://${esc(l.domain)}" target="_blank" rel="noopener">${esc(l.domain)}</a>` : ""}</p>
+      <p class="hint">${esc([l.headcount && l.headcount + " people", l.location, l.funding, l.industry].filter(Boolean).join(" · "))}</p>
+      ${l.description ? `<p>${esc(l.description)}</p>` : ""}
+      ${l.signal ? `<p><b>Signal:</b> ${esc(l.signal)}${l.evidenceUrl ? ` · <a href="${esc(l.evidenceUrl)}" target="_blank" rel="noopener">source</a>` : ""}</p>` : ""}
+      ${l.reason ? `<p><b>Why:</b> ${esc(l.reason)}</p>` : '<p class="hint">Not scored yet. Score unscored to rank this lead.</p>'}
+      ${l.hook ? `<p><b>Opener:</b> <em>${esc(l.hook)}</em></p>` : ""}
+      ${l.past ? `<p class="hint">Before: ${esc(l.past)}</p>` : ""}
+      <div class="rv-acts">
+        <button class="btn red" data-rv="add" type="button">Add to ${esc(ac.name)} <kbd>A</kbd></button>
+        <button class="btn" data-rv="skip" type="button">Skip <kbd>S</kbd></button>
+        <button class="btn ghost" data-rv="nofit" type="button">Not a fit <kbd>X</kbd></button>
+      </div>
+    </div></section>`;
+}
 function leadsInView(c){
   const leads = arr(c.leads); const latest = latestPull(c);
   const view = c._view || (latest ? "latest" : "all");
-  let rows = view === "latest" && latest ? leads.filter(l => l.pullId === latest.id) : leads;
+  const ck = new Set(arr(activeCamp(c).keys));
+  let rows = view === "campaign" ? leads.filter(l => ck.has(l.key)) : view === "latest" && latest ? leads.filter(l => l.pullId === latest.id) : leads;
   if (c._passOnly) rows = rows.filter(l => l.pass);
   return rows;
 }
@@ -1590,15 +1700,16 @@ function leadList(c){
   const leads = arr(c.leads);
   const latest = latestPull(c);
   const view = c._view || (latest ? "latest" : "all");
-  let rows = view === "latest" && latest ? leads.filter(l => l.pullId === latest.id) : leads;
+  const ck = new Set(arr(activeCamp(c).keys));
+  let rows = view === "campaign" ? leads.filter(l => ck.has(l.key)) : view === "latest" && latest ? leads.filter(l => l.pullId === latest.id) : leads;
   if (c._passOnly) rows = rows.filter(l => l.pass);
-  rows = rows.slice().sort((a, b) => (b.score ?? -1) - (a.score ?? -1));
+  rows = rankLeads(rows);
   const tot = totalPts(c); const scored = rows.filter(l => l.score != null);
   const q = arr(c.icp?.qualification);
   const sel = c._sel || new Set(); const idx = sentIndex(c);
   return `<div class="leadbar">
       <label class="toggle"><input type="checkbox" id="selAll" ${rows.length && rows.every(l => sel.has(l.key)) ? "checked" : ""} aria-label="Select all in view"></label>
-      <div class="seg">${latest ? `<button type="button" class="${view === "latest" ? "on" : ""}" data-view="latest">Latest pull · ${esc(latest.label)} (${leads.filter(l => l.pullId === latest.id).length})</button>` : ""}<button type="button" class="${view === "all" ? "on" : ""}" data-view="all">All (${leads.length})</button></div>
+      <div class="seg">${latest ? `<button type="button" class="${view === "latest" ? "on" : ""}" data-view="latest">Latest pull · ${esc(latest.label)} (${leads.filter(l => l.pullId === latest.id).length})</button>` : ""}<button type="button" class="${view === "all" ? "on" : ""}" data-view="all">All (${leads.length})</button><button type="button" class="${view === "campaign" ? "on" : ""}" data-view="campaign">${esc(activeCamp(c).name)} (${ck.size})</button></div>
       <label class="toggle"><input type="checkbox" id="passOnly" ${c._passOnly ? "checked" : ""}> Passing only</label>
       <span class="hint">${scored.filter(l => l.pass).length} of ${scored.length} pass${c.getEmails ? " · " + rows.filter(l => l.email).length + " with email" : ""}</span>
       ${capNum(c) && arr(c.leads).some(l => overSize(c, l)) ? `<button class="btn sm red" id="delOver" type="button">Remove ${arr(c.leads).filter(l => overSize(c, l)).length} over ${capNum(c)} people</button>` : ""}
@@ -1611,7 +1722,7 @@ function leadList(c){
       return `<div class="lead-row"><input type="checkbox" data-sel="${esc(l.key)}" ${sel.has(l.key) ? "checked" : ""} aria-label="Select ${esc(l.name)}"><details class="lead ${l.score != null && !l.pass || l.verdict === "drop" || ct ? "fail" : ""}">
         <summary>
           <span class="pill ${s == null ? "" : l.pass ? "pass" : "no"}">${s == null ? "–" : s + "%"}</span>
-          <span class="who"><b>${esc(l.name)}${l.email ? " ✉" : ""}${l.verdict === "drop" ? ' <span class="chip r">Not a fit</span>' : ""}${ct ? ` <span class="chip y">Contacted · ${esc(ct.channel || "")} · ${esc(fmtDate(ct.at))}</span>` : ""}</b><span>${esc(l.title)}</span></span>
+          <span class="who"><b>${l.hiring ? "🔥 " : ""}${ck.has(l.key) ? "✓ " : ""}${esc(l.name)}${l.email ? " ✉" : ""}${l.verdict === "drop" ? ' <span class="chip r">Not a fit</span>' : ""}${ct ? ` <span class="chip y">Contacted · ${esc(ct.channel || "")} · ${esc(fmtDate(ct.at))}</span>` : ""}</b><span>${esc(l.title)}</span></span>
           <span class="co"><b>${esc(l.company)}</b><span>${esc([l.location, l.headcount && l.headcount + " ppl"].filter(Boolean).join(" · "))}</span></span>
         </summary>
         <div class="lead-b">
@@ -1797,6 +1908,7 @@ function leadsPane(c){
     ${outreachPanel(c)}
     <div class="toolbar">
       <button class="btn red" id="runSearch" type="button" ${busy[c.id + ":search"] ? "disabled" : ""}>${busy[c.id + ":search"] ? "Searching…" : "Pull 25 from Prospeo"}</button>
+      <button class="btn" id="runHiring" type="button" ${busy[c.id + ":search"] ? "disabled" : ""} title="Same search, only companies with open GTM, sales or growth roles">Pull 25 hiring for GTM</button>
       <span class="hint">using ${esc(p.variant || "ICP filters")}${arr(c.leadTarget?.titles).length ? " · your " + c.leadTarget.titles.length + " titles" : ""}${arr(c.locations).length ? " · " + esc(c.locations.join(", ")) : ""}</span>
       <label class="toggle" title="Reveal verified emails for leads that pass scoring. Off = LinkedIn-only outreach, no extra credits."><input type="checkbox" id="getEmails" ${c.getEmails ? "checked" : ""}> Emails</label>
       <span class="spacer"></span>
@@ -1807,8 +1919,9 @@ function leadsPane(c){
       <select class="sel" id="sendChan" aria-label="Channel">${["LinkedIn", "Email"].map(x => `<option ${(c.sendChan || "LinkedIn") === x ? "selected" : ""}>${x}</option>`).join("")}</select>
     </div>
     ${c._scoreErr ? `<div class="banner" role="alert">${esc(c._scoreErr)}</div>` : ""}
+    ${leads.length ? reviewPanel(c) : ""}
     ${arr(c._attempts).length ? `<div class="tablewrap"><table class="leads"><thead><tr><th>Try</th><th>Removed</th><th>Prospeo reply</th></tr></thead><tbody>${c._attempts.map((t, n) => `<tr><td class="num">${n + 1}</td><td>${esc(t.dropped || "nothing")}</td><td>${t.ok ? '<span class="chip ok">OK</span>' : `<b>${esc(t.error_code || "HTTP " + t.status)}</b> ${esc(t.filter_error || "")}`}</td></tr>`).join("")}</tbody></table></div>` : ""}
-    ${leads.length ? leadList(c) : `<div class="note">No leads yet. Pull from Prospeo above, or find buyers at signal companies in the Signals tab.</div>`}
+    ${leads.length ? `<details class="input-card" data-sec="allLeads" ${c._open === "allLeads" || c._view === "campaign" ? "open" : ""}><summary><span class="t">All leads<span class="h">The full list: filter, select, delete, and see what's in each campaign.</span></span><span class="chip">${leads.length}</span></summary><div class="body">${leadList(c)}</div></details>` : `<div class="note">No leads yet. Pull from Prospeo above, or find buyers at signal companies in the Signals tab.</div>`}
     <details class="input-card" ${!leads.length || c._open === "search" ? "open" : ""} data-sec="search"><summary><span class="t">Search setup<span class="h">How patterns translate into Prospeo filters, and the exact prompts.</span></span></summary>
       <div class="body" style="gap:16px">
         ${translationBlock(c)}
@@ -1847,15 +1960,18 @@ function normalizeLead(r){
 // What changes WHO comes back (everything except the exclusion list). When it changes, paging starts over at page 1.
 const searchSig = f => { const x = JSON.parse(JSON.stringify(f || {})); delete x.company; return JSON.stringify(x); };
 const filterLabel = k => String(k).replace(/^(company|person)_/, "").replace(/_/g, " ");
-async function runSearch(c){
+async function runSearch(c, opts = {}){
   const vi = c.translation && c.variantIdx != null ? c.variantIdx : null;
   const p = vi != null ? cleanVariant(c, c.translation.variants[vi]) : prospeoPayload(c); if (!p) return;
+  // "Hiring for GTM": same search, limited to companies with open GTM/sales roles
+  const hiring = !!opts.hiring;
+  if (hiring) p.body.filters.company_job_posting_hiring_for = {include: HIRING_GTM, match_type: "contains"};
   if (!status.prospeo){ toast("Add PROSPEO_API_KEY to the Worker first"); return; }
   busy[c.id + ":search"] = true; c._err = ""; render();
   try {
-    const key = vi != null ? "v" + vi : "icp"; const sig = searchSig(p.body.filters); const old = c.pageState?.[key];
+    const key = hiring ? "hiring" : vi != null ? "v" + vi : "icp"; const sig = searchSig(p.body.filters); const old = c.pageState?.[key];
     // same search as last time: carry on. Different search: start at page 1. First run after this update: keep the old counter.
-    let st = old && old.sig === sig ? {...old, drop: arr(old.drop)} : {sig, page: old ? 0 : (vi != null ? Number(c.variantPages?.[vi]) || 0 : Number(c.prospeoPage) || 0), drop: []};
+    let st = old && old.sig === sig ? {...old, drop: arr(old.drop)} : {sig, page: old || hiring ? 0 : (vi != null ? Number(c.variantPages?.[vi]) || 0 : Number(c.prospeoPage) || 0), drop: []};
     await memReady(c);
     const seen = new Set(arr(c.leads).map(l => l.key)); const pullId = "p" + Date.now().toString(36);
     // Once a search has been widened its first pages overlap the people we already pulled, and every overlapping page costs a credit.
@@ -1863,7 +1979,7 @@ async function runSearch(c){
     // forward when a page held nothing usable (e.g. everyone over the size cap).
     const exist = arr(p.body.filters.company?.websites?.exclude);
     const known = [...new Set([...arr(c.leads).map(l => l.domain), ...arr(c._mem?.sent).map(r => r.domain)].filter(Boolean))].filter(d => !exist.includes(d));
-    let fresh = [], nb = 0, nc = 0, raw = [], res, tries = 0, total = c.prospeoTotal, loosened = [], restarted = false;
+    let fresh = [], nb = 0, nc = 0, raw = [], res, tries = 0, total = c.prospeoTotal, loosened = [], restarted = false, hiringLost = false;
     for (;;){
       const filters = JSON.parse(JSON.stringify(p.body.filters)); for (const k of st.drop) delete filters[k];
       const wide = st.drop.length > 0;
@@ -1878,7 +1994,10 @@ async function runSearch(c){
       st.page = Number(res.page) || page;
       raw = res.results || res.response?.results || res.data || [];
       total = res.pagination?.total_count ?? total;
-      const got = await dropKnown(c, raw.map(normalizeLead).map(l => ({...l, pullId, ...(vi != null ? {variant: c.translation.variants[vi].name} : {})})).filter(l => !seen.has(l.key)));
+      // only mark leads as hiring when the hiring filter was really applied to this page
+      const hk = hiring && !st.drop.includes("company_job_posting_hiring_for") && !arr(res.attempts).some(a => a.dropped === "company_job_posting_hiring_for");
+      if (hiring && !hk) hiringLost = true;
+      const got = await dropKnown(c, raw.map(normalizeLead).map(l => ({...l, pullId, ...(hk ? {hiring: "Hiring for GTM/sales", variant: "Hiring for GTM"} : vi != null ? {variant: c.translation.variants[vi].name} : {})})).filter(l => !seen.has(l.key)));
       nb += got.nb; nc += got.nc; fresh = [...fresh, ...got.keep]; got.keep.forEach(l => seen.add(l.key));
       if (wide && !got.keep.length && raw.length) st.skip = (Number(st.skip) || 0) + 1; // only when this request already left out what we have
       if (fresh.length || !raw.length || ++tries >= 3) break; // a page of people we already have: keep going, up to 3 pages
@@ -1890,7 +2009,8 @@ async function runSearch(c){
     if (!raw.length && !fresh.length && st.drop.length) c._err = `Even the widened search (ignoring: ${st.drop.map(filterLabel).join(", ")}) is out of new people. Loosen titles, location or company size in Who to pull, or change the ICP, to get more.`;
     else if (!raw.length && !fresh.length){ const used = arr(res.attempts)[0]?.filters || Object.keys(p.body.filters); c._err = `Nobody in Prospeo matches all of: ${used.filter(k => k !== "company").map(filterLabel).join(", ")}. Add more industries (Suggest wider industries) or loosen company size, funding stage or titles in Who to pull, then pull again. Empty searches cost no credits.`; }
     busy[c.id + ":search"] = false;
-    await saveClient(c.id, {...(fresh.length ? {_view: "latest", pulls: [...arr(c.pulls), {id: pullId, at: now(), label: vi != null ? c.translation.variants[vi].name : "ICP filters", count: fresh.length}].slice(-30)} : {}), leads: [...arr(c.leads), ...fresh].slice(-500), pageState: {...(c.pageState || {}), [key]: st}, ...(vi != null ? {variantPages: {...(c.variantPages || {}), [vi]: st.page}} : {prospeoPage: st.page}), prospeoTotal: total, lastRaw: raw[0] ? JSON.stringify(raw[0], null, 2).slice(0, 4000) : "", checks: {...(c.checks||{}), listBuilt: true}, checkedAt: {...(c.checkedAt||{}), listBuilt: c.checkedAt?.listBuilt || now()}});
+    await saveClient(c.id, {...(fresh.length ? {_view: "latest", pulls: [...arr(c.pulls), {id: pullId, at: now(), label: hiring ? "Hiring for GTM" : vi != null ? c.translation.variants[vi].name : "ICP filters", count: fresh.length}].slice(-30)} : {}), leads: [...arr(c.leads), ...fresh].slice(-500), pageState: {...(c.pageState || {}), [key]: st}, ...(hiring ? {} : vi != null ? {variantPages: {...(c.variantPages || {}), [vi]: st.page}} : {prospeoPage: st.page}), prospeoTotal: total, lastRaw: raw[0] ? JSON.stringify(raw[0], null, 2).slice(0, 4000) : "", checks: {...(c.checks||{}), listBuilt: true}, checkedAt: {...(c.checkedAt||{}), listBuilt: c.checkedAt?.listBuilt || now()}});
+    if (hiringLost) toast("Prospeo couldn't keep the hiring filter on every page, so only the leads it applied to are marked hiring");
     toast((fresh.length ? fresh.length + " new leads. Scoring…" : "No new leads on that page") + (nb || nc ? " (left out " + skipNote(nb, nc) + ")" : ""));
     if (fresh.length) afterPull(clients.find(x => x.id === c.id) || c, pullId);
   } catch(e){ busy[c.id + ":search"] = false; c._err = e.error + (e.detail ? " · " + JSON.stringify(e.detail).slice(0, 300) : ""); render(); }
@@ -1919,6 +2039,9 @@ ${arr(c.translation?.not_expressible).length ? `
 Also check (the database search couldn't filter for these):
 ${c.translation.not_expressible.map(x => "- " + x.pattern + ": " + x.check).join("\n")}` : ""}
 
+${priorities(c) ? `PRIORITY RULES FROM THE TEAM (use them to set "tier": 1 = matches the top rules, 2 = solid fit, 3 = weak fit; and list the rules each lead matches in "flags" as 2-4 word labels like "hiring GTM", "solo founder", "B2B"):
+${priorities(c)}
+` : ""}
 Rules:
 - Judge the PERSON against the buyer pattern as well as the company: wrong role or wrong career path means a low score even at a great company.
 - Never invent signals.
@@ -1928,7 +2051,7 @@ Rules:
 - "hook" is one specific line we could open an email with, grounded in the row. Empty string if nothing specific.
 ${feedbackBlock(c, "person")}
 Reply with only a JSON array, one object per row, in row order:
-[{"i": 0, "hits": ["Q1","Q3"], "archetype": "name or empty", "disqualifier": null, "reason": "one sentence on fit, naming the strongest evidence", "hook": ""}]
+[{"i": 0, "hits": ["Q1","Q3"], "tier": 2, "flags": ["solo founder"], "archetype": "name or empty", "disqualifier": null, "reason": "one sentence on fit, naming the strongest evidence", "hook": ""}]
 "hits" lists every qualification criterion (Q-number) the lead meets. Give credit when the row or well-known facts about the company clearly support it, including strong implication from title, company name and description; leave it out when unknown.`;
 }
 // Claude marks which criteria each lead meets; the tool adds up the points itself so the scale can't drift
@@ -1950,7 +2073,8 @@ async function scoreRows(c, rows, onProgress){
         const hits = arr(r.hits).map(String);
         const score = hits.length ? pointsFromHits(c, hits) : Math.max(0, Math.min(totalPts(c), Number(r.score) || 0));
         const dq = r.disqualifier && !/^(null|none|no|false)$/i.test(String(r.disqualifier)) ? String(r.disqualifier) : "";
-        out[start + n] = {score, pass: score >= passMark(c) && !dq, archetype: r.archetype || "", disqualifier: dq, reason: r.reason || "", hook: r.hook || "", hits};
+        const tier = [1, 2, 3].includes(Number(r.tier)) ? Number(r.tier) : null;
+        out[start + n] = {score, pass: score >= passMark(c) && !dq, archetype: r.archetype || "", disqualifier: dq, reason: r.reason || "", hook: r.hook || "", hits, tier: dq ? 3 : tier, flags: arr(r.flags).map(String).slice(0, 4)};
       });
     } catch(e){ failed += chunk.length; lastErr = e.error || "Scoring failed"; }
     done += chunk.length; onProgress && onProgress(done, rows.length);
@@ -2201,7 +2325,7 @@ function nameParts(l){
 }
 function leadsCSV(c, rows){
   const tot = totalPts(c);
-  const cols = [["score_pct", l => l.score == null ? "" : Math.round(l.score / tot * 100)], ["pass", l => l.pass ? "yes" : l.score == null ? "" : "no"], ["first_name", l => nameParts(l)[0]], ["last_name", l => nameParts(l)[1]], ["title"], ["email"], ["email_status", l => l.emailStatus], ["company"], ["domain"], ["location"], ["linkedin"], ["headline"], ["past_roles", l => l.past], ["source", l => l.variant || "Prospeo"], ["signal"], ["signal_source", l => l.evidenceUrl], ["company_type", l => l.kind], ["clean", l => l.verdict === "drop" ? "not a fit" : l.verdict === "unsure" ? "unsure" : l.verdict ? "ok" : ""], ["archetype"], ["disqualifier"], ["reason"], ["opener", l => l.hook]];
+  const cols = [["score_pct", l => l.score == null ? "" : Math.round(l.score / tot * 100)], ["pass", l => l.pass ? "yes" : l.score == null ? "" : "no"], ["first_name", l => nameParts(l)[0]], ["last_name", l => nameParts(l)[1]], ["title"], ["email"], ["email_status", l => l.emailStatus], ["company"], ["domain"], ["location"], ["linkedin"], ["headline"], ["past_roles", l => l.past], ["tier"], ["flags", l => arr(l.flags).join("; ")], ["hiring"], ["source", l => l.variant || "Prospeo"], ["signal"], ["signal_source", l => l.evidenceUrl], ["company_type", l => l.kind], ["clean", l => l.verdict === "drop" ? "not a fit" : l.verdict === "unsure" ? "unsure" : l.verdict ? "ok" : ""], ["archetype"], ["disqualifier"], ["reason"], ["opener", l => l.hook]];
   const q = v => { v = String(v ?? ""); return /[",\n]/.test(v) ? '"' + v.replace(/"/g,'""') + '"' : v; };
   return [cols.map(x => x[0]).join(","), ...rows.map(l => cols.map(([k, f]) => q(f ? f(l) : l[k])).join(","))].join("\n");
 }
@@ -2349,6 +2473,12 @@ function bindClient(c){
   document.querySelectorAll("[data-srcdeep]").forEach(b => b.onclick = () => researchSources(c, b.dataset.srcdeep, true));
   document.querySelectorAll("[data-srcon]").forEach(cb => cb.onchange = () => saveClient(c.id, {sources: arr(c.sources).map(x => x.id === cb.dataset.srcon ? {...x, on: cb.checked} : x)}));
   document.querySelectorAll("[data-srcdel]").forEach(b => b.onclick = () => saveClient(c.id, {sources: arr(c.sources).filter(x => x.id !== b.dataset.srcdel)}));
+  const aac = $("#addAccel"); if (aac) aac.onclick = () => {
+    const have = new Set(arr(c.sources).map(x => x.name));
+    const add = ACCEL_PACK.filter(x => !have.has(x.name)).map((x, n) => ({...x, id: "s" + Date.now().toString(36) + "a" + n, access: "public", on: true, custom: true}));
+    if (!add.length){ toast("Those sources are already in the list"); return; }
+    saveClient(c.id, {sources: [...add, ...arr(c.sources)]}); toast(add.length + " sources added. Research them in step 3.");
+  };
   const sad = $("#srcAdd"); if (sad) sad.onclick = () => {
     const u = $("#srcUrl").value.trim(); if (!/^https?:\/\//.test(u)){ toast("Paste a full URL starting with https://"); return; }
     saveClient(c.id, {sources: [{id: "s" + Date.now().toString(36), name: domainOf(u) || u, url: u, signal: $("#srcSig").value.trim() || "custom", type: "custom", extract: "companies listed and the evidence of the signal", access: "public", on: true, custom: true}, ...arr(c.sources)]});
@@ -2449,12 +2579,20 @@ function bindClient(c){
       box.querySelectorAll("[data-rmind]").forEach(b => b.onclick = () => setTgt(c, scope, {industries: indNow(c).filter(x => x !== b.dataset.rmind)}));
       const irs = box.querySelector("[data-indreset]"); if (irs) irs.onclick = e => { e.preventDefault(); c._indSug = []; setTgt(c, scope, {industries: []}); };
       box.querySelectorAll("[data-stage]").forEach(b => b.onclick = () => { const cur = new Set(arr(c.leadTarget?.stages)); cur.has(b.dataset.stage) ? cur.delete(b.dataset.stage) : cur.add(b.dataset.stage); setTgt(c, scope, {stages: [...cur]}); });
-      const fo = box.querySelector("[data-founders]"); if (fo) fo.onclick = () => setTgt(c, scope, {
-        text: "Founders, co-founders and CEOs of small startups",
-        titles: ["founder", "co-founder", "cofounder", "chief executive officer"],
-        excludeTitles: FOUNDER_FALSE, seniority: [], departments: [],
-        summary: "Founders, co-founders and CEOs only, at companies up to 50 people, pre-seed to Series A",
-        maxSize: "21-50", stages: ["Pre seed", "Seed", "Series A"],
+      const fo = box.querySelector("[data-founders]"); if (fo) fo.onclick = async () => {
+        await setTgt(c, scope, {
+          text: "Founders, co-founders and CEOs of tiny founder-led B2B startups",
+          titles: ["founder", "co-founder", "cofounder", "chief executive officer"],
+          excludeTitles: FOUNDER_FALSE, seniority: [], departments: [],
+          summary: "Founders and CEOs only, at companies up to 5 people. Hiring for GTM and solo founders go to the top.",
+          maxSize: "5", stages: [], priorities: FOUNDER_PRIORITIES,
+        });
+        if (!c.cleanRule) saveClient(c.id, {cleanRule: FOUNDER_CLEAN});
+        toast("Founder-led preset set: up to 5 people, B2B, hiring and solo founders first");
+      };
+      const pri = box.querySelector("[data-pri]"); if (pri) pri.addEventListener("input", () => {
+        clearTimeout(autosaveTimers[c.id + "pri"]);
+        autosaveTimers[c.id + "pri"] = setTimeout(() => saveClient(c.id, {leadTarget: {...(c.leadTarget || {}), priorities: pri.value}}, true), 900);
       });
     });
     const rrs = $("#reresearchStale"); if (rrs) rrs.onclick = () => { const sig = tgtSig(tgt(c, "buyers")); researchCustomers(c, custDomains(c).filter(d => c.research?.[d] && (c.research[d].sig || "") !== sig)); };
@@ -2497,6 +2635,24 @@ function bindClient(c){
     const p = prospeoPayload(c);
     const cb = $("#copyBody"); if (cb) cb.onclick = () => copy(JSON.stringify(p.body, null, 2));
     const cc = $("#copyCurl"); if (cc) cc.onclick = () => copy($("#curlText").textContent);
+    document.querySelectorAll("[data-rv]").forEach(b => b.onclick = () => { const k = b.closest("[data-rvkey]").dataset.rvkey; reviewAct(c, k, b.dataset.rv); });
+    document.querySelectorAll("[data-pullmore]").forEach(b => b.onclick = () => runSearch(c));
+    document.querySelectorAll("[data-pullhiring]").forEach(b => b.onclick = () => runSearch(c, {hiring: true}));
+    const csel = $("#campSel"); if (csel) csel.onchange = () => {
+      if (csel.value === "__new"){ const cs = campaigns(c).slice(); const id = "c" + Date.now().toString(36); cs.push({id, name: "Campaign " + (cs.length + 1), keys: [], target: 100}); c.activeCamp = id; saveCamps(c, cs, {activeCamp: id}); toast("New campaign started. Rename it in the CSV file name or keep the number."); return; }
+      c.activeCamp = csel.value; saveClient(c.id, {activeCamp: csel.value});
+    };
+    const ctg = $("#campTarget"); if (ctg) ctg.onchange = () => { const cs = campaigns(c).map(x => x.id === activeCamp(c).id ? {...x, target: Math.max(1, Number(ctg.value) || 100)} : x); saveCamps(c, cs); };
+    const ccsv = $("#campCsv"); if (ccsv) ccsv.onclick = async () => {
+      await memReady(c); const idx = sentIndex(c); const ac = activeCamp(c); const ks = new Set(arr(ac.keys));
+      const all = arr(c.leads).filter(l => ks.has(l.key)); const rows = all.filter(l => !contactedAs(c, l, idx));
+      if (!rows.length){ toast("Everyone in this campaign is already marked as contacted"); return; }
+      const blob = new Blob([leadsCSV(c, rankLeads(rows))], {type: "text/csv"}); const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob); a.download = (c.company + "-" + ac.name).replace(/\W+/g, "-").toLowerCase() + "-" + new Date().toISOString().slice(0, 10) + ".csv"; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+      const chan = c.sendChan || "LinkedIn"; const marked = c.markOnDl !== false ? await markSent(c, rows, chan, ac.name) : 0;
+      toast(`Downloaded ${rows.length} leads from ${ac.name}${all.length > rows.length ? ` (left out ${all.length - rows.length} already contacted)` : ""}${marked ? ` · marked as sent via ${chan}` : ""}`);
+    };
+    const rh = $("#runHiring"); if (rh) rh.onclick = () => runSearch(c, {hiring: true});
     const rs = $("#runSearch"); if (rs) rs.onclick = () => runSearch(c);
     const sl = $("#scoreLeads"); if (sl) sl.onclick = () => scoreLeads(c);
     const cr = $("#cleanRule"); if (cr) cr.onchange = () => saveClient(c.id, {cleanRule: cr.value.trim() || null});
@@ -2581,7 +2737,14 @@ $("#fillCracked").onclick = fillCracked;
 $("#settingsBtn").onclick = () => { $("#setStripe").value = settings.stripe || ""; $("#setGuide").value = settings.guide || ""; $("#setSign").value = settings.sign || ""; $("#settingsModal").hidden = false; };
 document.querySelectorAll("[data-close]").forEach(b => b.onclick = () => b.closest(".scrim").hidden = true);
 document.querySelectorAll(".scrim").forEach(s => s.addEventListener("click", e => { if (e.target === s) s.hidden = true; }));
-document.addEventListener("keydown", e => { if (e.key === "Escape") document.querySelectorAll(".scrim").forEach(s => s.hidden = true); });
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape") document.querySelectorAll(".scrim").forEach(s => s.hidden = true);
+  // review shortcuts, only when not typing in a field
+  if (/INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName || "") || e.metaKey || e.ctrlKey || e.altKey) return;
+  const card = document.querySelector("[data-rvkey]"); const c = clients.find(x => x.id === selected);
+  const act = {a: "add", s: "skip", x: "nofit"}[e.key.toLowerCase()];
+  if (card && c && act){ e.preventDefault(); reviewAct(c, card.dataset.rvkey, act); }
+});
 $("#obEmail").addEventListener("blur", () => { if (!$("#obSite").value.trim()){ const d = domainOf($("#obEmail").value); if (d && !FREEMAIL.has(d)) $("#obSite").value = d; } });
 
 $("#onboardForm").addEventListener("submit", async e => {

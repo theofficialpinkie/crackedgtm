@@ -566,7 +566,7 @@ Reply with only: {"companies":[{"company":"","website":"","signal":"","evidence"
         let k = 0, badSiteFixes = 0, badValueFixes = 0, sawEmpty = false, restart = false;
         while (k < order.length && attempts.length < 14) {
           const drop = order[k];
-          if (drop && !filters[drop]) { k++; continue; }
+          if (drop && (!filters[drop] || arr2(body.keep).includes(drop))) { k++; continue; } // body.keep: filters the team chose on purpose, never loosened
           if (drop) delete filters[drop];
           const { r, d, raw, sent } = await send();
           const ok = r.ok && !d.error;

@@ -1085,6 +1085,44 @@ function applyGuardrail(c, f){
   if (jt && arr(jt.include).some(t => /founder/.test(t))) jt.exclude = [...new Set([...arr(jt.exclude), ...FOUNDER_FALSE])].filter(x => !jt.include.includes(x));
   return f;
 }
+/* ---------- industries: widen without leaving your city ----------
+   The ICP's industries are the default. "Suggest wider industries" asks Claude for related ones (from Prospeo's own list) and you
+   click the ones you want. A list you set is used on every pull and is never dropped when a search runs short. */
+const indNow = c => arr(c.leadTarget?.industries).length ? arr(c.leadTarget.industries) : arr(c.icp?.firmographics?.industries).filter(x => INDUSTRIES.includes(x));
+function industryBlock(c){
+  const custom = arr(c.leadTarget?.industries).length > 0; const cur = indNow(c); const sug = arr(c._indSug); const b = busy[c.id + ":ind"];
+  return `<div class="locbox"><div class="row" style="justify-content:space-between"><h3 class="sub-h">Industries</h3><button class="btn sm" data-indsuggest type="button" ${b ? "disabled" : ""}>${b ? "Thinking…" : "Suggest wider industries"}</button></div>
+    ${cur.length ? `<div class="chips">${cur.map(x => `<span class="dchip">${esc(x)}<button type="button" data-rmind="${esc(x)}" aria-label="Remove ${esc(x)}">×</button></span>`).join("")}</div>` : '<span class="hint">No industry filter: any industry.</span>'}
+    ${sug.length ? `<span class="hint">Click to add:</span><div class="chips">${sug.map(x => `<button type="button" class="dchip addloc" data-addind="${esc(x.name)}" title="${esc(x.why)}">+ ${esc(x.name)}${x.why ? ` <i>${esc(x.why)}</i>` : ""}</button>`).join("")}</div>` : ""}
+    <span class="hint">${custom ? 'Your list is used on every pull and never dropped when a search runs short. <a href="#" data-indreset>Use the ICP\'s industries again</a>' : "From the ICP. Add related industries to widen the pool while keeping your location."}</span></div>`;
+}
+function industriesPrompt(c){
+  const have = indNow(c);
+  const seen = [...new Set(custDomains(c).map(d => c.research?.[d]?.company?.industry).filter(Boolean))].slice(0, 25);
+  return `You widen the industry filter of a prospect search for ${c.company}${c.icp?.one_liner ? " (" + c.icp.one_liner + ")" : ""}.
+
+Who buys: ${arr(c.icp?.archetypes).map(a => a.company_profile).filter(Boolean).slice(0, 3).join(" | ") || "(see summary) " + String(c.icp?.summary || "")}
+Industries of their current customers: ${seen.join(", ") || "(unknown)"}
+Industries already in the search: ${have.join(", ") || "(none)"}
+${arr(c.locations).length ? "The team must stay in " + c.locations.join(", ") + " (an event there), so the only way to find more people is more industries." : ""}
+
+Pick up to 14 MORE industries from the allowed list where companies have the same buyer and the same problem: adjacent sectors, the supply chain around the core one (makers, distributors and wholesalers, retailers, packaging, logistics) and similar business models. Leave out anything where the buyer or problem would be different. Most relevant first. Don't repeat ones already in the search.
+
+Allowed values (use these exact strings only): ${INDUSTRIES.join(" | ")}
+
+Reply with only one JSON object: {"industries":[{"name":"exact allowed value","why":"under 10 words"}]}`;
+}
+async function suggestIndustries(c){
+  if (!status.claude){ toast("Add ANTHROPIC_API_KEY to the Worker first"); return; }
+  busy[c.id + ":ind"] = true; c._err = ""; render();
+  try {
+    const {data} = await api("/api/claude", {body: {prompt: industriesPrompt(c), maxTokens: 3000, tier: "fast"}, step: "Industries"});
+    const have = new Set(indNow(c)); const m = new Map(INDUSTRIES.map(x => [x.toLowerCase(), x]));
+    c._indSug = arr(data?.industries).map(x => ({name: m.get(String(x?.name || "").toLowerCase()), why: String(x?.why || "").slice(0, 80)})).filter(x => x.name && !have.has(x.name)).slice(0, 14);
+    if (!c._indSug.length) toast("No new industries to suggest");
+  } catch(e){ c._err = e.error || "Couldn't get suggestions. Try again."; }
+  busy[c.id + ":ind"] = false; render();
+}
 // The titles and location you pick override whatever the ICP or translation chose
 function applyTarget(c, f){
   applyTargetCore(c, f); return applyGuardrail(c, f);
@@ -1097,6 +1135,8 @@ function applyTargetCore(c, f){
     if (arr(t.seniority).length) f.person_seniority = {include: t.seniority}; else delete f.person_seniority;
     if (arr(t.departments).length) f.person_department = {include: t.departments}; else delete f.person_department;
   }
+  const inds = arr(t.industries).filter(x => INDUSTRIES.includes(x));
+  if (inds.length) f.company_industry = {include: inds};
   const locs = arr(c.locations); if (!locs.length) return f;
   delete f.person_location_search; delete f.company_location_search;
   f[c.locationOn === "company" ? "company_location_search" : "person_location_search"] = {include: locs};
@@ -1179,6 +1219,7 @@ function targetBlock(c, scope){
       <div class="chips">${t.titles.map(x => `<span class="dchip">${esc(x)}<button type="button" data-rmtitle="${esc(x)}" aria-label="Remove ${esc(x)}">×</button></span>`).join("")}</div>
       <span class="hint">${[arr(t.excludeTitles).length && "Excluding: " + t.excludeTitles.join(", "), arr(t.seniority).length && "Seniority: " + t.seniority.join(", "), arr(t.departments).length && "Departments: " + t.departments.join(", ")].filter(Boolean).map(esc).join(" · ")}${arr(t.excludeTitles).length || arr(t.seniority).length || arr(t.departments).length ? " · " : ""}<a href="#" data-tgtclear="${scope}">Clear titles</a></span>`
     : `<span class="hint">${scope === "buyers" ? "No titles set: pulls founders, C-suite, VPs, heads and directors." : "No titles set: searches use the titles from the patterns and ICP."}</span>`}
+    ${scope === "leads" ? industryBlock(c) : ""}
     ${scope === "leads" ? `<div class="locbox">
       <div class="row" style="justify-content:space-between"><h3 class="sub-h">Company size and stage</h3><button class="btn sm" data-founders type="button">Founders only, small startups</button></div>
       <div class="seg wrap">${SIZE_CAPS.map(([v, l]) => `<button type="button" class="${capOf(c) === v ? "on" : ""}" data-cap="${v}">${l}</button>`).join("")}</div>
@@ -1829,7 +1870,7 @@ async function runSearch(c){
       if (wide) filters.company = {websites: {...(filters.company?.websites || {}), exclude: [...exist, ...known].slice(0, 500)}};
       const page = wide ? 1 + (Number(st.skip) || 0) : st.page + 1;
       // The server retries with fewer filters if Prospeo rejects the search or finds nobody, and reports every attempt
-      try { res = await api("/api/prospeo/search", {body: {page, filters}}); }
+      try { res = await api("/api/prospeo/search", {body: {page, filters, keep: arr(c.leadTarget?.industries).length ? ["company_industry"] : []}}); }
       catch(e){ c._attempts = e.attempts || null; throw e; }
       c._attempts = arr(res.attempts).length > 1 ? res.attempts : null;
       if (res.restarted) restarted = true;
@@ -1847,7 +1888,7 @@ async function runSearch(c){
     else if (st.drop.length && !dropped.length) c._err = `Pulling from a widened search (ignoring: ${st.drop.map(filterLabel).join(", ")}) because the strict one ran out. Companies you already have are left out. Titles, location and company size still apply.`;
     else if (dropped.length){ const why = res.attempts.find(a => !a.ok); c._err = why?.error_code === "NO_RESULTS" ? `Nobody matched every filter, so this pull ignores: ${dropped.map(filterLabel).join(", ")}. Titles and location are still applied. Loosen size, stage or titles in Who to pull to get more.` : `Pulled without ${dropped.map(filterLabel).join(", ")}. Prospeo's reason: ${[why?.error_code, why?.filter_error, why?.message].filter(Boolean).join(" · ")}`; }
     if (!raw.length && !fresh.length && st.drop.length) c._err = `Even the widened search (ignoring: ${st.drop.map(filterLabel).join(", ")}) is out of new people. Loosen titles, location or company size in Who to pull, or change the ICP, to get more.`;
-    else if (!raw.length && !fresh.length){ const used = arr(res.attempts)[0]?.filters || Object.keys(p.body.filters); c._err = `Nobody in Prospeo matches all of: ${used.filter(k => k !== "company").map(filterLabel).join(", ")}. Loosen one in Who to pull (company size, funding stage, titles or location) and pull again. Empty searches cost no credits.`; }
+    else if (!raw.length && !fresh.length){ const used = arr(res.attempts)[0]?.filters || Object.keys(p.body.filters); c._err = `Nobody in Prospeo matches all of: ${used.filter(k => k !== "company").map(filterLabel).join(", ")}. Add more industries (Suggest wider industries) or loosen company size, funding stage or titles in Who to pull, then pull again. Empty searches cost no credits.`; }
     busy[c.id + ":search"] = false;
     await saveClient(c.id, {...(fresh.length ? {_view: "latest", pulls: [...arr(c.pulls), {id: pullId, at: now(), label: vi != null ? c.translation.variants[vi].name : "ICP filters", count: fresh.length}].slice(-30)} : {}), leads: [...arr(c.leads), ...fresh].slice(-500), pageState: {...(c.pageState || {}), [key]: st}, ...(vi != null ? {variantPages: {...(c.variantPages || {}), [vi]: st.page}} : {prospeoPage: st.page}), prospeoTotal: total, lastRaw: raw[0] ? JSON.stringify(raw[0], null, 2).slice(0, 4000) : "", checks: {...(c.checks||{}), listBuilt: true}, checkedAt: {...(c.checkedAt||{}), listBuilt: c.checkedAt?.listBuilt || now()}});
     toast((fresh.length ? fresh.length + " new leads. Scoring…" : "No new leads on that page") + (nb || nc ? " (left out " + skipNote(nb, nc) + ")" : ""));
@@ -2403,6 +2444,10 @@ function bindClient(c){
       box.querySelectorAll("[data-rmloc]").forEach(b => b.onclick = () => setTgt(c, scope, {locations: t.locations.filter(x => x !== b.dataset.rmloc)}));
       box.querySelectorAll("[data-locon]").forEach(b => b.onclick = () => setTgt(c, scope, {locationOn: b.dataset.locon}));
       box.querySelectorAll("[data-cap]").forEach(b => b.onclick = () => setTgt(c, scope, {maxSize: b.dataset.cap}));
+      const isg = box.querySelector("[data-indsuggest]"); if (isg) isg.onclick = () => suggestIndustries(c);
+      box.querySelectorAll("[data-addind]").forEach(b => b.onclick = () => { c._indSug = arr(c._indSug).filter(x => x.name !== b.dataset.addind); setTgt(c, scope, {industries: [...new Set([...indNow(c), b.dataset.addind])]}); });
+      box.querySelectorAll("[data-rmind]").forEach(b => b.onclick = () => setTgt(c, scope, {industries: indNow(c).filter(x => x !== b.dataset.rmind)}));
+      const irs = box.querySelector("[data-indreset]"); if (irs) irs.onclick = e => { e.preventDefault(); c._indSug = []; setTgt(c, scope, {industries: []}); };
       box.querySelectorAll("[data-stage]").forEach(b => b.onclick = () => { const cur = new Set(arr(c.leadTarget?.stages)); cur.has(b.dataset.stage) ? cur.delete(b.dataset.stage) : cur.add(b.dataset.stage); setTgt(c, scope, {stages: [...cur]}); });
       const fo = box.querySelector("[data-founders]"); if (fo) fo.onclick = () => setTgt(c, scope, {
         text: "Founders, co-founders and CEOs of small startups",

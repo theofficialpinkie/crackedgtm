@@ -233,6 +233,8 @@ table.leads{border-collapse:collapse;width:100%;font-size:13px;min-width:760px}
 .guide .gbar i{display:block;height:100%;background:var(--good)}
 @media (max-width:760px){.bt-grid{grid-template-columns:1fr}}
 .chips{display:flex;flex-wrap:wrap;gap:6px}
+.seg.wrap{flex-wrap:wrap}
+.addloc.on{border-style:solid;background:var(--ink);color:var(--paper)}
 .spend{font-size:13px}
 .spend summary{cursor:pointer;color:var(--muted)}
 .spend summary b{color:var(--ink)}
@@ -1057,8 +1059,37 @@ Reply with only one JSON object:
  "warnings": ["anything likely to make results bad, e.g. too few buyers to trust a title pattern"]
 }`;
 }
+/* ---------- company size + stage guardrail ----------
+   "Who to pull" can cap company size and pick funding stages. They're applied to every lead search
+   (ICP filters, translated variants, buyers at signal companies) and enforced again after each pull,
+   since Prospeo's lookalike and keyword searches can still surface large companies. */
+const SIZE_CAPS = [["", "Any size"], ["1-10", "Up to 10"], ["11-20", "Up to 20"], ["21-50", "Up to 50"], ["51-100", "Up to 100"], ["101-200", "Up to 200"], ["201-500", "Up to 500"]];
+const STAGE_PICKS = ["Pre seed", "Seed", "Series A", "Series B", "Angel"];
+// "founder" is substring-matched, so these titles at big companies would otherwise count as founders
+const FOUNDER_FALSE = ["founder relations", "founders program", "founder program", "founder success", "founder experience", "founder in residence", "entrepreneur in residence", "founders associate", "founder associate", "founder's associate", "office of the founder", "founder's office", "chief of staff to the founder", "founder community", "founders fund", "former founder", "ex-founder", "advisor", "investor", "venture partner"];
+const capOf = c => String(c.leadTarget?.maxSize || "");
+const sizeAllowed = c => { const cap = capOf(c); if (!cap) return null; const k = HEADCOUNT.indexOf(cap); return k < 0 ? null : HEADCOUNT.slice(0, k + 1); };
+const capNum = c => { const cap = capOf(c); return cap ? Number(cap.split("-").pop().replace(/\D/g, "")) : null; };
+// smallest headcount a lead's company could have, from "12", "11-20", "10000+" or "1,001-5,000"
+function minHeadcount(v){ const m = String(v ?? "").replace(/,/g, "").match(/\d+/); return m ? Number(m[0]) : null; }
+const overSize = (c, l) => { const cap = capNum(c); const h = minHeadcount(l.headcount); return cap != null && h != null && h > cap; };
+function applyGuardrail(c, f){
+  const sizes = sizeAllowed(c);
+  if (sizes){
+    const cur = Array.isArray(f.company_headcount_range) ? f.company_headcount_range.filter(x => sizes.includes(x)) : [];
+    f.company_headcount_range = cur.length ? cur : sizes;
+  }
+  const stages = arr(c.leadTarget?.stages).filter(x => FUNDING.includes(x));
+  if (stages.length) f.company_funding = {...(f.company_funding || {}), stage: stages};
+  const jt = f.person_job_title;
+  if (jt && arr(jt.include).some(t => /founder/.test(t))) jt.exclude = [...new Set([...arr(jt.exclude), ...FOUNDER_FALSE])].filter(x => !jt.include.includes(x));
+  return f;
+}
 // The titles and location you pick override whatever the ICP or translation chose
 function applyTarget(c, f){
+  applyTargetCore(c, f); return applyGuardrail(c, f);
+}
+function applyTargetCore(c, f){
   const t = c.leadTarget || {};
   if (arr(t.titles).length){
     f.person_job_title = {include: t.titles, ...(arr(t.excludeTitles).length ? {exclude: t.excludeTitles} : {}), match_mode: "CONTAINS"};
@@ -1148,6 +1179,12 @@ function targetBlock(c, scope){
       <div class="chips">${t.titles.map(x => `<span class="dchip">${esc(x)}<button type="button" data-rmtitle="${esc(x)}" aria-label="Remove ${esc(x)}">×</button></span>`).join("")}</div>
       <span class="hint">${[arr(t.excludeTitles).length && "Excluding: " + t.excludeTitles.join(", "), arr(t.seniority).length && "Seniority: " + t.seniority.join(", "), arr(t.departments).length && "Departments: " + t.departments.join(", ")].filter(Boolean).map(esc).join(" · ")}${arr(t.excludeTitles).length || arr(t.seniority).length || arr(t.departments).length ? " · " : ""}<a href="#" data-tgtclear="${scope}">Clear titles</a></span>`
     : `<span class="hint">${scope === "buyers" ? "No titles set: pulls founders, C-suite, VPs, heads and directors." : "No titles set: searches use the titles from the patterns and ICP."}</span>`}
+    ${scope === "leads" ? `<div class="locbox">
+      <div class="row" style="justify-content:space-between"><h3 class="sub-h">Company size and stage</h3><button class="btn sm" data-founders type="button">Founders only, small startups</button></div>
+      <div class="seg wrap">${SIZE_CAPS.map(([v, l]) => `<button type="button" class="${capOf(c) === v ? "on" : ""}" data-cap="${v}">${l}</button>`).join("")}</div>
+      <div class="chips">${STAGE_PICKS.map(st => `<button type="button" class="dchip addloc ${arr(c.leadTarget?.stages).includes(st) ? "on" : ""}" data-stage="${esc(st)}">${arr(c.leadTarget?.stages).includes(st) ? "✓ " : "+ "}${esc(st)}</button>`).join("")}</div>
+      <span class="hint">${capOf(c) ? `Every search is limited to companies ${esc(SIZE_CAPS.find(x => x[0] === capOf(c))[1].toLowerCase())} people, and anything bigger that slips through is left out after the pull.` : "No size limit: big companies can come back, especially from lookalike and keyword searches."}${arr(c.leadTarget?.stages).length ? " Stages: " + esc(c.leadTarget.stages.join(", ")) + "." : ""}</span>
+    </div>` : ""}
     <div class="locbox">
       <div class="row" style="justify-content:space-between"><h3 class="sub-h">Location</h3>
         <div class="seg"><button type="button" class="${t.locationOn !== "company" ? "on" : ""}" data-locon="person">Where the person is</button><button type="button" class="${t.locationOn === "company" ? "on" : ""}" data-locon="company">Where the company is</button></div></div>
@@ -1393,7 +1430,7 @@ async function findBuyersAtSignals(c){
   const seniority = mine ? arr(lt.seniority) : arr(bp.seniority).length ? bp.seniority : arr(c.icp?.personas?.seniority);
   busy[c.id + ":sigbuyers"] = true; c._err = ""; render();
   try {
-    const r = await api("/api/prospeo/people-at", {body: {websites: picks.map(x => x.website), titles: cleanTitles(titles), excludeTitles: mine ? arr(lt.excludeTitles) : [], seniority: seniority.filter(x => SENIORITY.includes(x)), departments: mine ? arr(lt.departments) : [], locations: arr(c.locations), locationOn: c.locationOn || "person", page: 1}});
+    const r = await api("/api/prospeo/people-at", {body: {websites: picks.map(x => x.website), titles: cleanTitles(titles), excludeTitles: mine ? arr(lt.excludeTitles) : [], seniority: seniority.filter(x => SENIORITY.includes(x)), departments: mine ? arr(lt.departments) : [], locations: arr(c.locations), locationOn: c.locationOn || "person", headcount: sizeAllowed(c) || [], stages: arr(c.leadTarget?.stages).filter(x => FUNDING.includes(x)), page: 1}});
     const byDomain = new Map(picks.map(x => [x.website, x]));
     const pullId = "p" + Date.now().toString(36);
     const seen = new Set(arr(c.leads).map(l => l.key));
@@ -1523,6 +1560,7 @@ function leadList(c){
       <div class="seg">${latest ? `<button type="button" class="${view === "latest" ? "on" : ""}" data-view="latest">Latest pull · ${esc(latest.label)} (${leads.filter(l => l.pullId === latest.id).length})</button>` : ""}<button type="button" class="${view === "all" ? "on" : ""}" data-view="all">All (${leads.length})</button></div>
       <label class="toggle"><input type="checkbox" id="passOnly" ${c._passOnly ? "checked" : ""}> Passing only</label>
       <span class="hint">${scored.filter(l => l.pass).length} of ${scored.length} pass${c.getEmails ? " · " + rows.filter(l => l.email).length + " with email" : ""}</span>
+      ${capNum(c) && arr(c.leads).some(l => overSize(c, l)) ? `<button class="btn sm red" id="delOver" type="button">Remove ${arr(c.leads).filter(l => overSize(c, l)).length} over ${capNum(c)} people</button>` : ""}
       ${sel.size ? `<span class="spacer"></span><span class="hint"><b>${sel.size} selected</b></span><button class="btn sm ghost" id="delSel" type="button">Delete selected</button><button class="btn sm ghost" id="clearSel" type="button">Clear</button>` : '<span class="spacer"></span><button class="btn sm ghost" id="delFail" type="button">Delete failing</button>'}
       <label class="hint" style="display:flex;align-items:center;gap:6px">Removing because <select class="sel" id="rmWhy" aria-label="Why you remove leads">${WHY.map(x => `<option ${(c.rmWhy || WHY[0][1]) === x[1] ? "selected" : ""}>${x[1]}</option>`).join("")}</select></label>
       ${rows.some(l => l.verdict === "drop") ? `<button class="btn sm red" id="delFlagged" type="button">Remove + block ${rows.filter(l => l.verdict === "drop").length} not a fit</button>` : ""}
@@ -1713,7 +1751,7 @@ function leadsPane(c){
   const sb = busy[c.id + ":score"];
   const lt = tgt(c, "leads");
   return `<div class="stack">
-    <details class="input-card" data-sec="whoLeads" ${c._open === "whoLeads" || !leads.length ? "open" : ""}><summary><span class="t">Who to pull<span class="h">${arr(lt.titles).length || lt.locations.length ? esc([arr(lt.titles).length && arr(lt.titles).length + " titles: " + lt.titles.slice(0, 3).join(", ") + (lt.titles.length > 3 ? "…" : ""), lt.locations.length && lt.locations.join(", ")].filter(Boolean).join(" · ")) : "Job titles and location. Applies to every pull and to buyers at signal companies."}</span></span>${arr(lt.titles).length || lt.locations.length ? '<span class="chip y">Custom</span>' : ""}</summary><div class="body">${targetBlock(c, "leads")}</div></details>
+    <details class="input-card" data-sec="whoLeads" ${c._open === "whoLeads" || !leads.length ? "open" : ""}><summary><span class="t">Who to pull<span class="h">${arr(lt.titles).length || lt.locations.length || capOf(c) ? esc([arr(lt.titles).length && arr(lt.titles).length + " titles: " + lt.titles.slice(0, 3).join(", ") + (lt.titles.length > 3 ? "…" : ""), capOf(c) && "up to " + capNum(c) + " people", arr(lt.stages).length && lt.stages.join("/"), lt.locations.length && lt.locations.join(", ")].filter(Boolean).join(" · ")) : "Job titles, company size, stage and location. Applies to every pull and to buyers at signal companies."}</span></span>${arr(lt.titles).length || lt.locations.length || capOf(c) ? '<span class="chip y">Custom</span>' : '<span class="chip r">No size limit</span>'}</summary><div class="body">${targetBlock(c, "leads")}</div></details>
     ${leads.length ? cleanPanel(c) : ""}
     ${outreachPanel(c)}
     <div class="toolbar">
@@ -1817,7 +1855,9 @@ ${c.translation.not_expressible.map(x => "- " + x.pattern + ": " + x.check).join
 Rules:
 - Judge the PERSON against the buyer pattern as well as the company: wrong role or wrong career path means a low score even at a great company.
 - Never invent signals.
-- A disqualifier applies only when it is clearly true. Name it in "disqualifier", otherwise null.
+- A disqualifier applies only when it is clearly true. Name it in "disqualifier", otherwise null.${capNum(c) ? `
+- HARD RULE: the team only works with companies of at most ${capNum(c)} people. If the row or well-known facts show the company is bigger, set "disqualifier" to "Company over ${capNum(c)} people".` : ""}${arr(c.leadTarget?.titles).some(t => /founder/.test(t)) ? `
+- HARD RULE: the person must be a founder, co-founder or CEO of this company. Titles like founder relations, founders program, founder in residence, investor or advisor don't count; set "disqualifier" to "Not a founder".` : ""}
 - "hook" is one specific line we could open an email with, grounded in the row. Empty string if nothing specific.
 ${feedbackBlock(c, "person")}
 Reply with only a JSON array, one object per row, in row order:
@@ -2007,9 +2047,10 @@ async function removeNotFit(c, flagged){
 // New pull: drop blocked companies and people we've already contacted before they ever reach the list
 async function dropKnown(c, leads){
   await memReady(c);
-  const bl = new Set(blockedDomains(c)); const idx = sentIndex(c); let nb = 0, nc = 0;
-  const keep = leads.filter(l => { if (l.domain && bl.has(l.domain)){ nb++; return false; } if (contactedAs(c, l, idx)){ nc++; return false; } return true; });
-  return {keep, nb, nc};
+  const bl = new Set(blockedDomains(c)); const idx = sentIndex(c); let nb = 0, nc = 0, ns = 0;
+  const keep = leads.filter(l => { if (l.domain && bl.has(l.domain)){ nb++; return false; } if (contactedAs(c, l, idx)){ nc++; return false; } if (overSize(c, l)){ ns++; return false; } return true; });
+  if (ns) toast(ns + " lead" + (ns > 1 ? "s" : "") + " left out: company over your size limit");
+  return {keep, nb, nc, ns};
 }
 const skipNote = (nb, nc) => [nb && nb + " from blocked companies", nc && nc + " already contacted"].filter(Boolean).join(", ");
 async function afterPull(c, pullId){
@@ -2225,6 +2266,7 @@ function bindClient(c){
   const ds2 = $("#delSel"); if (ds2) ds2.onclick = () => removeLeads([...(c._sel || [])]);
   const cs = $("#clearSel"); if (cs) cs.onclick = () => { c._sel = new Set(); render(); };
   const dfl = $("#delFlagged"); if (dfl) dfl.onclick = () => removeNotFit(c, visible().filter(l => l.verdict === "drop"));
+  const dov = $("#delOver"); if (dov) dov.onclick = () => removeLeads(arr(c.leads).filter(l => overSize(c, l)).map(l => l.key), false); // a size rule, not a judgment to learn from
   const df = $("#delFail"); if (df) df.onclick = () => { const f = visible().filter(l => l.score != null && !l.pass).map(l => l.key); if (!f.length) toast("No failing leads in this view"); else removeLeads(f, false); };
   document.querySelectorAll("[data-dellead]").forEach(b => b.onclick = () => removeLeads([b.dataset.dellead]));
   // signals
@@ -2334,6 +2376,15 @@ function bindClient(c){
       box.querySelectorAll("[data-addloc]").forEach(b => b.onclick = () => { c._locSug = {...(c._locSug || {}), [scope]: []}; setTgt(c, scope, {locations: [...new Set([...t.locations, b.dataset.addloc])]}); });
       box.querySelectorAll("[data-rmloc]").forEach(b => b.onclick = () => setTgt(c, scope, {locations: t.locations.filter(x => x !== b.dataset.rmloc)}));
       box.querySelectorAll("[data-locon]").forEach(b => b.onclick = () => setTgt(c, scope, {locationOn: b.dataset.locon}));
+      box.querySelectorAll("[data-cap]").forEach(b => b.onclick = () => setTgt(c, scope, {maxSize: b.dataset.cap}));
+      box.querySelectorAll("[data-stage]").forEach(b => b.onclick = () => { const cur = new Set(arr(c.leadTarget?.stages)); cur.has(b.dataset.stage) ? cur.delete(b.dataset.stage) : cur.add(b.dataset.stage); setTgt(c, scope, {stages: [...cur]}); });
+      const fo = box.querySelector("[data-founders]"); if (fo) fo.onclick = () => setTgt(c, scope, {
+        text: "Founders, co-founders and CEOs of small startups",
+        titles: ["founder", "co-founder", "cofounder", "chief executive officer"],
+        excludeTitles: FOUNDER_FALSE, seniority: [], departments: [],
+        summary: "Founders, co-founders and CEOs only, at companies up to 50 people, pre-seed to Series A",
+        maxSize: "21-50", stages: ["Pre seed", "Seed", "Series A"],
+      });
     });
     const rrs = $("#reresearchStale"); if (rrs) rrs.onclick = () => { const sig = tgtSig(tgt(c, "buyers")); researchCustomers(c, custDomains(c).filter(d => c.research?.[d] && (c.research[d].sig || "") !== sig)); };
     const trb = $("#translateBtn"); if (trb) trb.onclick = () => translate(c);

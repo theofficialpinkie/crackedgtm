@@ -481,11 +481,13 @@ Reply with only: {"companies":[{"company":"","website":"","signal":"","evidence"
       if (path === "/api/prospeo/people-at" && req.method === "POST") {
         // Buyers at specific companies (from signals): websites include + buyer-pattern titles/seniority
         if (!env.PROSPEO_API_KEY) return fail(503, "PROSPEO_API_KEY is not set on the Worker.");
-        const { websites = [], titles = [], excludeTitles = [], seniority = [], departments = [], locations = [], locationOn = "person", page = 1 } = await req.json();
+        const { websites = [], titles = [], excludeTitles = [], seniority = [], departments = [], locations = [], locationOn = "person", headcount = [], stages = [], page = 1 } = await req.json();
         const sites = [...new Set(websites.map(rootDomain).filter(Boolean))].slice(0, 500);
         if (!sites.length) return fail(400, "No valid company websites to search.");
         const base = { company: { websites: { include: sites } },
-          ...(locations.length ? { [locationOn === "company" ? "company_location_search" : "person_location_search"]: { include: locations } } : {}) };
+          ...(locations.length ? { [locationOn === "company" ? "company_location_search" : "person_location_search"]: { include: locations } } : {}),
+          ...(arr2(headcount).length ? { company_headcount_range: arr2(headcount) } : {}),
+          ...(arr2(stages).length ? { company_funding: { stage: arr2(stages) } } : {}) };
         const tries = [
           { ...base, ...(titles.length ? { person_job_title: { include: titles, ...(excludeTitles.length ? { exclude: excludeTitles } : {}), match_mode: "CONTAINS" } } : {}), ...(seniority.length ? { person_seniority: { include: seniority } } : {}), ...(departments.length ? { person_department: { include: departments } } : {}) },
           { ...base, ...(seniority.length ? { person_seniority: { include: seniority } } : { person_seniority: { include: ["Founder/Owner", "C-Suite"] } }) },

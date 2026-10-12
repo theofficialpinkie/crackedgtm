@@ -557,22 +557,24 @@ Reply with only: {"companies":[{"company":"","website":"","signal":"","evidence"
         // person_location_search and person_job_title are never dropped: a list of the wrong people in the wrong place is worse than an error
         const attempts = [];
         const send = async () => {
-          const sent = { page: body.page || 1, filters: JSON.parse(JSON.stringify(filters)) };
+          const sent = { page: restart ? 1 : (body.page || 1), filters: JSON.parse(JSON.stringify(filters)) };
           if (attempts.length) await new Promise(r => setTimeout(r, 1500)); // stay under Prospeo's rate limit
-          const r = await fetch("https://api.prospeo.io/search-person", { method: "POST", headers: { "X-KEY": env.PROSPEO_API_KEY, "content-type": "application/json" }, body: JSON.stringify(sent) });
+          const r = await fetch((env.PROSPEO_BASE || "https://api.prospeo.io") + "/search-person", { method: "POST", headers: { "X-KEY": env.PROSPEO_API_KEY, "content-type": "application/json" }, body: JSON.stringify(sent) });
           const raw = await r.text(); let d = {}; try { d = JSON.parse(raw); } catch {}
           return { r, d, raw, sent };
         };
-        let k = 0, badSiteFixes = 0, badValueFixes = 0;
-        while (k < order.length && attempts.length < 10) {
+        let k = 0, badSiteFixes = 0, badValueFixes = 0, sawEmpty = false, restart = false;
+        while (k < order.length && attempts.length < 14) {
           const drop = order[k];
           if (drop && !filters[drop]) { k++; continue; }
           if (drop) delete filters[drop];
           const { r, d, raw, sent } = await send();
           const ok = r.ok && !d.error;
           attempts.push({ dropped: drop, status: r.status, ok, error_code: d.error_code || "", filter_error: d.filter_error || "", message: d.message || (ok ? "" : raw.slice(0, 300)), filters: Object.keys(sent.filters) });
-          if (ok) return json({ ...d, attempts, credits: (d.results || []).length && !d.free ? 1 : 0 });
-          if (d.error_code === "NO_RESULTS") return json({ results: [], pagination: { total_count: 0 }, attempts });
+          if (ok) return json({ ...d, attempts, credits: (d.results || []).length && !d.free ? 1 : 0, page: restart ? 1 : (body.page || 1), restarted: restart, looseDrop: sawEmpty ? attempts.map(a => a.dropped).filter(x => x && /^[a-z_]+$/.test(x)) : [] });
+          // Nobody matches every filter. Empty searches cost no credit, so loosen the soft filters one at a time (never title or location)
+          // and report what was dropped. body.strict = stop here instead.
+          if (d.error_code === "NO_RESULTS") { if (body.strict) return json({ results: [], pagination: { total_count: 0 }, attempts }); sawEmpty = true; if ((body.page || 1) > 1) restart = true; /* past the end of this search: the wider search starts again at page 1 */ k++; continue; }
           if (["INVALID_API_KEY", "INSUFFICIENT_CREDITS"].includes(d.error_code) || r.status === 429 || /rate limit/i.test(d.error_code || "")) break;
           // A bad website in the include/exclude list: remove just that site and retry, keep every other filter
           const bad = /website format:\s*(\S+)/i.exec(d.filter_error || "");
@@ -603,6 +605,7 @@ Reply with only: {"companies":[{"company":"","website":"","signal":"","evidence"
           k++;
         }
         const last = attempts[attempts.length - 1] || {};
+        if (sawEmpty && last.error_code === "NO_RESULTS") return json({ results: [], pagination: { total_count: 0 }, attempts });
         return json({ error: "Prospeo said: " + ([last.error_code, last.filter_error, last.message].filter(Boolean).join(" · ") || "HTTP " + last.status), attempts }, 502);
       }
       return fail(404, "Unknown endpoint");

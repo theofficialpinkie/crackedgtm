@@ -1803,27 +1803,53 @@ function normalizeLead(r){
     key: p.person_id || p.id || p.linkedin_url || name + "|" + (co.name || ""),
   };
 }
+// What changes WHO comes back (everything except the exclusion list). When it changes, paging starts over at page 1.
+const searchSig = f => { const x = JSON.parse(JSON.stringify(f || {})); delete x.company; return JSON.stringify(x); };
+const filterLabel = k => String(k).replace(/^(company|person)_/, "").replace(/_/g, " ");
 async function runSearch(c){
   const vi = c.translation && c.variantIdx != null ? c.variantIdx : null;
   const p = vi != null ? cleanVariant(c, c.translation.variants[vi]) : prospeoPayload(c); if (!p) return;
   if (!status.prospeo){ toast("Add PROSPEO_API_KEY to the Worker first"); return; }
   busy[c.id + ":search"] = true; c._err = ""; render();
   try {
-    const page = vi != null ? (Number(c.variantPages?.[vi]) || 0) + 1 : (Number(c.prospeoPage) || 0) + 1;
-    // The server retries with fewer filters if Prospeo rejects the search and reports every attempt
-    let res;
-    try { res = await api("/api/prospeo/search", {body: {...p.body, page}}); }
-    catch(e){ c._attempts = e.attempts || null; throw e; }
-    c._attempts = arr(res.attempts).length > 1 ? res.attempts : null;
+    const key = vi != null ? "v" + vi : "icp"; const sig = searchSig(p.body.filters); const old = c.pageState?.[key];
+    // same search as last time: carry on. Different search: start at page 1. First run after this update: keep the old counter.
+    let st = old && old.sig === sig ? {...old, drop: arr(old.drop)} : {sig, page: old ? 0 : (vi != null ? Number(c.variantPages?.[vi]) || 0 : Number(c.prospeoPage) || 0), drop: []};
+    await memReady(c);
+    const seen = new Set(arr(c.leads).map(l => l.key)); const pullId = "p" + Date.now().toString(36);
+    // Once a search has been widened its first pages overlap the people we already pulled, and every overlapping page costs a credit.
+    // So a widened search leaves out companies we already have (leads or contacted) and re-asks from the top; "skip" only moves
+    // forward when a page held nothing usable (e.g. everyone over the size cap).
+    const exist = arr(p.body.filters.company?.websites?.exclude);
+    const known = [...new Set([...arr(c.leads).map(l => l.domain), ...arr(c._mem?.sent).map(r => r.domain)].filter(Boolean))].filter(d => !exist.includes(d));
+    let fresh = [], nb = 0, nc = 0, raw = [], res, tries = 0, total = c.prospeoTotal, loosened = [], restarted = false;
+    for (;;){
+      const filters = JSON.parse(JSON.stringify(p.body.filters)); for (const k of st.drop) delete filters[k];
+      const wide = st.drop.length > 0;
+      if (wide) filters.company = {websites: {...(filters.company?.websites || {}), exclude: [...exist, ...known].slice(0, 500)}};
+      const page = wide ? 1 + (Number(st.skip) || 0) : st.page + 1;
+      // The server retries with fewer filters if Prospeo rejects the search or finds nobody, and reports every attempt
+      try { res = await api("/api/prospeo/search", {body: {page, filters}}); }
+      catch(e){ c._attempts = e.attempts || null; throw e; }
+      c._attempts = arr(res.attempts).length > 1 ? res.attempts : null;
+      if (res.restarted) restarted = true;
+      if (arr(res.looseDrop).length){ st.drop = [...new Set([...st.drop, ...res.looseDrop])]; loosened = [...new Set([...loosened, ...res.looseDrop])]; }
+      st.page = Number(res.page) || page;
+      raw = res.results || res.response?.results || res.data || [];
+      total = res.pagination?.total_count ?? total;
+      const got = await dropKnown(c, raw.map(normalizeLead).map(l => ({...l, pullId, ...(vi != null ? {variant: c.translation.variants[vi].name} : {})})).filter(l => !seen.has(l.key)));
+      nb += got.nb; nc += got.nc; fresh = [...fresh, ...got.keep]; got.keep.forEach(l => seen.add(l.key));
+      if (wide && !got.keep.length && raw.length) st.skip = (Number(st.skip) || 0) + 1; // only when this request already left out what we have
+      if (fresh.length || !raw.length || ++tries >= 3) break; // a page of people we already have: keep going, up to 3 pages
+    }
     const dropped = arr(res.attempts).map(a => a.dropped).filter(Boolean);
-    if (dropped.length){ const why = res.attempts.find(a => !a.ok); c._err = `Pulled without ${dropped.map(x => x.replace(/^(company|person)_/, "").replace(/_/g, " ")).join(", ")}. Prospeo's reason: ${[why?.error_code, why?.filter_error, why?.message].filter(Boolean).join(" · ")}`; }
-    const raw = res.results || res.response?.results || res.data || [];
-    const seen = new Set(arr(c.leads).map(l => l.key));
-    const pullId = "p" + Date.now().toString(36);
-    const {keep: fresh, nb, nc} = await dropKnown(c, raw.map(normalizeLead).map(l => ({...l, pullId, ...(vi != null ? {variant: c.translation.variants[vi].name} : {})})).filter(l => !seen.has(l.key)));
-    const total = res.pagination?.total_count ?? c.prospeoTotal;
+    if (restarted) c._err = `This search ran out of people, so it was widened by ignoring: ${loosened.map(filterLabel).join(", ")}. Titles, location and company size still apply. Paging restarted from the top of the wider search.`;
+    else if (st.drop.length && !dropped.length) c._err = `Pulling from a widened search (ignoring: ${st.drop.map(filterLabel).join(", ")}) because the strict one ran out. Companies you already have are left out. Titles, location and company size still apply.`;
+    else if (dropped.length){ const why = res.attempts.find(a => !a.ok); c._err = why?.error_code === "NO_RESULTS" ? `Nobody matched every filter, so this pull ignores: ${dropped.map(filterLabel).join(", ")}. Titles and location are still applied. Loosen size, stage or titles in Who to pull to get more.` : `Pulled without ${dropped.map(filterLabel).join(", ")}. Prospeo's reason: ${[why?.error_code, why?.filter_error, why?.message].filter(Boolean).join(" · ")}`; }
+    if (!raw.length && !fresh.length && st.drop.length) c._err = `Even the widened search (ignoring: ${st.drop.map(filterLabel).join(", ")}) is out of new people. Loosen titles, location or company size in Who to pull, or change the ICP, to get more.`;
+    else if (!raw.length && !fresh.length){ const used = arr(res.attempts)[0]?.filters || Object.keys(p.body.filters); c._err = `Nobody in Prospeo matches all of: ${used.filter(k => k !== "company").map(filterLabel).join(", ")}. Loosen one in Who to pull (company size, funding stage, titles or location) and pull again. Empty searches cost no credits.`; }
     busy[c.id + ":search"] = false;
-    await saveClient(c.id, {...(fresh.length ? {_view: "latest", pulls: [...arr(c.pulls), {id: pullId, at: now(), label: vi != null ? c.translation.variants[vi].name : "ICP filters", count: fresh.length}].slice(-30)} : {}), leads: [...arr(c.leads), ...fresh].slice(-500), ...(vi != null ? {variantPages: {...(c.variantPages || {}), [vi]: page}} : {prospeoPage: page}), prospeoTotal: total, lastRaw: raw[0] ? JSON.stringify(raw[0], null, 2).slice(0, 4000) : "", checks: {...(c.checks||{}), listBuilt: true}, checkedAt: {...(c.checkedAt||{}), listBuilt: c.checkedAt?.listBuilt || now()}});
+    await saveClient(c.id, {...(fresh.length ? {_view: "latest", pulls: [...arr(c.pulls), {id: pullId, at: now(), label: vi != null ? c.translation.variants[vi].name : "ICP filters", count: fresh.length}].slice(-30)} : {}), leads: [...arr(c.leads), ...fresh].slice(-500), pageState: {...(c.pageState || {}), [key]: st}, ...(vi != null ? {variantPages: {...(c.variantPages || {}), [vi]: st.page}} : {prospeoPage: st.page}), prospeoTotal: total, lastRaw: raw[0] ? JSON.stringify(raw[0], null, 2).slice(0, 4000) : "", checks: {...(c.checks||{}), listBuilt: true}, checkedAt: {...(c.checkedAt||{}), listBuilt: c.checkedAt?.listBuilt || now()}});
     toast((fresh.length ? fresh.length + " new leads. Scoring…" : "No new leads on that page") + (nb || nc ? " (left out " + skipNote(nb, nc) + ")" : ""));
     if (fresh.length) afterPull(clients.find(x => x.id === c.id) || c, pullId);
   } catch(e){ busy[c.id + ":search"] = false; c._err = e.error + (e.detail ? " · " + JSON.stringify(e.detail).slice(0, 300) : ""); render(); }

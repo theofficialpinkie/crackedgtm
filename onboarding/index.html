@@ -239,6 +239,38 @@ table.leads{border-collapse:collapse;width:100%;font-size:13px;min-width:760px}
 .campbar input[type=number]{width:64px;padding:3px 6px;border:2px solid var(--line);background:var(--card)}
 .cprog{width:120px;height:10px;border:2px solid var(--line);background:var(--card)}
 .cprog i{display:block;height:100%;background:var(--good)}
+/* campaign HQ: one current campaign up top, everything else below */
+.hq{border:3px solid var(--line);background:var(--card);box-shadow:6px 6px 0 var(--ink);display:flex;flex-direction:column}
+.hq-top{padding:16px;display:flex;flex-direction:column;gap:12px;border-bottom:3px solid var(--line)}
+.hq-k{font-family:var(--f-comic);letter-spacing:2px;font-size:17px;color:var(--red)}
+.hq-head{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between}
+.hq-name{font-family:var(--f-display);font-size:clamp(22px,3vw,32px);letter-spacing:-.03em;border:0;border-bottom:3px dashed transparent;background:transparent;padding:0;min-width:0;flex:1 1 260px;color:inherit}
+.hq-name:hover,.hq-name:focus{border-bottom-color:var(--line);outline:none}
+.hq-flow{display:inline-flex;flex-wrap:wrap;border:2px solid var(--line)}
+.hq-flow button{all:unset;cursor:pointer;padding:7px 12px;font-size:12px;font-weight:800;letter-spacing:.04em;border-right:2px solid var(--line);background:var(--card)}
+.hq-flow button:last-child{border-right:0}
+.hq-flow button:hover{background:var(--band)}
+.hq-flow button.on{background:var(--ink);color:var(--paper)}
+.hq-flow button.on.live{background:var(--good);color:#fff}
+.hq-flow button:focus-visible{outline:3px solid var(--red);outline-offset:-3px}
+.hq-meta{display:flex;flex-wrap:wrap;gap:12px;align-items:center;font-size:14px}
+.hq-meta input[type=number]{width:64px;padding:3px 6px;border:2px solid var(--line);background:var(--paper)}
+.hq-fields{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.hq-fields .field input{padding:7px 9px;font-size:13px;background:var(--paper)}
+.hq-none{display:flex;flex-direction:column;gap:10px;align-items:flex-start;font-size:15px}
+.hq-past{padding:14px 16px;display:flex;flex-direction:column;gap:10px;background:var(--band)}
+.hq-ph{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.hq-st{display:inline-block;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:1px 7px;border:2px solid currentColor;white-space:nowrap}
+.hq-st.building{color:var(--warn)}.hq-st.live{color:var(--good)}.hq-st.done{color:var(--muted)}
+.hq-form{display:flex;flex-direction:column;gap:8px;padding:12px;border:2px dashed var(--line);background:var(--card)}
+.hq-form .row input[type=text],.hq-form .row input:not([type]){padding:7px 9px;border:2px solid var(--line);background:var(--paper);font-size:13px;min-width:0;flex:1 1 220px}
+.hq-form input[type=number]{width:72px;padding:6px;border:2px solid var(--line);background:var(--paper)}
+.hq-form textarea{width:100%;min-height:110px;padding:8px;border:2px solid var(--line);background:var(--paper);font-family:var(--f-mono);font-size:12px;resize:vertical}
+.hq .tablewrap{border-width:2px}
+.hq table.leads{min-width:600px}
+.hq tr.cur td{background:var(--band)}
+.chip.past{border-style:dashed;color:var(--muted);border-color:var(--muted)}
+@media (max-width:760px){.hq-fields{grid-template-columns:minmax(0,1fr)}}
 .rv-card{padding:16px 18px;display:flex;flex-direction:column;gap:8px}
 .rv-card p{margin:0}
 .rv-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
@@ -1651,19 +1683,160 @@ function reviewAct(c, key, act){
     saveClient(c.id, {leads: arr(c.leads).filter(x => x.key !== key)});
   }
 }
+const CSTAT = {building: "Building list", live: "Live", done: "Done"};
+const campStatus = x => x.status || "building";
+// the campaign new leads go into; null once it's been closed
+function currentCamp(c){ const a = activeCamp(c); return campStatus(a) === "done" ? null : a; }
+// the campaign whose leads the list is showing
+function viewCamp(c){ return campaigns(c).find(x => x.id === c._viewCamp) || currentCamp(c) || activeCamp(c); }
+function campIndex(c){ const m = new Map(); for (const x of campaigns(c)) for (const k of arr(x.keys)) if (!m.has(k)) m.set(k, x); return m; }
+const sentFor = (c, x) => arr(c._mem?.sent).filter(r => (r.campId && r.campId === x.id) || (!r.campId && r.campaign && r.campaign === x.name)).length;
+function parsePeople(raw){
+  raw = String(raw || "").trim(); if (!raw) return [];
+  const tab = raw.split("\n")[0].includes("\t");
+  const rows = tab ? raw.split(/\r?\n/).map(r => r.split("\t")) : parseCSV(raw);
+  const out = [];
+  const head = (rows[0] || []).map(h => String(h).toLowerCase().trim().replace(/[_-]+/g, " "));
+  const find = (exact, part, avoid = []) => { let i = head.findIndex(h => exact.includes(h)); if (i >= 0) return i; return head.findIndex(h => part.some(p => h.includes(p)) && !avoid.some(a => h.includes(a))); };
+  const iN = find(["full name","name","lead name","person name"], ["full name"]), iF = find(["first name","firstname","first"], ["first name"]), iL = find(["last name","lastname","last"], ["last name"]);
+  const iT = find(["title","job title","position","headline","occupation"], ["title","headline"], ["company"]);
+  const iC = find(["company","company name","organization","account","current company"], ["company name","organization"], ["domain","website","linkedin","url","size","industry"]);
+  const iD = find(["domain","website","company domain","company website"], ["domain","website"]);
+  const iLi = find(["linkedin","linkedin url","profile url","linkedin profile","profileurl"], ["linkedin","profile url"], ["company"]);
+  const iE = find(["email","email address","work email"], ["email"], ["status","verified"]);
+  if (rows.length > 1 && [iN, iF, iT, iC, iLi, iE].some(i => i >= 0)){
+    rows.slice(1).forEach((r, n) => {
+      const g = i => i >= 0 ? String(r[i] ?? "").trim() : "";
+      const name = g(iN) || [g(iF), g(iL)].filter(Boolean).join(" ");
+      const p = {key: "imp:" + n, name, title: g(iT), company: g(iC), domain: domainOf(g(iD)) || domainOf(g(iE)), linkedin: g(iLi), email: g(iE)};
+      if (p.name || p.linkedin || p.email) out.push(p);
+    });
+    return out;
+  }
+  raw.split(/\r?\n/).forEach((line, n) => {
+    if (!line.trim()) return;
+    const li = (line.match(/https?:\/\/[^\s,]*linkedin\.com\/in\/[^\s,]+/i) || [""])[0];
+    const em = (line.match(/[\w.+-]+@[\w-]+\.[\w.-]+/) || [""])[0];
+    const clean = line.replace(/\((your|khaled'?s?|[\w ]+'s) campaign\)\s*$/i, "");
+    const parts = clean.split(/\t|,| \| /).map(x => x.trim()).filter(x => x && x !== li && x !== em);
+    let name = parts[0] || ""; let rest = parts.slice(1);
+    if (rest[0] && /^(ph\.?d\.?|mba|md|jd|cpa)$/i.test(rest[0])){ name += ", " + rest[0]; rest = rest.slice(1); }
+    const company = rest.length > 1 ? rest[rest.length - 1] : (rest[0] || "");
+    out.push({key: "imp:" + n, name, title: rest.length > 1 ? rest.slice(0, -1).join(", ") : "", company, domain: domainOf(em), linkedin: li, email: em});
+  });
+  return out.filter(p => p.name || p.linkedin || p.email);
+}
+async function closeCamp(c, id){
+  await memReady(c);
+  const cs = campaigns(c).map(x => ({...x})); const x = cs.find(y => y.id === id); if (!x) return;
+  const rows = arr(c.leads).filter(l => arr(x.keys).includes(l.key));
+  const marked = rows.length ? await markSent(c, rows, c.sendChan || "LinkedIn", x.name, x.id) : 0;
+  x.status = "done"; x.endedAt = now();
+  c._confirmClose = false;
+  await saveCamps(c, cs);
+  toast(`Closed ${x.name}. ${marked ? marked + " people marked as contacted, so no future campaign repeats them." : "Everyone in it was already marked as contacted."}`);
+}
+async function startCamp(c, name, target, closeFirst){
+  const cur = currentCamp(c);
+  if (closeFirst && cur) await closeCamp(clients.find(x => x.id === c.id) || c, cur.id);
+  const cs = campaigns(c).map(x => ({...x}));
+  const id = "c" + Date.now().toString(36);
+  cs.push({id, name: name || "Campaign " + (cs.length + 1), keys: [], target: target || 100, status: "building", createdAt: now()});
+  c.activeCamp = id; c._viewCamp = null; c._newCamp = false;
+  await saveCamps(c, cs, {activeCamp: id});
+  toast(`${name || "New campaign"} started. Leads you add now go here, and anyone already contacted is skipped.`);
+}
+async function logPast(c, name, raw){
+  const people = parsePeople(raw);
+  if (!people.length){ toast("Paste a list first: a CSV, or one person per line (Name, Company, LinkedIn URL)"); return; }
+  const cs = campaigns(c).map(x => ({...x}));
+  const id = "c" + Date.now().toString(36);
+  const nm = name || "Past campaign " + (cs.filter(x => campStatus(x) === "done").length + 1);
+  const marked = await markSent(c, people, "Imported", nm, id);
+  cs.push({id, name: nm, keys: [], target: people.length, status: "done", imported: people.length, createdAt: now(), endedAt: now()});
+  c._logPast = false;
+  await saveCamps(c, cs);
+  toast(`${nm} logged. ${marked} added to the contacted log${people.length > marked ? ` (${people.length - marked} were already there)` : ""}. New pulls skip them.`);
+}
+function campaignHQ(c){
+  const cs = campaigns(c); const cur = currentCamp(c); const ci = campIndex(c);
+  const others = cs.filter(x => !cur || x.id !== cur.id).slice().sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || "")));
+  const pool = arr(c.leads).filter(l => !ci.has(l.key)).length;
+  const n = cur ? arr(cur.keys).length : 0; const target = cur ? Number(cur.target) || 100 : 100;
+  const st = cur ? campStatus(cur) : "";
+  const curSent = cur ? sentFor(c, cur) : 0;
+  const newForm = c._newCamp ? `<div class="hq-form">
+      <b>Start a new campaign</b>
+      <div class="row"><input id="ncName" value="${esc(drafts[c.id + ":ncName"] ?? ("Campaign " + (cs.length + 1)))}" aria-label="New campaign name"><label class="hint" for="ncTarget">Target</label><input id="ncTarget" type="number" min="1" value="100"><span class="hint">leads</span></div>
+      ${cur && n ? `<label class="toggle"><input type="checkbox" id="ncClose" checked> Close ${esc(cur.name)} first and mark its ${n} leads as contacted</label>` : ""}
+      <div class="row"><button class="btn red" id="ncCreate" type="button">Start campaign</button><button class="btn ghost" id="ncCancel" type="button">Cancel</button></div>
+    </div>` : "";
+  const top = cur ? `
+    <div class="hq-head">
+      <input class="hq-name" id="hqName" value="${esc(cur.name)}" aria-label="Campaign name">
+      <div class="hq-flow" role="group" aria-label="Campaign status">
+        <button type="button" data-cstat="building" class="${st === "building" ? "on" : ""}" aria-pressed="${st === "building"}">Building list</button>
+        <button type="button" data-cstat="live" class="${st === "live" ? "on live" : ""}" aria-pressed="${st === "live"}">Live</button>
+        <button type="button" data-cstat="done">Close campaign</button>
+      </div>
+    </div>
+    <div class="hq-meta">
+      <span class="hq-st ${st}">${CSTAT[st]}</span>
+      <span><b>${n}</b> of <input id="campTarget" type="number" min="1" value="${target}" aria-label="Campaign target size"> leads</span>
+      <div class="cprog" title="${n} of ${target}"><i style="width:${Math.min(100, Math.round(n / target * 100))}%"></i></div>
+      <span class="hint">${cur.createdAt ? "Started " + fmtDate(cur.createdAt) : "Started before campaigns were tracked"}${cur.launchedAt ? " · live since " + fmtDate(cur.launchedAt) : ""}${curSent ? " · " + curSent + " marked contacted" : ""}</span>
+    </div>
+    <div class="hq-fields">
+      <div class="field"><label for="cf-heyreach">HeyReach workspace</label><input id="cf-heyreach" data-cfield="heyreach" value="${esc(cur.heyreach ?? c.heyreach ?? "")}" placeholder="${esc(c.company)}'s HeyReach"></div>
+      <div class="field"><label for="cf-sender">Sending as</label><input id="cf-sender" data-cfield="sender" value="${esc(cur.sender || "")}" placeholder="${esc(c.first ? c.first + "'s LinkedIn" : "Whose profile sends")}"></div>
+      <div class="field"><label for="cf-goal">Who and what angle</label><input id="cf-goal" data-cfield="goal" value="${esc(cur.goal || "")}" placeholder="e.g. Seed dev-tool founders, proof-on-every-PR angle"></div>
+    </div>
+    <div class="row">
+      <button class="btn" data-viewcamp="${esc(cur.id)}" type="button">See its ${n} leads</button>
+      <button class="btn dark" id="campCsv" type="button" ${n ? "" : "disabled"}>Download campaign CSV</button>
+      <span class="spacer"></span>
+      <button class="btn sm" id="hqNew" type="button">+ New campaign</button>
+    </div>
+    ${c._confirmClose ? `<div class="note"><b>Close ${esc(cur.name)}?</b> Its ${n} leads get marked as contacted via ${esc(c.sendChan || "LinkedIn")}, so no future campaign reaches them again. Leads you haven't added stay in the pool for the next campaign.
+      <div class="row" style="margin-top:8px"><button class="btn red sm" id="closeGo" type="button">Close campaign</button><button class="btn ghost sm" id="closeCancel" type="button">Keep it open</button></div></div>` : ""}
+    ${newForm}`
+  : `<div class="hq-none"><span><b>No campaign in progress.</b> Start one to review and add leads. Everyone from past campaigns is skipped automatically.</span>
+      ${c._newCamp ? newForm : '<button class="btn red" id="hqNew" type="button">+ Start a new campaign</button>'}</div>`;
+  const rows = others.map(x => { const k = arr(x.keys).length; const sx = campStatus(x); const sent = sentFor(c, x); return `<tr>
+      <td><b>${esc(x.name)}</b>${x.imported ? ' <span class="chip past">Imported list</span>' : ""}</td>
+      <td><span class="hq-st ${sx}">${CSTAT[sx]}</span></td>
+      <td class="num">${x.createdAt ? fmtDate(x.createdAt) : "–"}${x.endedAt && !x.imported ? " – " + fmtDate(x.endedAt) : ""}</td>
+      <td class="num">${x.imported ? x.imported : k}</td>
+      <td class="num">${sent || "–"}</td>
+      <td>${k ? `<button class="btn sm ghost" data-viewcamp="${esc(x.id)}" type="button">See leads</button>` : ""}${sx !== "done" ? ` <button class="btn sm ghost" data-makecur="${esc(x.id)}" type="button">Make current</button>` : ""}</td></tr>`; }).join("");
+  return `<section class="hq" id="campHQ">
+    <div class="hq-top"><span class="hq-k">${cur ? "CURRENT CAMPAIGN" : "CAMPAIGNS"}</span>${top}</div>
+    <div class="hq-past">
+      <div class="hq-ph"><h3 class="sub-h">${cur ? "Other campaigns" : "Past campaigns"}</h3><span class="hint">${pool} lead${pool === 1 ? "" : "s"} in the pool, not in any campaign yet</span><span class="spacer"></span><button class="btn sm ghost" id="hqLog" type="button">Log a past campaign</button></div>
+      ${c._logPast ? `<div class="hq-form">
+        <b>Log a campaign you ran before this tool</b>
+        <span class="hint">Paste its list: a CSV export (Prospeo, HeyReach, Sales Nav) or one person per line as Name, Company, LinkedIn URL. They go into the contacted log so no new campaign reaches them again.</span>
+        <div class="row"><input id="lpName" value="${esc(drafts[c.id + ":lpName"] ?? "")}" placeholder="Campaign name, e.g. Campaign 1: YC founders" aria-label="Past campaign name"></div>
+        <textarea id="lpRaw" placeholder="Name, Company, LinkedIn URL">${esc(drafts[c.id + ":lpRaw"] ?? "")}</textarea>
+        <div class="row"><button class="btn red" id="lpGo" type="button">Log it</button><button class="btn ghost" id="lpCancel" type="button">Cancel</button></div>
+      </div>` : ""}
+      ${others.length ? `<div class="tablewrap"><table class="leads"><thead><tr><th>Campaign</th><th>Status</th><th>Ran</th><th>Leads</th><th>Contacted</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>` : `<span class="hint">None yet. When you close the current campaign it lands here with its leads.</span>`}
+    </div>
+  </section>`;
+}
 function reviewPanel(c){
-  const q = toReview(c); const l = q[0]; const ac = activeCamp(c); const n = arr(ac.keys).length; const target = Number(ac.target) || 100;
+  const ac = currentCamp(c);
+  if (!ac) return `<section class="review"><div class="rv-empty"><b>No campaign in progress.</b> Start a new campaign above to keep reviewing leads.</div></section>`;
+  const q = toReview(c); const l = q[0]; const n = arr(ac.keys).length; const target = Number(ac.target) || 100;
   const tot = totalPts(c);
   const camp = `<div class="campbar">
-      <label class="hint" for="campSel">Adding to</label>
-      <select class="sel" id="campSel">${campaigns(c).map(x => `<option value="${esc(x.id)}" ${x.id === ac.id ? "selected" : ""}>${esc(x.name)} (${arr(x.keys).length})</option>`).join("")}<option value="__new">+ New campaign</option></select>
+      <span class="hint">Adding to</span> <b>${esc(ac.name)}</b>
       <div class="cprog" title="${n} of ${target}"><i style="width:${Math.min(100, Math.round(n / target * 100))}%"></i></div>
-      <span class="hint"><b>${n}</b> / <input id="campTarget" type="number" min="1" value="${target}" aria-label="Campaign target size"> leads</span>
+      <span class="hint"><b>${n}</b> / ${target} leads</span>
       <span class="spacer"></span>
-      <button class="btn sm" data-view="campaign" type="button">View campaign</button>
-      <button class="btn sm dark" id="campCsv" type="button" ${n ? "" : "disabled"}>Download campaign CSV</button>
+      <button class="btn sm ghost" data-hqscroll type="button">Switch or start a campaign</button>
     </div>`;
-  if (!l) return `<section class="review">${camp}<div class="rv-empty"><b>Nothing left to review.</b> ${n >= target ? "Your campaign is full: download it above." : `Pull more to keep filling ${esc(ac.name)}.`}
+  if (!l) return `<section class="review">${camp}<div class="rv-empty"><b>Nothing left to review.</b> ${n >= target ? `${esc(ac.name)} is full. Download it from the campaign panel above, then close it when it's sent.` : `Pull more to keep filling ${esc(ac.name)}.`}
       <div class="row"><button class="btn red" data-pullmore type="button">Pull 25 more</button><button class="btn" data-pullhiring type="button">Pull 25 hiring for GTM</button></div></div></section>`;
   const s = l.score == null ? null : Math.round(l.score / tot * 100);
   return `<section class="review">${camp}
@@ -1689,8 +1862,8 @@ function reviewPanel(c){
 function leadsInView(c){
   const leads = arr(c.leads); const latest = latestPull(c);
   const view = c._view || (latest ? "latest" : "all");
-  const ck = new Set(arr(activeCamp(c).keys));
-  let rows = view === "campaign" ? leads.filter(l => ck.has(l.key)) : view === "latest" && latest ? leads.filter(l => l.pullId === latest.id) : leads;
+  const ck = new Set(arr(viewCamp(c).keys)); const ci = campIndex(c);
+  let rows = view === "campaign" ? leads.filter(l => ck.has(l.key)) : view === "pool" ? leads.filter(l => !ci.has(l.key)) : view === "latest" && latest ? leads.filter(l => l.pullId === latest.id) : leads;
   if (c._passOnly) rows = rows.filter(l => l.pass);
   return rows;
 }
@@ -1700,8 +1873,8 @@ function leadList(c){
   const leads = arr(c.leads);
   const latest = latestPull(c);
   const view = c._view || (latest ? "latest" : "all");
-  const ck = new Set(arr(activeCamp(c).keys));
-  let rows = view === "campaign" ? leads.filter(l => ck.has(l.key)) : view === "latest" && latest ? leads.filter(l => l.pullId === latest.id) : leads;
+  const vc = viewCamp(c); const ck = new Set(arr(vc.keys)); const ci = campIndex(c);
+  let rows = view === "campaign" ? leads.filter(l => ck.has(l.key)) : view === "pool" ? leads.filter(l => !ci.has(l.key)) : view === "latest" && latest ? leads.filter(l => l.pullId === latest.id) : leads;
   if (c._passOnly) rows = rows.filter(l => l.pass);
   rows = rankLeads(rows);
   const tot = totalPts(c); const scored = rows.filter(l => l.score != null);
@@ -1709,7 +1882,7 @@ function leadList(c){
   const sel = c._sel || new Set(); const idx = sentIndex(c);
   return `<div class="leadbar">
       <label class="toggle"><input type="checkbox" id="selAll" ${rows.length && rows.every(l => sel.has(l.key)) ? "checked" : ""} aria-label="Select all in view"></label>
-      <div class="seg">${latest ? `<button type="button" class="${view === "latest" ? "on" : ""}" data-view="latest">Latest pull · ${esc(latest.label)} (${leads.filter(l => l.pullId === latest.id).length})</button>` : ""}<button type="button" class="${view === "all" ? "on" : ""}" data-view="all">All (${leads.length})</button><button type="button" class="${view === "campaign" ? "on" : ""}" data-view="campaign">${esc(activeCamp(c).name)} (${ck.size})</button></div>
+      <div class="seg">${latest ? `<button type="button" class="${view === "latest" ? "on" : ""}" data-view="latest">Latest pull · ${esc(latest.label)} (${leads.filter(l => l.pullId === latest.id).length})</button>` : ""}<button type="button" class="${view === "all" ? "on" : ""}" data-view="all">All (${leads.length})</button><button type="button" class="${view === "pool" ? "on" : ""}" data-view="pool">Not in a campaign (${leads.filter(l => !ci.has(l.key)).length})</button><button type="button" class="${view === "campaign" ? "on" : ""}" data-view="campaign">${campStatus(vc) === "done" ? "Past: " : ""}${esc(vc.name)} (${ck.size})</button></div>
       <label class="toggle"><input type="checkbox" id="passOnly" ${c._passOnly ? "checked" : ""}> Passing only</label>
       <span class="hint">${scored.filter(l => l.pass).length} of ${scored.length} pass${c.getEmails ? " · " + rows.filter(l => l.email).length + " with email" : ""}</span>
       ${capNum(c) && arr(c.leads).some(l => overSize(c, l)) ? `<button class="btn sm red" id="delOver" type="button">Remove ${arr(c.leads).filter(l => overSize(c, l)).length} over ${capNum(c)} people</button>` : ""}
@@ -1723,7 +1896,7 @@ function leadList(c){
       return `<div class="lead-row"><input type="checkbox" data-sel="${esc(l.key)}" ${sel.has(l.key) ? "checked" : ""} aria-label="Select ${esc(l.name)}"><details class="lead ${l.score != null && !l.pass || l.verdict === "drop" || ct ? "fail" : ""}">
         <summary>
           <span class="pill ${s == null ? "" : l.pass ? "pass" : "no"}">${s == null ? "–" : s + "%"}</span>
-          <span class="who"><b>${l.hiring ? "🔥 " : ""}${ck.has(l.key) ? "✓ " : ""}${esc(l.name)}${l.email ? " ✉" : ""}${l.verdict === "drop" ? ' <span class="chip r">Not a fit</span>' : ""}${l.gender === "man" ? ' <span class="chip">Man</span>' : ""}${ct ? ` <span class="chip y">Contacted · ${esc(ct.channel || "")} · ${esc(fmtDate(ct.at))}</span>` : ""}</b><span>${esc(l.title)}</span></span>
+          <span class="who"><b>${l.hiring ? "🔥 " : ""}${esc(l.name)}${(x => x ? (campStatus(x) === "done" ? ` <span class="chip past">Past: ${esc(x.name)}</span>` : ` <span class="chip ok">In ${esc(x.name)}</span>`) : "")(ci.get(l.key))}${l.email ? " ✉" : ""}${l.verdict === "drop" ? ' <span class="chip r">Not a fit</span>' : ""}${l.gender === "man" ? ' <span class="chip">Man</span>' : ""}${ct ? ` <span class="chip y">Contacted · ${esc(ct.channel || "")} · ${esc(fmtDate(ct.at))}</span>` : ""}</b><span>${esc(l.title)}</span></span>
           <span class="co"><b>${esc(l.company)}</b><span>${esc([l.location, l.headcount && l.headcount + " ppl"].filter(Boolean).join(" · "))}</span></span>
         </summary>
         <div class="lead-b">
@@ -1905,6 +2078,7 @@ function leadsPane(c){
   const sb = busy[c.id + ":score"];
   const lt = tgt(c, "leads");
   return `<div class="stack">
+    ${campaignHQ(c)}
     <details class="input-card" data-sec="whoLeads" ${c._open === "whoLeads" || !leads.length ? "open" : ""}><summary><span class="t">Who to pull<span class="h">${arr(lt.titles).length || lt.locations.length || capOf(c) ? esc([arr(lt.titles).length && arr(lt.titles).length + " titles: " + lt.titles.slice(0, 3).join(", ") + (lt.titles.length > 3 ? "…" : ""), capOf(c) && "up to " + capNum(c) + " people", arr(lt.stages).length && lt.stages.join("/"), lt.locations.length && lt.locations.join(", ")].filter(Boolean).join(" · ")) : "Job titles, company size, stage and location. Applies to every pull and to buyers at signal companies."}</span></span>${arr(lt.titles).length || lt.locations.length || capOf(c) ? '<span class="chip y">Custom</span>' : '<span class="chip r">No size limit</span>'}</summary><div class="body">${targetBlock(c, "leads")}</div></details>
     ${leads.length ? cleanPanel(c) : ""}
     ${outreachPanel(c)}
@@ -1923,7 +2097,7 @@ function leadsPane(c){
     ${c._scoreErr ? `<div class="banner" role="alert">${esc(c._scoreErr)}</div>` : ""}
     ${leads.length ? reviewPanel(c) : ""}
     ${arr(c._attempts).length ? `<div class="tablewrap"><table class="leads"><thead><tr><th>Try</th><th>Removed</th><th>Prospeo reply</th></tr></thead><tbody>${c._attempts.map((t, n) => `<tr><td class="num">${n + 1}</td><td>${esc(t.dropped || "nothing")}</td><td>${t.ok ? '<span class="chip ok">OK</span>' : `<b>${esc(t.error_code || "HTTP " + t.status)}</b> ${esc(t.filter_error || "")}`}</td></tr>`).join("")}</tbody></table></div>` : ""}
-    ${leads.length ? `<details class="input-card" data-sec="allLeads" ${c._open === "allLeads" || c._view === "campaign" ? "open" : ""}><summary><span class="t">All leads<span class="h">The full list: filter, select, delete, and see what's in each campaign.</span></span><span class="chip">${leads.length}</span></summary><div class="body">${leadList(c)}</div></details>` : `<div class="note">No leads yet. Pull from Prospeo above, or find buyers at signal companies in the Signals tab.</div>`}
+    ${leads.length ? `<details class="input-card" data-sec="allLeads" id="allLeadsSec" ${c._open === "allLeads" || c._view === "campaign" || c._view === "pool" ? "open" : ""}><summary><span class="t">All leads<span class="h">Every lead you've pulled. Filter to one campaign, or to leads not in any campaign yet.</span></span><span class="chip">${leads.length}</span></summary><div class="body">${leadList(c)}</div></details>` : `<div class="note">No leads yet. Pull from Prospeo above, or find buyers at signal companies in the Signals tab.</div>`}
     <details class="input-card" ${!leads.length || c._open === "search" ? "open" : ""} data-sec="search"><summary><span class="t">Search setup<span class="h">How patterns translate into Prospeo filters, and the exact prompts.</span></span></summary>
       <div class="body" style="gap:16px">
         ${translationBlock(c)}
@@ -2106,7 +2280,9 @@ async function scoreLeads(c, onlyIds){
 /* ---------- memory: who we've contacted + companies marked "not a fit" (kept on the server, per client, shared with the team) ---------- */
 const liNorm = u => String(u || "").toLowerCase().replace(/^https?:\/\/(www\.)?/, "").split("?")[0].replace(/\/+$/, "");
 // every way we could recognise the same person: Prospeo id, LinkedIn, email, or name at the same company
-const idsOf = l => [l.pid && "pid:" + l.pid, l.linkedin && "li:" + liNorm(l.linkedin), l.email && "em:" + String(l.email).toLowerCase(), l.name && l.domain && "nm:" + String(l.name).toLowerCase().replace(/\s+/g, " ").trim() + "|" + l.domain].filter(Boolean);
+const normCo = s => String(s || "").toLowerCase().replace(/\([^)]*\)/g, " ").replace(/https?:\/\/|www\./g, "").replace(/\.(com|ai|io|dev|co|app|so|xyz)\b.*$/, "").replace(/\b(inc|llc|ltd|corp|co|hq|labs?|ai)\b/g, " ").replace(/[^a-z0-9]+/g, "");
+const nameNorm = s => String(s || "").split(",")[0].toLowerCase().replace(/\s+/g, " ").trim();
+const idsOf = l => [l.pid && "pid:" + l.pid, l.linkedin && "li:" + liNorm(l.linkedin), l.email && "em:" + String(l.email).toLowerCase(), l.name && l.domain && "nm:" + String(l.name).toLowerCase().replace(/\s+/g, " ").trim() + "|" + l.domain, l.name && normCo(l.company) && "nc:" + nameNorm(l.name) + "|" + normCo(l.company)].filter(Boolean);
 const sentIndex = c => { const m = new Map(); for (const r of arr(c._mem?.sent)) for (const k of arr(r.ids)) m.set(k, r); return m; };
 const contactedAs = (c, l, idx) => { idx = idx || sentIndex(c); for (const k of idsOf(l)) if (idx.has(k)) return idx.get(k); return null; };
 const blockedDomains = c => arr(c._mem?.blocked).map(b => b.id);
@@ -2118,12 +2294,12 @@ function loadMem(c){
 }
 const memReady = async c => { if (!c._mem || c._mem.failed) await loadMem(c); };
 const memWrite = (c, patch) => api("/api/memory/" + c.id, {body: patch});
-async function markSent(c, leads, channel, campaign){
+async function markSent(c, leads, channel, campaign, campId){
   await memReady(c);
   const idx = sentIndex(c); const at = now();
   const fresh = leads.filter(l => !contactedAs(c, l, idx));
   if (!fresh.length) return 0;
-  const recs = fresh.map(l => { const ids = idsOf(l); return {id: ids[0] || "k:" + l.key, ids, name: l.name, first: l.first || "", last: l.last || "", title: l.title || "", company: l.company || "", domain: l.domain || "", industry: l.industry || "", desc: String(l.description || "").slice(0, 160), linkedin: l.linkedin || "", email: l.email || "", channel, campaign: campaign || "", at}; });
+  const recs = fresh.map(l => { const ids = idsOf(l); return {id: ids[0] || "k:" + l.key, ids, name: l.name, first: l.first || "", last: l.last || "", title: l.title || "", company: l.company || "", domain: l.domain || "", industry: l.industry || "", desc: String(l.description || "").slice(0, 160), linkedin: l.linkedin || "", email: l.email || "", channel, campaign: campaign || "", campId: campId || "", at}; });
   try { for (let k = 0; k < recs.length; k += 400) await memWrite(c, {addSent: recs.slice(k, k + 400)}); }
   catch(e){ toast("Couldn't save the contacted log: " + e.error); return 0; }
   c._mem.sent = [...recs, ...arr(c._mem.sent).filter(r => !recs.some(x => x.id === r.id))]; render();
@@ -2694,14 +2870,14 @@ function bindClient(c){
       if (csel.value === "__new"){ const cs = campaigns(c).slice(); const id = "c" + Date.now().toString(36); cs.push({id, name: "Campaign " + (cs.length + 1), keys: [], target: 100}); c.activeCamp = id; saveCamps(c, cs, {activeCamp: id}); toast("New campaign started. Rename it in the CSV file name or keep the number."); return; }
       c.activeCamp = csel.value; saveClient(c.id, {activeCamp: csel.value});
     };
-    const ctg = $("#campTarget"); if (ctg) ctg.onchange = () => { const cs = campaigns(c).map(x => x.id === activeCamp(c).id ? {...x, target: Math.max(1, Number(ctg.value) || 100)} : x); saveCamps(c, cs); };
+    const ctg = $("#campTarget"); if (ctg) ctg.onchange = () => { const cs = campaigns(c).map(x => x.id === (currentCamp(c) || activeCamp(c)).id ? {...x, target: Math.max(1, Number(ctg.value) || 100)} : x); saveCamps(c, cs); };
     const ccsv = $("#campCsv"); if (ccsv) ccsv.onclick = async () => {
-      await memReady(c); const idx = sentIndex(c); const ac = activeCamp(c); const ks = new Set(arr(ac.keys));
+      await memReady(c); const idx = sentIndex(c); const ac = currentCamp(c) || activeCamp(c); const ks = new Set(arr(ac.keys));
       const all = arr(c.leads).filter(l => ks.has(l.key)); const rows = all.filter(l => !contactedAs(c, l, idx));
       if (!rows.length){ toast("Everyone in this campaign is already marked as contacted"); return; }
       const blob = new Blob([leadsCSV(c, rankLeads(rows))], {type: "text/csv"}); const a = document.createElement("a");
       a.href = URL.createObjectURL(blob); a.download = (c.company + "-" + ac.name).replace(/\W+/g, "-").toLowerCase() + "-" + new Date().toISOString().slice(0, 10) + ".csv"; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-      const chan = c.sendChan || "LinkedIn"; const marked = c.markOnDl !== false ? await markSent(c, rows, chan, ac.name) : 0;
+      const chan = c.sendChan || "LinkedIn"; const marked = c.markOnDl !== false ? await markSent(c, rows, chan, ac.name, ac.id) : 0;
       toast(`Downloaded ${rows.length} leads from ${ac.name}${all.length > rows.length ? ` (left out ${all.length - rows.length} already contacted)` : ""}${marked ? ` · marked as sent via ${chan}` : ""}`);
     };
     const rh = $("#runHiring"); if (rh) rh.onclick = () => runSearch(c, {hiring: true});
@@ -2732,6 +2908,31 @@ function bindClient(c){
       toast(n ? `${n} marked as sent via ${c.sendChan || "LinkedIn"}` : "Those leads are already marked as sent");
     };
     document.querySelectorAll("[data-unsent]").forEach(b => b.onclick = () => unmarkSent(c, [b.dataset.unsent]));
+    // campaign HQ
+    const patchCur = patch => { const cur = currentCamp(c); if (!cur) return; return saveCamps(c, campaigns(c).map(x => x.id === cur.id ? {...x, ...patch} : x)); };
+    document.querySelectorAll("[data-cstat]").forEach(b => b.onclick = () => {
+      const s = b.dataset.cstat; const cur = currentCamp(c); if (!cur) return;
+      if (s === "done"){ c._confirmClose = true; render(); return; }
+      if (s === campStatus(cur)) return;
+      patchCur({status: s, ...(s === "live" && !cur.launchedAt ? {launchedAt: now()} : {})});
+      toast(s === "live" ? cur.name + " is live" : cur.name + " is back to building");
+    });
+    const hn = $("#hqName"); if (hn) hn.onchange = () => { const v = hn.value.trim(); if (v) patchCur({name: v}); };
+    document.querySelectorAll("[data-cfield]").forEach(inp => inp.onchange = () => patchCur({[inp.dataset.cfield]: inp.value.trim()}));
+    const cgo = $("#closeGo"); if (cgo) cgo.onclick = () => { const cur = currentCamp(c); if (cur) closeCamp(c, cur.id); };
+    const ccn = $("#closeCancel"); if (ccn) ccn.onclick = () => { c._confirmClose = false; render(); };
+    const hnw = $("#hqNew"); if (hnw) hnw.onclick = () => { c._newCamp = true; c._confirmClose = false; render(); setTimeout(() => { const i = $("#ncName"); if (i){ i.focus(); i.select(); } }, 30); };
+    const ncn = $("#ncName"); if (ncn) ncn.oninput = () => { drafts[c.id + ":ncName"] = ncn.value; };
+    const ncc = $("#ncCreate"); if (ncc) ncc.onclick = () => { const nm = $("#ncName").value.trim(); delete drafts[c.id + ":ncName"]; startCamp(c, nm, Math.max(1, Number($("#ncTarget").value) || 100), !!$("#ncClose")?.checked); };
+    const nca = $("#ncCancel"); if (nca) nca.onclick = () => { c._newCamp = false; render(); };
+    document.querySelectorAll("[data-viewcamp]").forEach(b => b.onclick = () => { c._viewCamp = b.dataset.viewcamp; c._view = "campaign"; c._open = "allLeads"; render(); const sec = $("#allLeadsSec"); if (sec) sec.scrollIntoView({behavior: "smooth", block: "start"}); });
+    document.querySelectorAll("[data-makecur]").forEach(b => b.onclick = () => { c.activeCamp = b.dataset.makecur; c._viewCamp = null; saveClient(c.id, {activeCamp: b.dataset.makecur}); toast("Switched the current campaign"); });
+    document.querySelectorAll("[data-hqscroll]").forEach(b => b.onclick = () => { const h = $("#campHQ"); if (h) h.scrollIntoView({behavior: "smooth", block: "start"}); });
+    const hql = $("#hqLog"); if (hql) hql.onclick = () => { c._logPast = !c._logPast; render(); };
+    const lpn = $("#lpName"); if (lpn) lpn.oninput = () => { drafts[c.id + ":lpName"] = lpn.value; };
+    const lpr = $("#lpRaw"); if (lpr) lpr.oninput = () => { drafts[c.id + ":lpRaw"] = lpr.value; };
+    const lpg = $("#lpGo"); if (lpg) lpg.onclick = async () => { const nm = $("#lpName").value.trim(), raw = $("#lpRaw").value; await logPast(c, nm, raw); if (!c._logPast){ delete drafts[c.id + ":lpName"]; delete drafts[c.id + ":lpRaw"]; render(); } };
+    const lpc = $("#lpCancel"); if (lpc) lpc.onclick = () => { c._logPast = false; render(); };
     document.querySelectorAll("[data-unblock]").forEach(b => b.onclick = async () => {
       try { const was = arr(c._mem.blocked).find(x => x.id === b.dataset.unblock); await memWrite(c, {delBlocked: [b.dataset.unblock]}); c._mem.blocked = arr(c._mem.blocked).filter(x => x.id !== b.dataset.unblock); if (was) await recordFeedback(c, [{company: was.company, domain: was.id, kind: was.kind}], {label: "kept", scope: "company", why: "unblocked by the team"}); render(); } catch(e){ toast(e.error); }
     });

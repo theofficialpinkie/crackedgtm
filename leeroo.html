@@ -72,6 +72,8 @@ figcaption a{font-weight:700;color:var(--ink)}
 .two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px}
 .two figure{margin-top:28px}
 
+.decks{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;margin-top:32px}
+.decks figure{margin:0}
 .posts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;align-items:start;max-width:860px;margin:28px auto 0}
 .posts figcaption{margin-top:8px;font-size:15px}
 .posts figure{margin:0}
@@ -103,7 +105,7 @@ footer a{color:var(--muted)}
   .letter p{font-size:17px}
   section.block{padding:72px 20px}
   .block p,.block .lead,.tile p,figcaption,.topics li,.month ul{font-size:17px}
-  .grid2,.grid3,.months,.topics,.two,.posts{grid-template-columns:1fr}
+  .decks,.grid2,.grid3,.months,.topics,.two,.posts{grid-template-columns:1fr}
   footer{flex-direction:column;padding:28px 20px;text-align:center}
 }
 </style>
@@ -151,10 +153,16 @@ footer a{color:var(--muted)}
       <div class="tile"><h3>Case study</h3><p>Write and design the case study around their problem and the outcome.</p></div>
       <div class="tile"><h3>One-pager and sales deck</h3><p>A one-page pitch and a deck you can use in enterprise calls.</p></div>
     </div>
-    <figure>
-      <img src="leeroo-assets/smarterd-deck.webp" alt="Opening slide of the SmarterD sales deck: Next Gen IT/Cybersecurity Management and Analytics Platform, with Maurices, Flexport, Bahwan CyberTek and Barnes &amp; Noble logos" loading="lazy" width="1602" height="894">
-      <figcaption>Sample deck created for SmarterD, data consolidation software for enterprise. Worked with customers like Flexport.</figcaption>
-    </figure>
+    <div class="decks">
+      <figure>
+        <img src="leeroo-assets/smarterd-deck.webp" alt="Deck slide for SmarterD: Next Gen IT/Cybersecurity Management and Analytics Platform" loading="lazy" width="1602" height="894">
+        <figcaption>Deck design: SmarterD</figcaption>
+      </figure>
+      <figure>
+        <img src="leeroo-assets/4pm-deck.webp" alt="Deck slide for 4pm: AI-powered CRM helping B2B sales teams get their 9-5 done by 4pm" loading="lazy" width="1602" height="894">
+        <figcaption>Deck design: 4pm</figcaption>
+      </figure>
+    </div>
     <!-- Add: screenshot of an example case study page we've designed -->
     <!-- Add: screenshots of landing pages we're working on for other clients -->
   </div>

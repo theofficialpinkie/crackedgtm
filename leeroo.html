@@ -45,10 +45,11 @@ h1{margin:0;max-width:820px;font-family:'Archivo Black',sans-serif;font-size:cla
 section.block{padding:96px 24px;border-top:1px solid var(--line)}
 section.soft{background:var(--soft)}
 .num{display:inline-block;font-size:13px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:var(--red)}
-h2{margin:12px 0 22px;font-family:'Archivo Black',sans-serif;font-size:clamp(30px,4vw,44px);line-height:1.06;letter-spacing:-.03em}
+h2{margin:0 0 22px;font-family:'Archivo Black',sans-serif;font-size:clamp(30px,4vw,44px);line-height:1.06;letter-spacing:-.03em}
 .block p{margin:0 0 18px;font-size:18px;line-height:1.65;color:var(--body)}
 .block .lead{font-size:18px;color:var(--ink)}
 
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;margin:32px 0 0}
 .grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;margin:32px 0 0}
 .tile{padding:26px;background:#fff;border:1px solid var(--line);border-radius:16px;display:flex;flex-direction:column;gap:8px}
 .tile .n{font-family:'Archivo Black',sans-serif;font-size:30px;line-height:1;color:var(--red)}
@@ -102,7 +103,7 @@ footer a{color:var(--muted)}
   .letter p{font-size:17px}
   section.block{padding:72px 20px}
   .block p,.block .lead,.tile p,figcaption,.topics li,.month ul{font-size:17px}
-  .grid3,.months,.topics,.two,.posts{grid-template-columns:1fr}
+  .grid2,.grid3,.months,.topics,.two,.posts{grid-template-columns:1fr}
   footer{flex-direction:column;padding:28px 20px;text-align:center}
 }
 </style>
@@ -136,20 +137,24 @@ footer a{color:var(--muted)}
   </div>
   <div class="wrap narrow goal philo">
     <b>Our philosophy</b>
-    <p>We really care about our craft. Since everything is still early, we can only guarantee inputs, not outputs. What we do guarantee is best in class inputs: social, outbound, copy, website and sales assets.</p>
+    <p>We really care about our craft. Since everything is still early, we can only guarantee inputs, not outputs. What we do guarantee is best in class inputs: social, outbound, copy, website and sales.</p>
   </div>
 </section>
 
 <section class="block">
   <div class="wrap">
-    <span class="num">01 · Case study</span>
-    <h2>Turn the telecom project into a real case study</h2>
-    <p class="lead">This is a big deal and serious buyer, so the case study needs to feel as sophisticated as the work. We’d make it visual.</p>
-    <div class="grid3">
-      <div class="tile"><span class="n">1</span><h3>Interview the customer</h3><p>Sit down with your customer (with their OK): what they were trying to solve, why they picked Leeroo, and which results actually mattered to them.</p></div>
-      <div class="tile"><span class="n">2</span><h3>Write and design it</h3><p>Write and design the case study around that problem and the outcome.</p></div>
-      <div class="tile"><span class="n">3</span><h3>Homepage and pitch</h3><p>Rewrite your homepage opening and put together a one-page pitch you can use in enterprise calls.</p></div>
+    <h2>Sales assets</h2>
+    <p class="lead">This is a big deal and serious buyer, so your website, case study, one-pager and sales deck need to feel as sophisticated as the work.</p>
+    <div class="grid2">
+      <div class="tile"><h3>Learn from your customer</h3><p>Sit down with your customer, review call recordings and design sales assets.</p></div>
+      <div class="tile"><h3>Website</h3><p>Rewrite your homepage opening around what you actually delivered.</p></div>
+      <div class="tile"><h3>Case study</h3><p>Write and design the case study around their problem and the outcome.</p></div>
+      <div class="tile"><h3>One-pager and sales deck</h3><p>A one-page pitch and a deck you can use in enterprise calls.</p></div>
     </div>
+    <figure>
+      <img src="leeroo-assets/smarterd-deck.webp" alt="Opening slide of the SmarterD sales deck: Next Gen IT/Cybersecurity Management and Analytics Platform, with Maurices, Flexport, Bahwan CyberTek and Barnes &amp; Noble logos" loading="lazy" width="1602" height="894">
+      <figcaption>Sample deck created for SmarterD, data consolidation software for enterprise. Worked with customers like Flexport.</figcaption>
+    </figure>
     <!-- Add: screenshot of an example case study page we've designed -->
     <!-- Add: screenshots of landing pages we're working on for other clients -->
   </div>
@@ -157,27 +162,16 @@ footer a{color:var(--muted)}
 
 <section class="block soft">
   <div class="wrap">
-    <span class="num">02 · Sales coaching</span>
-    <h2>Onboarding and sales coaching</h2>
+    <h2>Sales coaching</h2>
     <p class="lead">Leeroo does a lot, which is a good problem to have. But on a first call the buyer needs the short version. The goal is a pitch tight enough that someone can repeat it to their boss after one conversation.</p>
-    <p>We’d also spend real time on discovery calls: what to ask, how to qualify, and how to run a demo that ends with a next step. Most technical founders never get walked through this, and it makes a big difference on enterprise deals.</p>
-    <div class="grid3">
-      <div class="tile"><span class="n">Day 1</span><h3>Positioning</h3><p>Who it’s for, what it does, the 1 to 2 sentence version.</p></div>
-      <div class="tile"><span class="n">Day 2</span><h3>Discovery and demos</h3><p>Role-playing real calls until it feels natural.</p></div>
-      <div class="tile"><span class="n">Day 3</span><h3>Sales assets</h3><p>One-pager, deck, follow-up emails, and a simple process to run sales.</p></div>
-    </div>
-    <figure>
-      <img src="leeroo-assets/smarterd-deck.webp" alt="Opening slide of the SmarterD sales deck: Next Gen IT/Cybersecurity Management and Analytics Platform, with Maurices, Flexport, Bahwan CyberTek and Barnes &amp; Noble logos" loading="lazy" width="1602" height="894">
-      <figcaption>Sample deck created for SmarterD, data consolidation software for enterprise. Worked with customers like Flexport.</figcaption>
-    </figure>
+    <p>Sales process and discovery are very important on enterprise sales calls, so we’d spend real time on what to ask, how to qualify, and how to run a demo that ends with a next step.</p>
   </div>
 </section>
 
 <section class="block">
   <div class="wrap">
-    <span class="num">03 · Outbound</span>
-    <h2>Find your next 2 to 3 enterprise customers</h2>
-    <p class="lead">We’d go after companies that look like your telecom customer and have a reason to move now, like an active legacy migration, open data platform roles, or a data leader posting about AI projects stalling. We build the lists and do the research ourselves (scraping, enrichment, a lot of automation), so every message is written for that company instead of blasted to thousands of people.</p>
+    <h2>Finding your next 2 to 3 enterprise customers</h2>
+    <p class="lead">We’d go after companies that look like your telecom customer and have a strong intention to buy, like an active legacy migration, open data platform roles, or a data leader posting about AI projects stalling. We build our own lists and do research ourselves (scraping, enrichment, a lot of automation) for outbound, so every message is written for that company instead of blasted to thousands of people.</p>
     <p>For these first few, I’d lead with the outcome (getting the migration done) more than the platform. Buyers get that right away, and it opens the door to the next project.</p>
     <!-- Add: screenshot of our HeyReach campaign results -->
     <!-- Add: screenshot of a Clay or n8n workflow we built for account research -->
@@ -186,16 +180,9 @@ footer a{color:var(--muted)}
 
 <section class="block soft">
   <div class="wrap">
-    <span class="num">04 · Content and one creative campaign</span>
     <h2>Founder content and one creative campaign</h2>
     <p class="lead">We’d do a short call with you each week and turn it into 2 to 3 LinkedIn posts for you and Alireza. Khaled leads this side, and you approve everything before it goes out.</p>
-    <p>The posts would be written for the people who actually buy Leeroo, probably CIOs, heads of data and data platform leads at large companies in telecom, banking and healthcare. A few we’d start with:</p>
-    <ul class="topics">
-      <li>What we learned moving 1,000+ tables and 100+ Power BI reports in 8 weeks</li>
-      <li>Why big data migrations take a year, and where the time actually goes</li>
-      <li>What a CIO should ask before letting AI agents near production data</li>
-      <li>Why your agents should run in your own cloud, and why that matters for banks and hospitals</li>
-    </ul>
+    <p>The posts would be written for the people who actually buy Leeroo, probably CIOs, heads of data and data platform leads at large companies in telecom, banking and healthcare.</p>
     <p>We’d also run one creative campaign to get in front of buyers who are hard to reach through outbound. That could be a small dinner with 8 to 12 data leaders, or something less conventional, like delivering croissants to target accounts. We’ve done both before, and we’d pick based on where the right buyers are most likely to engage.</p>
     <div class="posts">
       <figure>
@@ -216,25 +203,21 @@ footer a{color:var(--muted)}
 
 <section class="block">
   <div class="wrap">
-    <span class="num">The 90 days</span>
+    <h2>The 90 days</h2>
     <div class="months">
       <div class="month"><b>MONTH 1</b><h3>Build GTM Systems</h3><ul><li>Customer interview</li><li>Case study and homepage</li><li>Sales coaching</li><li>First outbound and content</li></ul></div>
-      <div class="month"><b>MONTH 2</b><h3>Schedule Meetings Consistently</h3><ul><li>Test new segments</li><li>Discovery and demos together</li><li>Creative campaign</li><li>Follow-up automations</li></ul></div>
+      <div class="month"><b>MONTH 2</b><h3>Schedule Meetings</h3><ul><li>Test new segments</li><li>Discovery and demos together</li><li>Creative campaign</li><li>Follow-up automations</li></ul></div>
       <div class="month"><b>MONTH 3</b><h3>Improve Sales Process</h3><ul><li>Scale what’s working</li><li>Support live deals</li><li>Refine who you sell to</li><li>Write down the playbook</li></ul></div>
     </div>
-    <p class="target">Our rough target is 10 to 15 qualified demos, but we’ll revisit that after Month 1 once we have real numbers.</p>
   </div>
 </section>
 
 <section class="block soft">
   <div class="wrap narrow">
-    <span class="num">How we’d work together</span>
-    <p>We’d do one call a week to go over what went out, what we learned and what’s next, plus a shared Slack channel.</p>
-    <div class="goal">
-      <b>The goal after 90 days</b>
-      <p>A clearer pitch, proof from more customers, a repeatable way to generate qualified conversations, and a better understanding of what it takes to close the next enterprise deal.</p>
-    </div>
-    <p style="margin-top:28px">If this direction makes sense, we can go through it together on our call and figure out where to start.</p>
+    <h2>How we’d work together</h2>
+    <p>We’d do two to three calls a week to go over what went out, what we learned and what’s next, plus a shared Slack channel.</p>
+    <p><b>The goal after 90 days:</b> a clearer pitch, proof from more customers, a repeatable way to generate qualified conversations, and a better understanding of what it takes to close the next enterprise deal.</p>
+    <p>If this direction makes sense, we can go through it together on our call and figure out where to start.</p>
   </div>
 </section>
 

@@ -5,294 +5,82 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Superemployee</title>
 <meta name="robots" content="noindex, nofollow">
-<meta name="description" content="Superemployee is the infrastructure that enables top operators to earn $1M a year independently.">
 <link rel="icon" href="/favicon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;900&amp;family=Sora:wght@200;300;400;500;600&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600&amp;display=swap" rel="stylesheet">
 <style>
-:root{--ink:#0B0C0E;--paper:#F3F1EC;--amber:#E9A23B;--amber-dk:#A0600E;--muted:#A9ABAF;--line:#24272C;--card:#121418}
 *{box-sizing:border-box}
-html{scroll-behavior:smooth}
-html,body{overflow-x:clip}
-body{margin:0;background:var(--ink);color:var(--paper);font-family:'Sora',system-ui,sans-serif;font-weight:300;-webkit-font-smoothing:antialiased}
+body{margin:0;background:#FBFAF7;color:#16171A;font-family:'Sora',system-ui,sans-serif;font-weight:300;font-size:17px;line-height:1.7;-webkit-font-smoothing:antialiased}
+main{max-width:680px;margin:0 auto;padding:72px 24px 96px}
+.head{border-bottom:1px solid #DEDBD3;padding-bottom:28px;margin-bottom:8px}
+.name{font-weight:600;font-size:15px;letter-spacing:3px;margin:0}
+.meta{margin:6px 0 0;font-size:14px;color:#6A6D72}
+h1{margin:28px 0 0;font-size:26px;line-height:1.35;font-weight:400;letter-spacing:-.3px}
+h2{margin:44px 0 0;font-size:13px;font-weight:600;letter-spacing:2px;text-transform:uppercase}
+p{margin:10px 0 0}
+ul{margin:10px 0 0;padding-left:20px}
+li{margin:4px 0}
+strong{font-weight:600}
 a{color:inherit}
-.wrap{max-width:1080px;margin:0 auto;padding:0 24px}
-.wm{font-family:'Unbounded',Arial,sans-serif}
-
-/* nav */
-header{position:sticky;top:0;z-index:10;background:rgba(11,12,14,.86);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid #1A1C20}
-header .wrap{display:flex;align-items:center;justify-content:space-between;gap:16px;height:64px}
-.logo{font-family:'Unbounded',sans-serif;font-weight:500;font-size:13px;letter-spacing:4px;text-decoration:none}
-nav{display:flex;gap:22px;font-size:13px;overflow-x:auto;scrollbar-width:none}
-nav::-webkit-scrollbar{display:none}
-nav a{color:#9A9DA2;text-decoration:none;white-space:nowrap}
-nav a:hover{color:var(--amber)}
-@media (max-width:860px){nav{display:none}}
-
-/* hero */
-.hero{padding:120px 0 96px;text-align:center}
-.tag{display:inline-flex;gap:12px;align-items:center;font-size:11px;letter-spacing:4px;color:var(--amber)}
-.tag::before,.tag::after{content:"";width:28px;height:1px;background:var(--amber)}
-.hero h1{margin:28px 0 0;font-family:'Unbounded',sans-serif;font-weight:900;font-size:clamp(34px,8vw,92px);line-height:.95;letter-spacing:-.01em;
-  background-image:url(/superemployee/assets/hero-letters-v3.jpg);background-size:180% auto;background-position:30% 50%;-webkit-background-clip:text;background-clip:text;color:var(--amber);-webkit-text-fill-color:transparent}
-.hero p{margin:32px auto 0;max-width:640px;font-size:clamp(19px,2.4vw,26px);line-height:1.5;color:#E4E2DD;font-weight:200}
-
-/* sections */
-section.s{padding:104px 0;border-top:1px solid #1A1C20}
-section.light{background:var(--paper);color:var(--ink);border-top:0}
-.label{display:flex;align-items:center;gap:12px;font-size:11px;letter-spacing:4px;color:var(--amber)}
-.light .label{color:var(--amber-dk)}
-.label b{font-weight:500;color:inherit}
-h2{margin:20px 0 0;font-size:clamp(30px,4.6vw,48px);line-height:1.1;font-weight:200;letter-spacing:-1.5px;max-width:820px}
-.lede{margin:22px 0 0;max-width:700px;font-size:18px;line-height:1.7;color:var(--muted)}
-.light .lede{color:#4E5258}
-
-.grid{margin-top:48px;display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(min(280px,100%),1fr))}
-.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:28px}
-.light .card{background:#fff;border-color:#E4E0D7}
-.card h3{margin:0;font-size:18px;font-weight:500;line-height:1.3}
-.card p{margin:10px 0 0;font-size:15px;line-height:1.65;color:var(--muted)}
-.light .card p{color:#4E5258}
-.card .who{font-size:11px;letter-spacing:3px;color:var(--amber);margin-bottom:14px}
-.light .card .who{color:var(--amber-dk)}
-
-/* problem split */
-.split{margin-top:48px;display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(min(300px,100%),1fr))}
-
-/* stats */
-.stats{margin-top:48px;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(200px,100%),1fr));border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
-.stat{padding:32px 20px 30px 0}
-.stat .n{font-size:clamp(44px,6vw,64px);font-weight:200;letter-spacing:-2px;line-height:1}
-.stat .n span{color:var(--amber)}
-.stat .d{margin-top:10px;font-size:14px;color:#9A9DA2}
-
-/* team */
-.team{margin-top:48px;display:grid;gap:20px;grid-template-columns:repeat(auto-fit,minmax(min(420px,100%),1fr))}
-.person{background:#fff;border:1px solid #E4E0D7;border-radius:22px;padding:28px;display:flex;gap:24px;align-items:flex-start}
-.person img{width:120px;height:150px;object-fit:cover;border-radius:12px;flex:0 0 auto;mix-blend-mode:multiply}
-.person .role{font-size:11px;letter-spacing:3px;color:var(--amber-dk)}
-.person .name{margin-top:8px;font-size:24px;font-weight:500;line-height:1.15}
-.person ul{margin:14px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px}
-.person li{font-size:15px;line-height:1.5;color:#3A3D42;padding-left:16px;position:relative}
-.person li::before{content:"";position:absolute;left:0;top:.62em;width:6px;height:6px;border-radius:50%;background:var(--amber)}
-@media (max-width:480px){.person{flex-direction:column}.person img{width:100px;height:125px}}
-
-/* flywheel */
-.flow{margin-top:48px;display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(min(300px,100%),1fr))}
-.flow .card{position:relative}
-.flow .card .big{font-size:15px;color:var(--paper);font-weight:500;margin-top:16px}
-
-/* model */
-.math{margin-top:48px;background:var(--card);border:1px solid var(--line);border-radius:22px;padding:36px 32px}
-.math .eq{display:flex;flex-wrap:wrap;align-items:baseline;gap:10px 18px;font-size:clamp(22px,3.2vw,34px);font-weight:200;letter-spacing:-.5px}
-.math .eq .op{color:#5A5E64}
-.math .eq .res{color:var(--amber);font-weight:400}
-.math .eq small{display:block;font-size:12px;letter-spacing:2px;color:#7D8086;margin-top:6px;font-weight:400}
-.math .eq > div{display:flex;flex-direction:column}
-
-/* ask */
-.ask{padding:120px 0;text-align:center;border-top:1px solid #1A1C20}
-.ask .amount{margin-top:24px;font-family:'Unbounded',sans-serif;font-weight:900;font-size:clamp(56px,12vw,140px);line-height:.95;color:var(--paper)}
-.ask .terms{margin-top:18px;font-size:clamp(17px,2.2vw,22px);color:#E4E2DD;font-weight:300}
-.ask .terms span{color:var(--amber)}
-.uses{margin:56px auto 0;max-width:860px;display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(min(240px,100%),1fr));text-align:left}
-.uses div{border:1px solid var(--line);border-radius:14px;padding:18px 20px;font-size:15px;line-height:1.5}
-.uses div b{display:block;color:var(--amber);font-weight:500;font-size:12px;letter-spacing:2px;margin-bottom:6px}
-
-footer{padding:40px 0 56px;border-top:1px solid #1A1C20;font-size:13px;color:#6A6D72}
-footer .wrap{display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px}
+.contact{margin-top:56px;padding-top:24px;border-top:1px solid #DEDBD3}
+.contact p{margin:4px 0 0}
+.fine{margin-top:40px;font-size:13px;color:#8A8D92}
 </style>
 </head>
 <body>
+<main>
 
-<header>
-  <div class="wrap">
-    <a href="#top" class="logo">SUPEREMPLOYEE</a>
-    <nav aria-label="Sections">
-      <a href="#problem">Problem</a>
-      <a href="#solution">Solution</a>
-      <a href="#why-now">Why now</a>
-      <a href="#team">Team</a>
-      <a href="#traction">Traction</a>
-      <a href="#network">Network effects</a>
-      <a href="#model">Business model</a>
-      <a href="#ask">The ask</a>
-    </nav>
-  </div>
-</header>
+<div class="head">
+  <p class="name">SUPEREMPLOYEE</p>
+  <p class="meta">Investor memo · Confidential</p>
+  <h1>Superemployee is the infrastructure that enables top operators to earn $1M a year independently.</h1>
+</div>
 
-<main id="top">
+<h2>Problem</h2>
+<p>Startups spend heavily to recruit full-time talent, while experienced operators increasingly want to work independently.</p>
+<p>Going solo is difficult. Operators need a brand, systems to serve multiple clients, and a consistent pipeline.</p>
 
-  <!-- HERO -->
-  <section class="hero">
-    <div class="wrap">
-      <div class="tag">PRIVATE · FOR INVESTORS</div>
-      <h1>SUPEREMPLOYEE</h1>
-      <p>The infrastructure that enables top operators to earn <strong style="font-weight:500;color:var(--amber)">$1M a year</strong> independently.</p>
-    </div>
-  </section>
+<h2>Solution</h2>
+<p>We give operators:</p>
+<ul>
+  <li>AI-powered systems to scale their work</li>
+  <li>A community that shares knowledge and referrals</li>
+  <li>Opportunities to earn startup equity</li>
+</ul>
+<p>Startups get access to proven operators without making a full-time hire.</p>
 
-  <!-- 01 PROBLEM -->
-  <section class="s" id="problem">
-    <div class="wrap">
-      <div class="label"><b>01</b> PROBLEM</div>
-      <h2>Startups can't hire the best operators. The best operators don't want to be hired.</h2>
-      <div class="split">
-        <div class="card">
-          <div class="who">STARTUPS</div>
-          <h3>Spend heavily to recruit full-time talent.</h3>
-          <p>Every senior hire is slow, expensive, and a big bet on one person.</p>
-        </div>
-        <div class="card">
-          <div class="who">OPERATORS</div>
-          <h3>Increasingly want to work independently.</h3>
-          <p>But going solo is hard. You need a brand, systems to serve multiple clients, and a consistent pipeline.</p>
-        </div>
-      </div>
-    </div>
-  </section>
+<h2>Why now</h2>
+<p>AI agents make it easier for one operator to deliver high-quality work across multiple companies.</p>
 
-  <!-- 02 SOLUTION -->
-  <section class="s light" id="solution">
-    <div class="wrap">
-      <div class="label"><b>02</b> SOLUTION</div>
-      <h2>Everything an operator needs to go independent, and win.</h2>
-      <div class="grid">
-        <div class="card">
-          <h3>AI-powered systems</h3>
-          <p>Tools and agents that let one operator scale their work across many companies.</p>
-        </div>
-        <div class="card">
-          <h3>A community</h3>
-          <p>Top operators sharing knowledge and referrals with each other.</p>
-        </div>
-        <div class="card">
-          <h3>Startup equity</h3>
-          <p>Opportunities to earn equity in the companies they work with.</p>
-        </div>
-      </div>
-      <p class="lede" style="margin-top:32px">And startups get access to proven operators without making a full-time hire.</p>
-    </div>
-  </section>
+<h2>Team</h2>
+<p><strong>Khaled Alameldin</strong> is a former YC Head of Growth who now leads growth for four YC-backed startups as an independent operator. He helped found a 2,000-member AI community.</p>
+<p><strong>Priyanka Sundhar</strong> was a top-500-ranked tennis player, generated the first $3 million in sales as a founding AE at a company that later went public, and founded a VC-backed AI sales-assistant startup used by hundreds of reps.</p>
 
-  <!-- 03 WHY NOW -->
-  <section class="s" id="why-now">
-    <div class="wrap">
-      <div class="label"><b>03</b> WHY NOW</div>
-      <h2>AI agents make it possible for one operator to deliver high-quality work across multiple companies.</h2>
-      <p class="lede">What used to take a team now takes one great operator with the right systems. That changes who gets to work independently, and how much they can earn.</p>
-    </div>
-  </section>
+<h2>Traction</h2>
+<p>In our first month:</p>
+<ul>
+  <li>$60K MRR</li>
+  <li>6 design partners</li>
+  <li>1 superemployee</li>
+</ul>
 
-  <!-- 04 TEAM -->
-  <section class="s light" id="team">
-    <div class="wrap">
-      <div class="label"><b>04</b> TEAM</div>
-      <h2>We've done this ourselves.</h2>
-      <div class="team">
-        <div class="person">
-          <img src="/superemployee/assets/khaled-sketch.png" alt="Sketch portrait of Khaled Alameldin">
-          <div>
-            <div class="role">CO-FOUNDER · CEO</div>
-            <div class="name">Khaled Alameldin</div>
-            <ul>
-              <li>Former YC Head of Growth</li>
-              <li>Leads growth for four YC-backed startups as an independent operator</li>
-              <li>Helped found a 2,000-member AI community</li>
-            </ul>
-          </div>
-        </div>
-        <div class="person">
-          <img src="/superemployee/assets/priyanka-sketch.png" alt="Sketch portrait of Priyanka Sundhar">
-          <div>
-            <div class="role">CO-FOUNDER</div>
-            <div class="name">Priyanka Sundhar</div>
-            <ul>
-              <li>Top-500-ranked tennis player</li>
-              <li>Generated the first $3M in sales as founding AE at a company that later went public</li>
-              <li>Founded a VC-backed AI sales-assistant startup used by hundreds of reps</li>
-            </ul>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
+<h2>Network effects</h2>
+<p>Operators can make $1M a year and hold small pieces of equity in every company that joins the platform. Startups get access to guaranteed top-tier talent and high-quality work. Each new company makes the platform more valuable for operators, and each new operator makes it more valuable for companies.</p>
 
-  <!-- 05 TRACTION -->
-  <section class="s" id="traction">
-    <div class="wrap">
-      <div class="label"><b>05</b> TRACTION</div>
-      <h2>One month in.</h2>
-      <div class="stats">
-        <div class="stat"><div class="n"><span>$</span>60K</div><div class="d">MRR</div></div>
-        <div class="stat"><div class="n">6</div><div class="d">Design partners</div></div>
-        <div class="stat"><div class="n">1</div><div class="d">Superemployee</div></div>
-        <div class="stat"><div class="n">1<span style="font-size:.45em;letter-spacing:0"> mo</span></div><div class="d">Since launch</div></div>
-      </div>
-    </div>
-  </section>
+<h2>Business model</h2>
+<p>Superemployee charges a 25% platform fee and receives a small equity stake from each participating startup.</p>
+<p>1,000 superemployees × $1M a year × 25% = <strong>$250M a year</strong>.</p>
 
-  <!-- 06 NETWORK EFFECTS -->
-  <section class="s" id="network">
-    <div class="wrap">
-      <div class="label"><b>06</b> NETWORK EFFECTS</div>
-      <h2>Every new company makes it better for operators. Every new operator makes it better for companies.</h2>
-      <div class="flow">
-        <div class="card">
-          <div class="who">FOR OPERATORS</div>
-          <h3>Earn $1M a year</h3>
-          <p>Plus a small piece of equity in every company that joins the platform.</p>
-        </div>
-        <div class="card">
-          <div class="who">FOR STARTUPS</div>
-          <h3>Guaranteed top-tier talent</h3>
-          <p>Access to proven operators and high-quality work, without a full-time hire.</p>
-        </div>
-      </div>
-    </div>
-  </section>
+<h2>The ask</h2>
+<p>We're raising <strong>$1M on a SAFE with a $10M valuation cap</strong> to grow the operator community, expand marketing, and deliver for existing clients.</p>
 
-  <!-- 07 BUSINESS MODEL -->
-  <section class="s" id="model">
-    <div class="wrap">
-      <div class="label"><b>07</b> BUSINESS MODEL</div>
-      <h2>A 25% platform fee, plus a small equity stake in each participating startup.</h2>
-      <div class="math">
-        <div class="eq">
-          <div>1,000<small>SUPEREMPLOYEES</small></div>
-          <span class="op">×</span>
-          <div>$1M<small>PER YEAR</small></div>
-          <span class="op">×</span>
-          <div>25%<small>PLATFORM FEE</small></div>
-          <span class="op">=</span>
-          <div class="res">$250M<small>PER YEAR</small></div>
-        </div>
-      </div>
-    </div>
-  </section>
+<div class="contact">
+  <h2 style="margin-top:0">Contact</h2>
+  <p>Priyanka Sundhar · <a href="mailto:priyankassundhar@gmail.com">priyankassundhar@gmail.com</a></p>
+</div>
 
-  <!-- 08 THE ASK -->
-  <section class="ask" id="ask">
-    <div class="wrap">
-      <div class="tag">08 · THE ASK</div>
-      <div class="amount">$1M</div>
-      <div class="terms">on a SAFE at a <span>$10M valuation cap</span></div>
-      <div class="uses">
-        <div><b>01</b>Grow the operator community</div>
-        <div><b>02</b>Expand marketing</div>
-        <div><b>03</b>Deliver for existing clients</div>
-      </div>
-    </div>
-  </section>
+<p class="fine">This memo is confidential. Please don't share it without asking us first.</p>
 
 </main>
-
-<footer>
-  <div class="wrap">
-    <span class="wm" style="letter-spacing:3px;font-size:12px;color:#9A9DA2">SUPEREMPLOYEE</span>
-    <span>Confidential. Please don't share this page.</span>
-  </div>
-</footer>
-
 </body>
 </html>

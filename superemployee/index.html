@@ -3,496 +3,296 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Superemployee | The future of work for top 1% operators</title>
-<meta name="description" content="Superemployee: the future of work for the top 1% of operators. Raising from select angels.">
+<title>Superemployee</title>
+<meta name="robots" content="noindex, nofollow">
+<meta name="description" content="Superemployee is the infrastructure that enables top operators to earn $1M a year independently.">
 <link rel="icon" href="/favicon.svg">
-
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@300;400;500;700;900&amp;family=Sora:wght@200;300;400;500;600&amp;family=Caveat:wght@500&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;900&amp;family=Sora:wght@200;300;400;500;600&amp;display=swap" rel="stylesheet">
 <style>
-html,body{overflow-x:clip}body{margin:0;background:#0B0C0E}
-a{color:#F3F1EC}a:hover{color:#E9A23B}
-.u{font-family:'Sora',Arial,sans-serif}
+:root{--ink:#0B0C0E;--paper:#F3F1EC;--amber:#E9A23B;--amber-dk:#A0600E;--muted:#A9ABAF;--line:#24272C;--card:#121418}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+html,body{overflow-x:clip}
+body{margin:0;background:var(--ink);color:var(--paper);font-family:'Sora',system-ui,sans-serif;font-weight:300;-webkit-font-smoothing:antialiased}
+a{color:inherit}
+.wrap{max-width:1080px;margin:0 auto;padding:0 24px}
 .wm{font-family:'Unbounded',Arial,sans-serif}
-@keyframes la-pan{0%{background-position:15% 50%}50%{background-position:85% 50%}100%{background-position:15% 50%}}
-@keyframes la-up{from{transform:translateY(0)}to{transform:translateY(-50%)}}
-@keyframes la-down{from{transform:translateY(-50%)}to{transform:translateY(0)}}
-.la-clip{background-image:url(/superemployee/assets/hero-letters-v3.jpg);background-size:180% auto;background-position:15% 50%;-webkit-background-clip:text;background-clip:text;color:#E9A23B;-webkit-text-fill-color:transparent;animation:la-pan 26s ease-in-out infinite}
-.la-clip2{background-image:url(/superemployee/assets/athletes-letters-v3.jpg);background-size:160% auto;background-position:30% 60%;-webkit-background-clip:text;background-clip:text;color:#E9A23B;-webkit-text-fill-color:transparent;animation:la-pan 30s ease-in-out infinite}
-.la-col{display:flex;flex-direction:column;gap:14px}
-.la-up{animation:la-up 46s linear infinite}
-.la-down{animation:la-down 52s linear infinite}
-.la-col img{width:100%;aspect-ratio:4/5;object-fit:cover;display:block;border-radius:8px;filter:grayscale(1) contrast(1.15)}
-@media (prefers-reduced-motion: reduce){.la-clip,.la-clip2,.la-up,.la-down{animation:none}}
-</style>
 
+/* nav */
+header{position:sticky;top:0;z-index:10;background:rgba(11,12,14,.86);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid #1A1C20}
+header .wrap{display:flex;align-items:center;justify-content:space-between;gap:16px;height:64px}
+.logo{font-family:'Unbounded',sans-serif;font-weight:500;font-size:13px;letter-spacing:4px;text-decoration:none}
+nav{display:flex;gap:22px;font-size:13px;overflow-x:auto;scrollbar-width:none}
+nav::-webkit-scrollbar{display:none}
+nav a{color:#9A9DA2;text-decoration:none;white-space:nowrap}
+nav a:hover{color:var(--amber)}
+@media (max-width:860px){nav{display:none}}
+
+/* hero */
+.hero{padding:120px 0 96px;text-align:center}
+.tag{display:inline-flex;gap:12px;align-items:center;font-size:11px;letter-spacing:4px;color:var(--amber)}
+.tag::before,.tag::after{content:"";width:28px;height:1px;background:var(--amber)}
+.hero h1{margin:28px 0 0;font-family:'Unbounded',sans-serif;font-weight:900;font-size:clamp(34px,8vw,92px);line-height:.95;letter-spacing:-.01em;
+  background-image:url(/superemployee/assets/hero-letters-v3.jpg);background-size:180% auto;background-position:30% 50%;-webkit-background-clip:text;background-clip:text;color:var(--amber);-webkit-text-fill-color:transparent}
+.hero p{margin:32px auto 0;max-width:640px;font-size:clamp(19px,2.4vw,26px);line-height:1.5;color:#E4E2DD;font-weight:200}
+
+/* sections */
+section.s{padding:104px 0;border-top:1px solid #1A1C20}
+section.light{background:var(--paper);color:var(--ink);border-top:0}
+.label{display:flex;align-items:center;gap:12px;font-size:11px;letter-spacing:4px;color:var(--amber)}
+.light .label{color:var(--amber-dk)}
+.label b{font-weight:500;color:inherit}
+h2{margin:20px 0 0;font-size:clamp(30px,4.6vw,48px);line-height:1.1;font-weight:200;letter-spacing:-1.5px;max-width:820px}
+.lede{margin:22px 0 0;max-width:700px;font-size:18px;line-height:1.7;color:var(--muted)}
+.light .lede{color:#4E5258}
+
+.grid{margin-top:48px;display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(min(280px,100%),1fr))}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:28px}
+.light .card{background:#fff;border-color:#E4E0D7}
+.card h3{margin:0;font-size:18px;font-weight:500;line-height:1.3}
+.card p{margin:10px 0 0;font-size:15px;line-height:1.65;color:var(--muted)}
+.light .card p{color:#4E5258}
+.card .who{font-size:11px;letter-spacing:3px;color:var(--amber);margin-bottom:14px}
+.light .card .who{color:var(--amber-dk)}
+
+/* problem split */
+.split{margin-top:48px;display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(min(300px,100%),1fr))}
+
+/* stats */
+.stats{margin-top:48px;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(200px,100%),1fr));border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.stat{padding:32px 20px 30px 0}
+.stat .n{font-size:clamp(44px,6vw,64px);font-weight:200;letter-spacing:-2px;line-height:1}
+.stat .n span{color:var(--amber)}
+.stat .d{margin-top:10px;font-size:14px;color:#9A9DA2}
+
+/* team */
+.team{margin-top:48px;display:grid;gap:20px;grid-template-columns:repeat(auto-fit,minmax(min(420px,100%),1fr))}
+.person{background:#fff;border:1px solid #E4E0D7;border-radius:22px;padding:28px;display:flex;gap:24px;align-items:flex-start}
+.person img{width:120px;height:150px;object-fit:cover;border-radius:12px;flex:0 0 auto;mix-blend-mode:multiply}
+.person .role{font-size:11px;letter-spacing:3px;color:var(--amber-dk)}
+.person .name{margin-top:8px;font-size:24px;font-weight:500;line-height:1.15}
+.person ul{margin:14px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px}
+.person li{font-size:15px;line-height:1.5;color:#3A3D42;padding-left:16px;position:relative}
+.person li::before{content:"";position:absolute;left:0;top:.62em;width:6px;height:6px;border-radius:50%;background:var(--amber)}
+@media (max-width:480px){.person{flex-direction:column}.person img{width:100px;height:125px}}
+
+/* flywheel */
+.flow{margin-top:48px;display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(min(300px,100%),1fr))}
+.flow .card{position:relative}
+.flow .card .big{font-size:15px;color:var(--paper);font-weight:500;margin-top:16px}
+
+/* model */
+.math{margin-top:48px;background:var(--card);border:1px solid var(--line);border-radius:22px;padding:36px 32px}
+.math .eq{display:flex;flex-wrap:wrap;align-items:baseline;gap:10px 18px;font-size:clamp(22px,3.2vw,34px);font-weight:200;letter-spacing:-.5px}
+.math .eq .op{color:#5A5E64}
+.math .eq .res{color:var(--amber);font-weight:400}
+.math .eq small{display:block;font-size:12px;letter-spacing:2px;color:#7D8086;margin-top:6px;font-weight:400}
+.math .eq > div{display:flex;flex-direction:column}
+
+/* ask */
+.ask{padding:120px 0;text-align:center;border-top:1px solid #1A1C20}
+.ask .amount{margin-top:24px;font-family:'Unbounded',sans-serif;font-weight:900;font-size:clamp(56px,12vw,140px);line-height:.95;color:var(--paper)}
+.ask .terms{margin-top:18px;font-size:clamp(17px,2.2vw,22px);color:#E4E2DD;font-weight:300}
+.ask .terms span{color:var(--amber)}
+.uses{margin:56px auto 0;max-width:860px;display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(min(240px,100%),1fr));text-align:left}
+.uses div{border:1px solid var(--line);border-radius:14px;padding:18px 20px;font-size:15px;line-height:1.5}
+.uses div b{display:block;color:var(--amber);font-weight:500;font-size:12px;letter-spacing:2px;margin-bottom:6px}
+
+footer{padding:40px 0 56px;border-top:1px solid #1A1C20;font-size:13px;color:#6A6D72}
+footer .wrap{display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px}
+</style>
 </head>
 <body>
 
-<div style="font-family: 'Sora', system-ui, sans-serif; color: #F3F1EC; background: #0B0C0E">
-
-<!-- HERO -->
-
-
-<!-- TEAM + STORY -->
-<section id="top" style="position: relative; height: 940px; overflow: hidden">
-<div aria-hidden="true" style="position: absolute; left: -10%; top: -25%; width: 120%; height: 160%; transform: rotate(-8deg); display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 14px; opacity: 0.32">
-<div class="la-col la-up"><img src="/superemployee/assets/wall-1.jpg" alt=""><img src="/superemployee/assets/wall-2.jpg" alt=""><img src="/superemployee/assets/wall-3.jpg" alt=""><img src="/superemployee/assets/wall-4.jpg" alt=""><img src="/superemployee/assets/wall-1.jpg" alt=""><img src="/superemployee/assets/wall-2.jpg" alt=""><img src="/superemployee/assets/wall-3.jpg" alt=""><img src="/superemployee/assets/wall-4.jpg" alt=""></div>
-<div class="la-col la-down"><img src="/superemployee/assets/wall-5.jpg" alt=""><img src="/superemployee/assets/wall-6.jpg" alt=""><img src="/superemployee/assets/wall-7.jpg" alt=""><img src="/superemployee/assets/wall-1.jpg" alt=""><img src="/superemployee/assets/wall-5.jpg" alt=""><img src="/superemployee/assets/wall-6.jpg" alt=""><img src="/superemployee/assets/wall-7.jpg" alt=""><img src="/superemployee/assets/wall-1.jpg" alt=""></div>
-<div class="la-col la-up"><img src="/superemployee/assets/wall-4.jpg" alt=""><img src="/superemployee/assets/wall-3.jpg" alt=""><img src="/superemployee/assets/wall-2.jpg" alt=""><img src="/superemployee/assets/wall-5.jpg" alt=""><img src="/superemployee/assets/wall-4.jpg" alt=""><img src="/superemployee/assets/wall-3.jpg" alt=""><img src="/superemployee/assets/wall-2.jpg" alt=""><img src="/superemployee/assets/wall-5.jpg" alt=""></div>
-<div class="la-col la-down"><img src="/superemployee/assets/wall-1.jpg" alt=""><img src="/superemployee/assets/wall-2.jpg" alt=""><img src="/superemployee/assets/wall-3.jpg" alt=""><img src="/superemployee/assets/wall-4.jpg" alt=""><img src="/superemployee/assets/wall-1.jpg" alt=""><img src="/superemployee/assets/wall-2.jpg" alt=""><img src="/superemployee/assets/wall-3.jpg" alt=""><img src="/superemployee/assets/wall-4.jpg" alt=""></div>
-<div class="la-col la-up"><img src="/superemployee/assets/wall-5.jpg" alt=""><img src="/superemployee/assets/wall-6.jpg" alt=""><img src="/superemployee/assets/wall-7.jpg" alt=""><img src="/superemployee/assets/wall-1.jpg" alt=""><img src="/superemployee/assets/wall-5.jpg" alt=""><img src="/superemployee/assets/wall-6.jpg" alt=""><img src="/superemployee/assets/wall-7.jpg" alt=""><img src="/superemployee/assets/wall-1.jpg" alt=""></div>
-<div class="la-col la-down"><img src="/superemployee/assets/wall-4.jpg" alt=""><img src="/superemployee/assets/wall-3.jpg" alt=""><img src="/superemployee/assets/wall-2.jpg" alt=""><img src="/superemployee/assets/wall-5.jpg" alt=""><img src="/superemployee/assets/wall-4.jpg" alt=""><img src="/superemployee/assets/wall-3.jpg" alt=""><img src="/superemployee/assets/wall-2.jpg" alt=""><img src="/superemployee/assets/wall-5.jpg" alt=""></div>
-</div>
-<div style="position: absolute; inset: 0; background: radial-gradient(ellipse at center, rgba(11,12,14,0.9) 0%, rgba(11,12,14,0.72) 45%, rgba(11,12,14,0.45) 100%)"></div>
-<div style="position: absolute; left: 0; right: 0; bottom: 0; height: 200px; background: linear-gradient(180deg, rgba(11,12,14,0) 0%, #0B0C0E 100%)"></div>
-
-<header style="position: relative; max-width: 1240px; margin: 0 auto; padding: 30px 24px; display: flex; flex-wrap: wrap; gap: 16px; align-items: center; justify-content: space-between">
-<a href="#top" class="wm" style="font-weight: 500; font-size: 14px; letter-spacing: 4px; text-decoration: none">SUPEREMPLOYEE</a>
-<nav style="display: flex; flex-wrap: wrap; gap: 8px 28px; align-items: center; font-size: 14px">
-<a href="#team" style="color: #C9CBCF; text-decoration: none">Team</a>
-<a href="#khaled" style="color: #C9CBCF; text-decoration: none">Superemployees</a>
-<a href="#whynow" style="color: #C9CBCF; text-decoration: none">Why now</a>
-<a href="#model" style="color: #C9CBCF; text-decoration: none">Model</a>
-<a href="#raise" style="color: #C9CBCF; text-decoration: none">The raise</a>
-<a href="#raise" style="color: #0B0C0E; background: #F3F1EC; border-radius: 999px; padding: 11px 22px; text-decoration: none">Apply</a>
-</nav>
+<header>
+  <div class="wrap">
+    <a href="#top" class="logo">SUPEREMPLOYEE</a>
+    <nav aria-label="Sections">
+      <a href="#problem">Problem</a>
+      <a href="#solution">Solution</a>
+      <a href="#why-now">Why now</a>
+      <a href="#team">Team</a>
+      <a href="#traction">Traction</a>
+      <a href="#network">Network effects</a>
+      <a href="#model">Business model</a>
+      <a href="#ask">The ask</a>
+    </nav>
+  </div>
 </header>
 
-<div style="position: relative; max-width: 1280px; margin: 0 auto; padding: 96px 24px 0; text-align: center">
-<div class="u" style="display: inline-flex; gap: 14px; align-items: center; font-size: 12px; letter-spacing: 4px; color: #E9A23B"><span style="width: 32px; height: 1px; background: #E9A23B"></span>BY APPLICATION ONLY · TOP 1%<span style="width: 32px; height: 1px; background: #E9A23B"></span></div>
-<div style="margin-top: 36px; font-size: clamp(22px, 2.8vw, 38px); font-weight: 200; color: #E4E2DD">The future of work for top 1% operators.</div>
-<h1 class="wm la-clip" style="margin: 20px 0 0; font-weight: 900; font-size: clamp(30px, 7.6vw, 88px); line-height: 0.95; letter-spacing: -0.01em">SUPEREMPLOYEE</h1>
-<p style="margin: 36px auto 0; font-size: 19px; font-weight: 300; line-height: 1.6; color: #BFC2C6; max-width: 620px">Elite operators, fully independent. Full-time results for a portfolio of the best startups, uncapped earnings, and no boss.</p>
-<div style="margin-top: 36px; display: flex; flex-wrap: wrap; gap: 12px; justify-content: center">
-<a href="#raise" style="color: #0B0C0E; background: #F3F1EC; padding: 16px 30px; border-radius: 999px; text-decoration: none; font-weight: 600; font-size: 15px">Apply to join</a>
-<a href="#raise" style="padding: 15px 29px; border-radius: 999px; text-decoration: none; font-size: 15px; border: 1px solid rgba(243,241,236,0.35); background: rgba(11,12,14,0.4)">For investors</a>
-</div>
-<div style="margin: 72px auto 0; max-width: 980px; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr)); border-top: 1px solid rgba(243,241,236,0.16); border-bottom: 1px solid rgba(243,241,236,0.16); background: rgba(11,12,14,0.5)">
-
-<div style="padding: 22px 12px"><div class="u" style="font-size: 26px; font-weight: 200">$1M</div><div style="margin-top: 6px; font-size: 13px; color: #9A9DA2">Earnings target / yr</div></div>
-
-<div style="padding: 22px 12px"><div class="u" style="font-size: 26px; font-weight: 200">4–8</div><div style="margin-top: 6px; font-size: 13px; color: #9A9DA2">Companies at once</div></div>
-
-<div style="padding: 22px 12px"><div class="u" style="font-size: 26px; font-weight: 200">0</div><div style="margin-top: 6px; font-size: 13px; color: #9A9DA2">Bosses</div></div>
-
-<div style="padding: 22px 12px"><div class="u" style="font-size: 26px; font-weight: 200">Top 1%</div><div style="margin-top: 6px; font-size: 13px; color: #9A9DA2">Of operators</div></div>
-
-</div>
-</div>
-</section><section id="team" style="max-width: 1240px; margin: 0 auto; padding: 120px 24px 136px">
-<div style="text-align: center">
-<div class="u" style="font-size: 12px; letter-spacing: 4px; color: #E9A23B">N°01 · THE TEAM</div>
-<h2 class="u" style="margin: 24px auto 0; font-size: 56px; line-height: 1.08; font-weight: 200; letter-spacing: -2px; max-width: 980px">We were the operators everyone wanted to hire.</h2>
-<p style="margin: 32px auto 0; font-size: 20px; line-height: 1.7; font-weight: 300; color: #C9CBCF; max-width: 780px">Founders kept trying to hire us full time. We would have made good money either way, but we wanted more: freedom over our time, our work and who we work with. So we went fractional, back when fractional meant winding down a career. Founders said yes anyway. With AI, an embedded operator delivers full-time results in a fraction of the hours. We built Superemployee so the best operators never have to choose.</p>
-</div>
-<div style="margin-top: 72px; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(440px, 100%), 1fr)); gap: 24px">
-
-<div style="background: #F3F1EC; color: #0B0C0E; border-radius: 24px; padding: 36px; display: flex; flex-direction: column; gap: 28px">
-<div style="display: flex; gap: 28px; align-items: center">
-<img src="/superemployee/assets/priyanka-sketch.png" alt="Sketch portrait of Priyanka Sundhar" style="width: 170px; height: 210px; object-fit: cover; border-radius: 14px; flex: 0 0 auto; mix-blend-mode: multiply">
-<div>
-<div class="u" style="font-size: 11px; letter-spacing: 3px; color: #A0600E">CO-FOUNDER</div>
-<div class="u" style="margin-top: 10px; font-size: 30px; font-weight: 500; line-height: 1.1">Priyanka Sundhar</div>
-</div>
-</div>
-<div style="display: flex; flex-direction: column; gap: 10px">
-
-<div style="display: flex; gap: 14px; align-items: center; background: #FFFFFF; border: 1px solid #E4E0D7; border-radius: 12px; padding: 12px 16px">
-<span style="flex: 0 0 auto; width: 38px; height: 38px; border-radius: 10px; background: #0B0C0E; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18a9 9 0 1 0 0-18 M5.6 5.6c3.2 3.2 3.2 9.6 0 12.8 M18.4 5.6c-3.2 3.2-3.2 9.6 0 12.8" fill="none" stroke="#E9A23B" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"></path></svg></span>
-<span style="font-size: 15px; line-height: 1.4"><b>Ex pro tennis player</b> <span style="color: #5A5E64">world-ranked</span></span>
-</div>
-
-<div style="display: flex; gap: 14px; align-items: center; background: #FFFFFF; border: 1px solid #E4E0D7; border-radius: 12px; padding: 12px 16px">
-<span style="flex: 0 0 auto; width: 38px; height: 38px; border-radius: 10px; background: #0B0C0E; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 15c-1.5 1.5-2 4-2 6c2 0 4.5-.5 6-2 M9 13l2 2 M14.5 4.5C17 2 21 3 21 3s1 4-1.5 6.5L13 16l-5-5 6.5-6.5z M15.5 8.5h.01" fill="none" stroke="#E9A23B" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"></path></svg></span>
-<span style="font-size: 15px; line-height: 1.4"><b>VC-backed founder</b> <span style="color: #5A5E64">2x founder</span></span>
-</div>
-
-<div style="display: flex; gap: 14px; align-items: center; background: #FFFFFF; border: 1px solid #E4E0D7; border-radius: 12px; padding: 12px 16px">
-<span style="flex: 0 0 auto; width: 38px; height: 38px; border-radius: 10px; background: #0B0C0E; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 21h8 M12 17v4 M7 4h10v5a5 5 0 0 1-10 0V4z M7 6H4a3 3 0 0 0 3 4 M17 6h3a3 3 0 0 1-3 4" fill="none" stroke="#E9A23B" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"></path></svg></span>
-<span style="font-size: 15px; line-height: 1.4"><b>Founding AE at Securitize</b> <span style="color: #5A5E64">through its IPO</span></span>
-</div>
-
-<div style="display: flex; gap: 14px; align-items: center; background: #FFFFFF; border: 1px solid #E4E0D7; border-radius: 12px; padding: 12px 16px">
-<span style="flex: 0 0 auto; width: 38px; height: 38px; border-radius: 10px; background: #0B0C0E; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3v18h18 M7 15l4-4 3 3 6-6 M15 8h5v5" fill="none" stroke="#E9A23B" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"></path></svg></span>
-<span style="font-size: 15px; line-height: 1.4"><b>Fractional growth, Structured Labs (YC)</b> <span style="color: #5A5E64">acquired by Salesforce</span></span>
-</div>
-
-<div style="display: flex; gap: 14px; align-items: center; background: #FFFFFF; border: 1px solid #E4E0D7; border-radius: 12px; padding: 12px 16px">
-<span style="flex: 0 0 auto; width: 38px; height: 38px; border-radius: 10px; background: #0B0C0E; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18a9 9 0 1 0 0-18 M3 12h18 M12 3c3 3 3 15 0 18 M12 3c-3 3-3 15 0 18" fill="none" stroke="#E9A23B" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"></path></svg></span>
-<span style="font-size: 15px; line-height: 1.4"><b>Did it remotely</b> <span style="color: #5A5E64">while traveling Southeast Asia</span></span>
-</div>
-
-</div>
-</div>
-
-<div style="background: #F3F1EC; color: #0B0C0E; border-radius: 24px; padding: 36px; display: flex; flex-direction: column; gap: 28px">
-<div style="display: flex; gap: 28px; align-items: center">
-<img src="/superemployee/assets/khaled-sketch.png" alt="Sketch portrait of Khaled Alameldin" style="width: 170px; height: 210px; object-fit: cover; border-radius: 14px; flex: 0 0 auto; mix-blend-mode: multiply">
-<div>
-<div class="u" style="font-size: 11px; letter-spacing: 3px; color: #A0600E">CO-FOUNDER ·CEO</div>
-<div class="u" style="margin-top: 10px; font-size: 30px; font-weight: 500; line-height: 1.1">Khaled Alameldin</div>
-</div>
-</div>
-<div style="display: flex; flex-direction: column; gap: 10px">
-
-<div style="display: flex; gap: 14px; align-items: center; background: #FFFFFF; border: 1px solid #E4E0D7; border-radius: 12px; padding: 12px 16px">
-<span style="flex: 0 0 auto; width: 38px; height: 38px; border-radius: 10px; background: #0B0C0E; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3z M5 11a7 7 0 0 0 14 0 M12 18v3" fill="none" stroke="#E9A23B" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"></path></svg></span>
-<span style="font-size: 15px; line-height: 1.4"><b>National debate champion</b> <span style="color: #5A5E64"></span></span>
-</div>
-
-<div style="display: flex; gap: 14px; align-items: center; background: #FFFFFF; border: 1px solid #E4E0D7; border-radius: 12px; padding: 12px 16px">
-<span style="flex: 0 0 auto; width: 38px; height: 38px; border-radius: 10px; background: #0B0C0E; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3v18h18 M7 15l4-4 3 3 6-6 M15 8h5v5" fill="none" stroke="#E9A23B" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"></path></svg></span>
-<span style="font-size: 15px; line-height: 1.4"><b>2x head of growth at Revamp</b> <span style="color: #5A5E64">$0 to $3M</span></span>
-</div>
-
-<div style="display: flex; gap: 14px; align-items: center; background: #FFFFFF; border: 1px solid #E4E0D7; border-radius: 12px; padding: 12px 16px">
-<span style="flex: 0 0 auto; width: 38px; height: 38px; border-radius: 10px; background: #0B0C0E; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l9 5-9 5-9-5 9-5z M3 13l9 5 9-5" fill="none" stroke="#E9A23B" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"></path></svg></span>
-<span style="font-size: 15px; line-height: 1.4"><b>Fractional growth lead</b> <span style="color: #5A5E64">for 4 YC startups</span></span>
-</div>
-
-<div style="display: flex; gap: 14px; align-items: center; background: #FFFFFF; border: 1px solid #E4E0D7; border-radius: 12px; padding: 12px 16px">
-<span style="flex: 0 0 auto; width: 38px; height: 38px; border-radius: 10px; background: #0B0C0E; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11a4 4 0 1 0 0-.01 M2 21c0-4 3-6 7-6s7 2 7 6 M16 4a4 4 0 0 1 0 7 M22 21c0-3-2-5-4-5.5" fill="none" stroke="#E9A23B" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"></path></svg></span>
-<span style="font-size: 15px; line-height: 1.4"><b>Founder of SF’s largest community</b> <span style="color: #5A5E64">of top growth operators</span></span>
-</div>
-
-</div>
-</div>
-
-</div>
-</section>
-
-<!-- KHALED -->
-<section id="khaled" style="background: #F3F1EC; color: #0B0C0E">
-<div style="max-width: 1240px; margin: 0 auto; padding: 136px 24px; display: flex; flex-wrap: wrap; gap: 56px 72px; align-items: center">
-<div style="flex: 1 1 380px; min-width: 0; position: relative; display: flex; justify-content: center">
-<div class="u" aria-hidden="true" style="position: absolute; left: 0; top: -20px; font-size: 140px; font-weight: 900; line-height: 1; color: #0B0C0E; opacity: 0.07">#001</div>
-<img src="/superemployee/assets/khaled-sketch.png" alt="Sketch portrait of Khaled Alameldin" style="position: relative; width: 100%; max-width: 460px; height: auto; display: block; mix-blend-mode: multiply">
-</div>
-<div style="flex: 999 1 520px; min-width: 0">
-<div class="u" style="font-size: 12px; letter-spacing: 4px; color: #A0600E">N°02 · SUPEREMPLOYEE #001</div>
-<h2 class="u" style="margin: 20px 0 0; font-size: 56px; line-height: 1.04; font-weight: 200; letter-spacing: -2px">Khaled Alameldin</h2>
-<p style="margin: 24px 0 0; font-size: 19px; line-height: 1.65; color: #3A3D42; max-width: 600px">Founders tried to hire Khaled full time. He said no, and offered to embed instead. They took the deal. Today he runs growth for four YC-backed startups at once, with a pipeline he can barely keep up with.</p>
-<div style="margin-top: 32px; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(160px, 100%), 1fr)); gap: 12px">
-
-<div style="background: #0B0C0E; color: #F3F1EC; border-radius: 16px; padding: 22px"><svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l9 5-9 5-9-5 9-5z M3 13l9 5 9-5" fill="none" stroke="#E9A23B" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"></path></svg><div class="u" style="margin-top: 14px; font-size: 30px; font-weight: 200">4</div><div style="margin-top: 6px; font-size: 14px; color: #C9CBCF">YC-backed startups at once</div></div>
-
-<div style="background: #0B0C0E; color: #F3F1EC; border-radius: 16px; padding: 22px"><svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2v20 M17 6H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" fill="none" stroke="#E9A23B" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"></path></svg><div class="u" style="margin-top: 14px; font-size: 30px; font-weight: 200">$10K–$15K</div><div style="margin-top: 6px; font-size: 14px; color: #C9CBCF">Monthly retainer per client</div></div>
-
-<div style="background: #0B0C0E; color: #F3F1EC; border-radius: 16px; padding: 22px"><svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z" fill="none" stroke="#E9A23B" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"></path></svg><div class="u" style="margin-top: 14px; font-size: 30px; font-weight: 200">0</div><div style="margin-top: 6px; font-size: 14px; color: #C9CBCF">Full-time offers accepted</div></div>
-
-</div>
-<div style="margin-top: 24px; display: flex; flex-wrap: wrap; gap: 10px">
-
-<span style="display: inline-flex; gap: 10px; align-items: center; border: 1px solid #CFCAC0; border-radius: 999px; padding: 9px 16px 9px 12px; font-size: 14px"><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3z M5 11a7 7 0 0 0 14 0 M12 18v3" fill="none" stroke="#A0600E" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path></svg>National debate champion</span>
-
-<span style="display: inline-flex; gap: 10px; align-items: center; border: 1px solid #CFCAC0; border-radius: 999px; padding: 9px 16px 9px 12px; font-size: 14px"><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3v18h18 M7 15l4-4 3 3 6-6 M15 8h5v5" fill="none" stroke="#A0600E" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path></svg>2x head of growth, Revamp ($0 to $3M)</span>
-
-<span style="display: inline-flex; gap: 10px; align-items: center; border: 1px solid #CFCAC0; border-radius: 999px; padding: 9px 16px 9px 12px; font-size: 14px"><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11a4 4 0 1 0 0-.01 M2 21c0-4 3-6 7-6s7 2 7 6 M16 4a4 4 0 0 1 0 7 M22 21c0-3-2-5-4-5.5" fill="none" stroke="#A0600E" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path></svg>Founder, SF’s top growth community</span>
-
-</div>
-</div>
-</div>
-</section>
-
-<!-- ERIC -->
-<section style="max-width: 1240px; margin: 0 auto; padding: 136px 24px">
-<div style="display: flex; flex-wrap: wrap; gap: 56px 72px; align-items: center">
-<div style="flex: 999 1 520px; min-width: 0">
-<div class="u" style="font-size: 12px; letter-spacing: 4px; color: #E9A23B">N°03 · NEXT UP</div>
-<h2 class="u" style="margin: 20px 0 0; font-size: 56px; line-height: 1.04; font-weight: 200; letter-spacing: -2px">Eric Bower</h2>
-<div style="margin-top: 28px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px">
-
-<div style="display: flex; gap: 14px; align-items: center; border: 1px solid #2C2F35; border-radius: 14px; padding: 16px"><span style="flex: 0 0 auto; width: 40px; height: 40px; border-radius: 10px; background: #1A1C20; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 8h18v12H3z M8 8V5h8v3 M3 13h18" fill="none" stroke="#E9A23B" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"></path></svg></span><span style="font-size: 15px; line-height: 1.35">Head of sales</span></div>
-
-<div style="display: flex; gap: 14px; align-items: center; border: 1px solid #2C2F35; border-radius: 14px; padding: 16px"><span style="flex: 0 0 auto; width: 40px; height: 40px; border-radius: 10px; background: #1A1C20; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 21h8 M12 17v4 M7 4h10v5a5 5 0 0 1-10 0V4z M7 6H4a3 3 0 0 0 3 4 M17 6h3a3 3 0 0 1-3 4" fill="none" stroke="#E9A23B" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"></path></svg></span><span style="font-size: 15px; line-height: 1.35">2x founding AE</span></div>
-
-<div style="display: flex; gap: 14px; align-items: center; border: 1px solid #2C2F35; border-radius: 14px; padding: 16px"><span style="flex: 0 0 auto; width: 40px; height: 40px; border-radius: 10px; background: #1A1C20; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V4 M5 4h11l-2 4 2 4H5" fill="none" stroke="#E9A23B" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"></path></svg></span><span style="font-size: 15px; line-height: 1.35">Exited startup</span></div>
-
-<div style="display: flex; gap: 14px; align-items: center; border: 1px solid #2C2F35; border-radius: 14px; padding: 16px"><span style="flex: 0 0 auto; width: 40px; height: 40px; border-radius: 10px; background: #1A1C20; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18a9 9 0 1 0 0-18 M3 12h18 M12 3v18 M5.5 5.5c3 2.5 3 10.5 0 13 M18.5 5.5c-3 2.5-3 10.5 0 13" fill="none" stroke="#E9A23B" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"></path></svg></span><span style="font-size: 15px; line-height: 1.35">D1 basketball, UCSB</span></div>
-
-</div>
-<div style="margin-top: 32px; border-left: 2px solid #E9A23B; padding: 4px 0 4px 24px">
-<div class="u" style="font-size: 11px; letter-spacing: 3px; color: #8C8F94">THE QUESTION ELITE OPERATORS ARE ASKING</div>
-<p style="margin: 12px 0 0; font-size: 24px; line-height: 1.45; font-weight: 300">If I can make $1M a year with total freedom, why lock myself into one company for 10–12 hours a day?</p>
-</div>
-</div>
-<div style="flex: 1 1 360px; min-width: 0; display: flex; justify-content: center">
-<div style="background: #F3F1EC; border-radius: 24px; padding: 16px; width: 100%; max-width: 420px">
-<img src="/superemployee/assets/eric-sketch.png" alt="Sketch portrait of Eric Bower" style="width: 100%; height: auto; display: block; border-radius: 14px">
-<div class="u" style="padding: 14px 8px 4px; font-size: 11px; letter-spacing: 3px; color: #A0600E">IN THE PIPELINE</div>
-</div>
-</div>
-</div>
-</section>
-
-<!-- PRO ATHLETES OF WORK -->
-<section id="cut" style="border-top: 1px solid #1C1E22; border-bottom: 1px solid #1C1E22; overflow: hidden">
-<div style="max-width: 1240px; margin: 0 auto; padding: 136px 24px">
-<div class="u" style="font-size: 12px; letter-spacing: 4px; color: #E9A23B; text-align: center">N°04 · WHO MAKES THE CUT</div>
-<h2 class="wm la-clip2" style="margin: 24px 0 0; font-size: clamp(40px, 8vw, 112px); line-height: 0.95; font-weight: 900; letter-spacing: -2px; text-align: center">THE PRO ATHLETES OF WORK</h2>
-<p style="margin: 28px auto 0; font-size: 19px; line-height: 1.6; color: #A9ABAF; max-width: 620px; text-align: center">An intensive selection and interview process. We accept the top 1% of operators, and only grow by adding people who raise the bar.</p>
-<div style="margin-top: 72px; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr)); gap: 16px">
-
-<div style="border: 1px solid #2C2F35; border-radius: 18px; padding: 28px; background: #101215"><svg width="30" height="30" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 15c-1.5 1.5-2 4-2 6c2 0 4.5-.5 6-2 M9 13l2 2 M14.5 4.5C17 2 21 3 21 3s1 4-1.5 6.5L13 16l-5-5 6.5-6.5z M15.5 8.5h.01" fill="none" stroke="#E9A23B" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg><div class="u" style="margin-top: 22px; font-size: 18px; font-weight: 500; line-height: 1.3">Ex-founders</div></div>
-
-<div style="border: 1px solid #2C2F35; border-radius: 18px; padding: 28px; background: #101215"><svg width="30" height="30" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V4 M5 4h11l-2 4 2 4H5" fill="none" stroke="#E9A23B" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg><div class="u" style="margin-top: 22px; font-size: 18px; font-weight: 500; line-height: 1.3">Early employees to exit / IPO</div></div>
-
-<div style="border: 1px solid #2C2F35; border-radius: 18px; padding: 28px; background: #101215"><svg width="30" height="30" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 21h8 M12 17v4 M7 4h10v5a5 5 0 0 1-10 0V4z M7 6H4a3 3 0 0 0 3 4 M17 6h3a3 3 0 0 1-3 4" fill="none" stroke="#E9A23B" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg><div class="u" style="margin-top: 22px; font-size: 18px; font-weight: 500; line-height: 1.3">World-class at a young age</div></div>
-
-<div style="border: 1px solid #2C2F35; border-radius: 18px; padding: 28px; background: #101215"><svg width="30" height="30" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18a9 9 0 1 0 0-18 M15.5 8.5l-2 5-5 2 2-5z" fill="none" stroke="#E9A23B" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg><div class="u" style="margin-top: 22px; font-size: 18px; font-weight: 500; line-height: 1.3">Unique backgrounds</div></div>
-
-<div style="border: 1px solid #2C2F35; border-radius: 18px; padding: 28px; background: #101215"><svg width="30" height="30" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l2.8 5.8 6.2.9-4.5 4.4 1 6.2-5.5-2.9-5.5 2.9 1-6.2L3 9.7l6.2-.9z" fill="none" stroke="#E9A23B" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg><div class="u" style="margin-top: 22px; font-size: 18px; font-weight: 500; line-height: 1.3">Obsessed with their craft</div></div>
-
-<div style="border: 1px solid #2C2F35; border-radius: 18px; padding: 28px; background: #101215"><svg width="30" height="30" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 8l4 4 5-7 5 7 4-4-2 11H5z" fill="none" stroke="#E9A23B" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg><div class="u" style="margin-top: 22px; font-size: 18px; font-weight: 500; line-height: 1.3">Results over time</div></div>
-
-</div>
-</div>
-</section>
-
-<!-- THE BENCH -->
-<section id="bench" style="background: #0B0C0E; color: #F3F1EC; border-top: 1px solid #1C1E22">
-<div style="max-width: 1240px; margin: 0 auto; padding: 136px 24px">
-<div class="u" style="font-size: 12px; font-weight: 500; letter-spacing: 4px; color: #E9A23B">N°05 · THE BENCH</div>
-<h2 class="u" style="margin: 24px 0 0; font-size: 56px; line-height: 1.08; font-weight: 200; letter-spacing: -2px; max-width: 900px">A deep bench of superemployees, <span style="color: #E9A23B">ready to sign.</span></h2>
-<div style="margin-top: 64px; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr)); gap: 20px">
-<div style="border: 1px solid #2C2F35; border-radius: 22px; padding: 36px 32px"><div style="font-size: 88px; font-weight: 200; line-height: 1; letter-spacing: -3px">~30</div><p style="margin: 18px 0 0; font-size: 17px; line-height: 1.6; color: #A9ABAF">Top growth operators at Monopoly Money Mondays, run by Khaled.</p></div>
-<div style="border: 1px solid #2C2F35; border-radius: 22px; padding: 36px 32px"><div style="font-size: 88px; font-weight: 200; line-height: 1; letter-spacing: -3px">50+</div><p style="margin: 18px 0 0; font-size: 17px; line-height: 1.6; color: #A9ABAF">Operators in our network who already fit the criteria.</p></div>
-<div style="border: 1px solid #2C2F35; border-radius: 22px; padding: 36px 32px"><div style="font-size: 88px; font-weight: 200; line-height: 1; letter-spacing: -3px">1</div><p style="margin: 18px 0 0; font-size: 17px; line-height: 1.6; color: #A9ABAF">Signed superemployee, with more in conversation.</p></div>
-</div>
-<p style="margin: 48px 0 0; padding-top: 28px; border-top: 1px solid #2C2F35; font-size: 20px; font-weight: 200; line-height: 1.6; color: #E4E2DD">We live inside the <span style="color: #E9A23B">Y Combinator and a16z speedrun</span> circles, where the best operators already are.</p>
-</div>
-</section>
-
-<!-- WHY NOW -->
-<section id="whynow" style="background: #F3F1EC; color: #0B0C0E">
-<div style="max-width: 1240px; margin: 0 auto; padding: 136px 24px">
-<div class="u" style="font-size: 12px; letter-spacing: 4px; color: #A0600E">N°06 · WHY NOW</div>
-<h2 class="u" style="margin: 24px 0 0; font-size: 56px; line-height: 1.06; font-weight: 200; letter-spacing: -2px; max-width: 980px">The power is shifting from companies to operators.</h2>
-<div style="margin-top: 64px; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(270px, 100%), 1fr)); gap: 20px">
-
-<div style="border: 1.5px solid #0B0C0E; border-radius: 20px; padding: 32px; display: flex; flex-direction: column; gap: 18px; background: #F3F1EC">
-<div style="display: flex; justify-content: space-between; align-items: center"><span style="width: 56px; height: 56px; border-radius: 50%; background: #0B0C0E; display: flex; align-items: center; justify-content: center"><svg width="26" height="26" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2L4 14h7l-1 8 9-12h-7z" fill="none" stroke="#E9A23B" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path></svg></span><span class="u" style="font-size: 14px; color: #A0600E">01</span></div>
-<h3 class="u" style="margin: 0; font-size: 22px; font-weight: 500; line-height: 1.25">AI made it possible.</h3>
-<p style="margin: 0; font-size: 15px; line-height: 1.65; color: #4E5258">One operator with AI ships what used to take a team. MVPs in days, not months. Full-time results no longer need full-time hours.</p>
-</div>
-
-<div style="border: 1.5px solid #0B0C0E; border-radius: 20px; padding: 32px; display: flex; flex-direction: column; gap: 18px; background: #F3F1EC">
-<div style="display: flex; justify-content: space-between; align-items: center"><span style="width: 56px; height: 56px; border-radius: 50%; background: #0B0C0E; display: flex; align-items: center; justify-content: center"><svg width="26" height="26" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z M12 9a3 3 0 1 0 0 6a3 3 0 1 0 0-6" fill="none" stroke="#E9A23B" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path></svg></span><span class="u" style="font-size: 14px; color: #A0600E">02</span></div>
-<h3 class="u" style="margin: 0; font-size: 22px; font-weight: 500; line-height: 1.25">AI is a mirror on talent.</h3>
-<p style="margin: 0; font-size: 15px; line-height: 1.65; color: #4E5258">Weak work is obvious faster than ever, and companies give it less grace. Elite operators stand out, and everyone wants them.</p>
-</div>
-
-<div style="border: 1.5px solid #0B0C0E; border-radius: 20px; padding: 32px; display: flex; flex-direction: column; gap: 18px; background: #F3F1EC">
-<div style="display: flex; justify-content: space-between; align-items: center"><span style="width: 56px; height: 56px; border-radius: 50%; background: #0B0C0E; display: flex; align-items: center; justify-content: center"><svg width="26" height="26" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18a9 9 0 1 0 0-18 M15.5 8.5l-2 5-5 2 2-5z" fill="none" stroke="#E9A23B" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path></svg></span><span class="u" style="font-size: 14px; color: #A0600E">03</span></div>
-<h3 class="u" style="margin: 0; font-size: 22px; font-weight: 500; line-height: 1.25">Freedom is the new status.</h3>
-<p style="margin: 0; font-size: 15px; line-height: 1.65; color: #4E5258">Gen Z won’t trade 10-hour office days for a salary. Personal brands give operators their own leverage.</p>
-</div>
-
-<div style="border: 1.5px solid #0B0C0E; border-radius: 20px; padding: 32px; display: flex; flex-direction: column; gap: 18px; background: #F3F1EC">
-<div style="display: flex; justify-content: space-between; align-items: center"><span style="width: 56px; height: 56px; border-radius: 50%; background: #0B0C0E; display: flex; align-items: center; justify-content: center"><svg width="26" height="26" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18a9 9 0 1 0 0-18 M12 7a5 5 0 1 0 0 10a5 5 0 1 0 0-10 M12 11a1 1 0 1 0 0 2" fill="none" stroke="#E9A23B" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path></svg></span><span class="u" style="font-size: 14px; color: #A0600E">04</span></div>
-<h3 class="u" style="margin: 0; font-size: 22px; font-weight: 500; line-height: 1.25">Hiring has never been harder.</h3>
-<p style="margin: 0; font-size: 15px; line-height: 1.65; color: #4E5258">Competition for top talent keeps intensifying. Companies need a better way to attract the best people.</p>
-</div>
-
-</div>
-</div>
-</section>
-
-<!-- THE PLATFORM -->
-<section style="max-width: 1240px; margin: 0 auto; padding: 136px 24px">
-<div style="display: flex; flex-wrap: wrap; gap: 24px 64px; align-items: flex-end; justify-content: space-between">
-<div style="flex: 1 1 600px; min-width: 0">
-<div class="u" style="font-size: 12px; letter-spacing: 4px; color: #E9A23B">N°07 · THE PLATFORM</div>
-<h2 class="u" style="margin: 24px 0 0; font-size: 48px; line-height: 1.1; font-weight: 200; letter-spacing: -1.8px">Pro athletes have a whole team. Now elite operators do too.</h2>
-</div>
-</div>
-<div style="margin-top: 64px; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(340px, 100%), 1fr)); gap: 16px">
-
-<div style="display: flex; gap: 22px; align-items: flex-start; background: #121418; border: 1px solid #24272C; border-radius: 18px; padding: 28px">
-<span style="flex: 0 0 auto; width: 56px; height: 56px; border-radius: 14px; background: #E9A23B; display: flex; align-items: center; justify-content: center"><svg width="26" height="26" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h9l4 4v14H6z M14 3v5h5 M9 13h6 M9 17h4" fill="none" stroke="#0B0C0E" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path></svg></span>
-<div>
-<div class="u" style="font-size: 18px; font-weight: 500">A deal flow agent</div>
-<p style="margin: 8px 0 0; font-size: 15px; line-height: 1.6; color: #A9ABAF">A pipeline of high-quality companies that want you, with contracts negotiated for you.</p>
-</div>
-</div>
-
-<div style="display: flex; gap: 22px; align-items: flex-start; background: #121418; border: 1px solid #24272C; border-radius: 18px; padding: 28px">
-<span style="flex: 0 0 auto; width: 56px; height: 56px; border-radius: 14px; background: #E9A23B; display: flex; align-items: center; justify-content: center"><svg width="26" height="26" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7h10v10H7z M9 3v4 M15 3v4 M9 17v4 M15 17v4 M3 9h4 M3 15h4 M17 9h4 M17 15h4" fill="none" stroke="#0B0C0E" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path></svg></span>
-<div>
-<div class="u" style="font-size: 18px; font-weight: 500">The operating system</div>
-<p style="margin: 8px 0 0; font-size: 15px; line-height: 1.6; color: #A9ABAF">Our proprietary OS, agents and workflows that multiply your output.</p>
-</div>
-</div>
-
-<div style="display: flex; gap: 22px; align-items: flex-start; background: #121418; border: 1px solid #24272C; border-radius: 18px; padding: 28px">
-<span style="flex: 0 0 auto; width: 56px; height: 56px; border-radius: 14px; background: #E9A23B; display: flex; align-items: center; justify-content: center"><svg width="26" height="26" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 14v-2a8 8 0 0 1 16 0v2 M4 14h3v5H4z M17 14h3v5h-3z" fill="none" stroke="#0B0C0E" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path></svg></span>
-<div>
-<div class="u" style="font-size: 18px; font-weight: 500">An EA and back office</div>
-<p style="margin: 8px 0 0; font-size: 15px; line-height: 1.6; color: #A9ABAF">Billing, collections and admin handled, so you only do the work.</p>
-</div>
-</div>
-
-<div style="display: flex; gap: 22px; align-items: flex-start; background: #121418; border: 1px solid #24272C; border-radius: 18px; padding: 28px">
-<span style="flex: 0 0 auto; width: 56px; height: 56px; border-radius: 14px; background: #E9A23B; display: flex; align-items: center; justify-content: center"><svg width="26" height="26" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h18v12H3z M3 7l3-3h12l3 3 M16 13h2" fill="none" stroke="#0B0C0E" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path></svg></span>
-<div>
-<div class="u" style="font-size: 18px; font-weight: 500">Cash to make the switch</div>
-<p style="margin: 8px 0 0; font-size: 15px; line-height: 1.6; color: #A9ABAF">Upfront capital so leaving a full-time job isn’t a leap of faith.</p>
-</div>
-</div>
-
-<div style="display: flex; gap: 22px; align-items: flex-start; background: #121418; border: 1px solid #24272C; border-radius: 18px; padding: 28px">
-<span style="flex: 0 0 auto; width: 56px; height: 56px; border-radius: 14px; background: #E9A23B; display: flex; align-items: center; justify-content: center"><svg width="26" height="26" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10v4h4l6 4V6L7 10H3z M17 9a4 4 0 0 1 0 6 M19.5 6.5a8 8 0 0 1 0 11" fill="none" stroke="#0B0C0E" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path></svg></span>
-<div>
-<div class="u" style="font-size: 18px; font-weight: 500">A personal brand</div>
-<p style="margin: 8px 0 0; font-size: 15px; line-height: 1.6; color: #A9ABAF">Distribution and a name that make you more sought after every year.</p>
-</div>
-</div>
-
-<div style="display: flex; gap: 22px; align-items: flex-start; background: #121418; border: 1px solid #24272C; border-radius: 18px; padding: 28px">
-<span style="flex: 0 0 auto; width: 56px; height: 56px; border-radius: 14px; background: #E9A23B; display: flex; align-items: center; justify-content: center"><svg width="26" height="26" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v15H4z M4 10h16 M8 3v4 M16 3v4" fill="none" stroke="#0B0C0E" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path></svg></span>
-<div>
-<div class="u" style="font-size: 18px; font-weight: 500">The locker room</div>
-<p style="margin: 8px 0 0; font-size: 15px; line-height: 1.6; color: #A9ABAF">Events and a community of elite operators, founders and CEOs.</p>
-</div>
-</div>
-
-</div>
-</section>
-
-<!-- ECONOMIC MODEL -->
-<section id="model" style="background: #F3F1EC; color: #0B0C0E">
-<div style="max-width: 1240px; margin: 0 auto; padding: 136px 24px">
-<div style="display: flex; flex-wrap: wrap; gap: 32px 64px; align-items: flex-end; justify-content: space-between">
-<div style="flex: 1 1 560px; min-width: 0">
-<div class="u" style="font-size: 12px; letter-spacing: 4px; color: #A0600E">N°08 · THE ECONOMIC MODEL</div>
-<h2 class="u" style="margin: 24px 0 0; font-size: 56px; line-height: 1.06; font-weight: 200; letter-spacing: -2px">We win when our operators win.</h2>
-</div>
-<div style="flex: 0 1 360px; min-width: 0; background: #0B0C0E; color: #F3F1EC; border-radius: 16px; padding: 28px">
-<div class="u" style="font-size: 11px; letter-spacing: 3px; color: #E9A23B">THE OPERATOR’S TARGET</div>
-<div class="u" style="margin-top: 12px; font-size: 44px; font-weight: 200">$1M / yr</div>
-<div style="margin-top: 8px; font-size: 14px; color: #C9CBCF">in earnings per superemployee</div>
-</div>
-</div>
-<div style="margin-top: 56px; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(250px, 100%), 1fr)); gap: 16px">
-
-<div style="background: #FFFFFF; border: 1px solid #E2DED5; border-radius: 18px; padding: 28px"><svg width="26" height="26" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11a4 4 0 1 0 0-.01 M2 21c0-4 3-6 7-6s7 2 7 6 M16 4a4 4 0 0 1 0 7 M22 21c0-3-2-5-4-5.5" fill="none" stroke="#A0600E" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"></path></svg><div class="u" style="margin-top: 18px; font-size: 36px; font-weight: 200">10%</div><div style="margin-top: 8px; font-size: 16px; font-weight: 600">Clients from your network</div><p style="margin: 6px 0 0; font-size: 14px; line-height: 1.55; color: #4E5258">For the infrastructure: OS, EA, contracts, billing.</p></div>
-
-<div style="background: #FFFFFF; border: 1px solid #E2DED5; border-radius: 18px; padding: 28px"><svg width="26" height="26" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18a9 9 0 1 0 0-18 M12 7a5 5 0 1 0 0 10a5 5 0 1 0 0-10 M12 11a1 1 0 1 0 0 2" fill="none" stroke="#A0600E" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"></path></svg><div class="u" style="margin-top: 18px; font-size: 36px; font-weight: 200">20%</div><div style="margin-top: 8px; font-size: 16px; font-weight: 600">Clients we source</div><p style="margin: 6px 0 0; font-size: 14px; line-height: 1.55; color: #4E5258">Outbound deals we bring to the operator.</p></div>
-
-<div style="background: #FFFFFF; border: 1px solid #E2DED5; border-radius: 18px; padding: 28px"><svg width="26" height="26" viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 4a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11z M10.5 13.5L3 21 M6 18l2 2" fill="none" stroke="#A0600E" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"></path></svg><div class="u" style="margin-top: 18px; font-size: 36px; font-weight: 200">Flat</div><div style="margin-top: 8px; font-size: 16px; font-weight: 600">Company subscription</div><p style="margin: 6px 0 0; font-size: 14px; line-height: 1.55; color: #4E5258">Access to the platform and the talent pool.</p></div>
-
-<div style="background: #FFFFFF; border: 1px solid #E2DED5; border-radius: 18px; padding: 28px"><svg width="26" height="26" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l9 5-9 5-9-5 9-5z M3 13l9 5 9-5" fill="none" stroke="#A0600E" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"></path></svg><div class="u" style="margin-top: 18px; font-size: 36px; font-weight: 200">Equity</div><div style="margin-top: 8px; font-size: 16px; font-weight: 600">In hiring companies</div><p style="margin: 6px 0 0; font-size: 14px; line-height: 1.55; color: #4E5258">A stake in every company that hires from the pool.</p></div>
-
-</div>
-<p style="margin: 24px 0 0; font-size: 15px; color: #5A5E64">Illustrative: a superemployee at $1M a year generates $100K–$200K in take for us, before subscriptions and equity.</p>
-</div>
-</section>
-
-<!-- THE EQUITY POOL -->
-<section style="max-width: 1240px; margin: 0 auto; padding: 136px 24px">
-<div class="u" style="font-size: 12px; letter-spacing: 4px; color: #E9A23B">N°09 · THE EQUITY POOL</div>
-<h2 class="u" style="margin: 24px 0 0; font-size: 48px; line-height: 1.1; font-weight: 200; letter-spacing: -1.8px; max-width: 980px">Every superemployee owns a piece of every company.</h2>
-<figure style="margin: 64px 0 0; background: #101215; border: 1px solid #24272C; border-radius: 24px; padding: 40px 24px">
-<svg viewBox="0 0 1100 440" width="100%" role="img" aria-label="Diagram: companies contribute equity into one shared pool held in a fund, and every superemployee vests in the whole pool">
-<defs><marker id="la-ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#E9A23B"></path></marker></defs>
-<text x="150" y="24" text-anchor="middle" font-family="Unbounded, sans-serif" font-size="13" letter-spacing="3" fill="#8C8F94">COMPANIES</text>
-<text x="950" y="24" text-anchor="middle" font-family="Unbounded, sans-serif" font-size="13" letter-spacing="3" fill="#8C8F94">SUPEREMPLOYEES</text>
-<g font-family="Sora, sans-serif" font-size="16" fill="#F3F1EC">
-<rect x="40" y="60" width="220" height="60" rx="14" fill="#1A1C20" stroke="#33363C"></rect><text x="150" y="96" text-anchor="middle">Startup A</text>
-<rect x="40" y="150" width="220" height="60" rx="14" fill="#1A1C20" stroke="#33363C"></rect><text x="150" y="186" text-anchor="middle">Startup B</text>
-<rect x="40" y="240" width="220" height="60" rx="14" fill="#1A1C20" stroke="#33363C"></rect><text x="150" y="276" text-anchor="middle">Startup C</text>
-<rect x="40" y="330" width="220" height="60" rx="14" fill="#1A1C20" stroke="#33363C"></rect><text x="150" y="366" text-anchor="middle">Startup D</text>
-</g>
-<g fill="none" stroke="#E9A23B" stroke-width="2" opacity="0.85">
-<path d="M262 90 C 360 90, 380 200, 418 214" marker-end="url(#la-ar)"></path>
-<path d="M262 180 C 340 180, 380 214, 418 220" marker-end="url(#la-ar)"></path>
-<path d="M262 270 C 340 270, 380 228, 418 226" marker-end="url(#la-ar)"></path>
-<path d="M262 360 C 360 360, 380 240, 418 232" marker-end="url(#la-ar)"></path>
-<path d="M682 214 C 720 200, 740 90, 838 90" marker-end="url(#la-ar)"></path>
-<path d="M682 220 C 720 214, 760 180, 838 180" marker-end="url(#la-ar)"></path>
-<path d="M682 226 C 720 228, 760 270, 838 270" marker-end="url(#la-ar)"></path>
-<path d="M682 232 C 720 240, 740 360, 838 360" marker-end="url(#la-ar)"></path>
-</g>
-<circle cx="550" cy="222" r="128" fill="#14120D" stroke="#E9A23B" stroke-width="2"></circle>
-<circle cx="550" cy="222" r="108" fill="none" stroke="#E9A23B" stroke-width="1" stroke-dasharray="3 6" opacity="0.6"></circle>
-<text x="550" y="212" text-anchor="middle" font-family="Unbounded, sans-serif" font-size="26" font-weight="700" fill="#F3F1EC">THE POOL</text>
-<text x="550" y="244" text-anchor="middle" font-family="Sora, sans-serif" font-size="15" fill="#C9CBCF">held in one fund</text>
-<g font-family="Unbounded, sans-serif" font-size="14" fill="#0B0C0E" font-weight="700">
-<circle cx="880" cy="90" r="30" fill="#E9A23B"></circle><text x="880" y="95" text-anchor="middle">#001</text>
-<circle cx="880" cy="180" r="30" fill="#E9A23B"></circle><text x="880" y="185" text-anchor="middle">#002</text>
-<circle cx="880" cy="270" r="30" fill="#E9A23B"></circle><text x="880" y="275" text-anchor="middle">#003</text>
-<circle cx="880" cy="360" r="30" fill="#E9A23B"></circle><text x="880" y="365" text-anchor="middle">#004</text>
-</g>
-<g font-family="Sora, sans-serif" font-size="14" fill="#A9ABAF">
-<text x="926" y="95">vests in all</text><text x="926" y="185">vests in all</text><text x="926" y="275">vests in all</text><text x="926" y="365">vests in all</text>
-</g>
-</svg>
-</figure>
-<div style="margin-top: 24px; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr)); gap: 16px">
-<div style="padding: 8px 4px"><div class="u" style="font-size: 16px; font-weight: 500">Companies contribute</div><p style="margin: 8px 0 0; font-size: 15px; line-height: 1.6; color: #A9ABAF">Every company working with any superemployee adds equity to the shared pool.</p></div>
-<div style="padding: 8px 4px"><div class="u" style="font-size: 16px; font-weight: 500">One fund holds it</div><p style="margin: 8px 0 0; font-size: 15px; line-height: 1.6; color: #A9ABAF">A legal fund structure, so the whole network shares the upside.</p></div>
-<div style="padding: 8px 4px"><div class="u" style="font-size: 16px; font-weight: 500">Members vest and trade</div><p style="margin: 8px 0 0; font-size: 15px; line-height: 1.6; color: #A9ABAF">Vest in the whole pool, negotiate your own equity deals, sell on a secondary market.</p></div>
-</div>
-<div style="margin-top: 32px; padding: 32px 40px; border-radius: 20px; border: 1px solid #E9A23B; display: flex; flex-wrap: wrap; gap: 20px 40px; align-items: center">
-<div class="u" style="flex: 0 0 auto; font-size: 11px; letter-spacing: 3px; color: #E9A23B">WE’VE DONE THIS BEFORE</div>
-<p style="margin: 0; flex: 1 1 520px; font-size: 18px; line-height: 1.6; color: #D2D6D9">Priyanka was a founding AE at Securitize, which took equity in the companies on its platform as they raised. The superemployee pool runs on the same playbook.</p>
-</div>
-</section>
-
-<!-- TRACTION -->
-<section style="background: #F3F1EC; color: #0B0C0E">
-<div style="max-width: 1240px; margin: 0 auto; padding: 120px 24px">
-<div class="u" style="font-size: 12px; letter-spacing: 4px; color: #A0600E">N°10 · TRACTION</div>
-<div style="margin-top: 40px; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr)); gap: 16px">
-
-<div style="background: #0B0C0E; color: #F3F1EC; border-radius: 20px; padding: 28px"><svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2v20 M17 6H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" fill="none" stroke="#E9A23B" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"></path></svg><div class="u" style="margin-top: 20px; font-size: 48px; font-weight: 200">$10K–$15K</div><div style="margin-top: 8px; font-size: 15px; color: #C9CBCF">Monthly retainer per client</div></div>
-
-<div style="background: #0B0C0E; color: #F3F1EC; border-radius: 20px; padding: 28px"><svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11a4 4 0 1 0 0-.01 M2 21c0-4 3-6 7-6s7 2 7 6 M16 4a4 4 0 0 1 0 7 M22 21c0-3-2-5-4-5.5" fill="none" stroke="#E9A23B" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"></path></svg><div class="u" style="margin-top: 20px; font-size: 48px; font-weight: 200">1</div><div style="margin-top: 8px; font-size: 15px; color: #C9CBCF">Signed superemployee, more lining up</div></div>
-
-<div style="background: #0B0C0E; color: #F3F1EC; border-radius: 20px; padding: 28px"><svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7h10v10H7z M9 3v4 M15 3v4 M9 17v4 M15 17v4 M3 9h4 M3 15h4 M17 9h4 M17 15h4" fill="none" stroke="#E9A23B" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"></path></svg><div class="u" style="margin-top: 20px; font-size: 48px; font-weight: 200">MVP</div><div style="margin-top: 8px; font-size: 15px; color: #C9CBCF">Operating system, built by us</div></div>
-
-<div style="background: #0B0C0E; color: #F3F1EC; border-radius: 20px; padding: 28px"><svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l9 5-9 5-9-5 9-5z M3 13l9 5 9-5" fill="none" stroke="#E9A23B" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"></path></svg><div class="u" style="margin-top: 20px; font-size: 48px; font-weight: 200">4</div><div style="margin-top: 8px; font-size: 15px; color: #C9CBCF">YC-backed startups served</div></div>
-
-</div>
-</div>
-</section>
-
-<!-- RAISE -->
-<section id="raise" style="max-width: 1240px; margin: 0 auto; padding: 136px 24px 64px">
-<div class="u" style="font-size: 12px; letter-spacing: 4px; color: #E9A23B">N°11 · WHY WE’RE RAISING</div>
-<h2 class="u" style="margin: 24px 0 0; font-size: 56px; line-height: 1.06; font-weight: 200; letter-spacing: -2px; max-width: 980px">Demand is outrunning us.</h2>
-<p style="margin: 24px 0 0; font-size: 19px; line-height: 1.65; color: #BFC2C6; max-width: 720px">Right now the two of us sell, deliver to clients, recruit superemployees and build the operating system, all at once. More companies want in than we can serve.</p>
-<div style="margin-top: 56px; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(250px, 100%), 1fr)); gap: 16px">
-
-<div style="border: 1px solid #2C2F35; border-radius: 18px; padding: 28px"><div style="display: flex; justify-content: space-between; align-items: center"><svg width="28" height="28" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18a9 9 0 1 0 0-18 M12 7a5 5 0 1 0 0 10a5 5 0 1 0 0-10 M12 11a1 1 0 1 0 0 2" fill="none" stroke="#E9A23B" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path></svg><span class="u" style="font-size: 13px; color: #8C8F94">01</span></div><div class="u" style="margin-top: 20px; font-size: 18px; font-weight: 500">Free Khaled to sell</div><p style="margin: 8px 0 0; font-size: 15px; line-height: 1.6; color: #A9ABAF">Move him off delivery so he can grow the company side and the network.</p></div>
-
-<div style="border: 1px solid #2C2F35; border-radius: 18px; padding: 28px"><div style="display: flex; justify-content: space-between; align-items: center"><svg width="28" height="28" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h18v12H3z M3 7l3-3h12l3 3 M16 13h2" fill="none" stroke="#E9A23B" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path></svg><span class="u" style="font-size: 13px; color: #8C8F94">02</span></div><div class="u" style="margin-top: 20px; font-size: 18px; font-weight: 500">Invest in superemployees</div><p style="margin: 8px 0 0; font-size: 15px; line-height: 1.6; color: #A9ABAF">Upfront cash to switch, an EA, our OS, and hands-on support.</p></div>
-
-<div style="border: 1px solid #2C2F35; border-radius: 18px; padding: 28px"><div style="display: flex; justify-content: space-between; align-items: center"><svg width="28" height="28" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10v4h4l6 4V6L7 10H3z M17 9a4 4 0 0 1 0 6 M19.5 6.5a8 8 0 0 1 0 11" fill="none" stroke="#E9A23B" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path></svg><span class="u" style="font-size: 13px; color: #8C8F94">03</span></div><div class="u" style="margin-top: 20px; font-size: 18px; font-weight: 500">Community and brand</div><p style="margin: 8px 0 0; font-size: 15px; line-height: 1.6; color: #A9ABAF">Events and a brand that make superemployees the most sought-after operators in tech.</p></div>
-
-<div style="border: 1px solid #2C2F35; border-radius: 18px; padding: 28px"><div style="display: flex; justify-content: space-between; align-items: center"><svg width="28" height="28" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z" fill="none" stroke="#E9A23B" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path></svg><span class="u" style="font-size: 13px; color: #8C8F94">04</span></div><div class="u" style="margin-top: 20px; font-size: 18px; font-weight: 500">The equity fund</div><p style="margin: 8px 0 0; font-size: 15px; line-height: 1.6; color: #A9ABAF">The legal structure that gives every superemployee a share of the pool.</p></div>
-
-</div>
-</section>
-
-<section style="max-width: 1280px; margin: 0 auto; padding: 96px 24px 128px; text-align: center">
-<div class="u" style="font-size: 12px; letter-spacing: 4px; color: #8C8F94">THE NEXT BILLION-DOLLAR COMPANIES WILL BE POWERED BY</div>
-<div class="wm la-clip2" style="margin-top: 20px; font-size: clamp(26px, 6.4vw, 88px); font-weight: 900; line-height: 1">SUPEREMPLOYEES</div>
-<h2 class="u" style="margin: 64px 0 0; font-size: 40px; line-height: 1.15; font-weight: 200; letter-spacing: -1.2px">Raising from select angels.</h2>
-<p class="u" style="margin: 16px 0 0; font-size: 14px; letter-spacing: 4px; color: #E9A23B">ROUND OPENING SOON</p>
-<div style="margin-top: 44px; display: flex; flex-wrap: wrap; gap: 12px; justify-content: center">
-<a href="https://calendly.com/d/dtd7-vd3-fhw/discovery-call" target="_blank" rel="noopener" style="color: #0B0C0E; background: #F3F1EC; padding: 16px 30px; border-radius: 999px; text-decoration: none; font-weight: 600; font-size: 15px">Talk to the founders</a>
-<a href="https://calendly.com/d/dtd7-vd3-fhw/discovery-call" target="_blank" rel="noopener" style="padding: 15px 29px; border-radius: 999px; text-decoration: none; font-size: 15px; border: 1px solid #44464A">Apply as a superemployee</a>
-<a href="https://calendly.com/d/dtd7-vd3-fhw/discovery-call" target="_blank" rel="noopener" style="padding: 15px 29px; border-radius: 999px; text-decoration: none; font-size: 15px; border: 1px solid #44464A">Hire a superemployee</a>
-</div>
-</section>
-
-<footer style="max-width: 1240px; margin: 0 auto; padding: 28px 24px 40px; display: flex; flex-wrap: wrap; gap: 16px; justify-content: space-between; font-size: 13px; color: #7C7F84; border-top: 1px solid #1C1E22">
-<span class="wm" style="letter-spacing: 4px; color: #F3F1EC">SUPEREMPLOYEE</span>
-<span>The future of work for the top 1% of operators.</span>
+<main id="top">
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="wrap">
+      <div class="tag">PRIVATE · FOR INVESTORS</div>
+      <h1>SUPEREMPLOYEE</h1>
+      <p>The infrastructure that enables top operators to earn <strong style="font-weight:500;color:var(--amber)">$1M a year</strong> independently.</p>
+    </div>
+  </section>
+
+  <!-- 01 PROBLEM -->
+  <section class="s" id="problem">
+    <div class="wrap">
+      <div class="label"><b>01</b> PROBLEM</div>
+      <h2>Startups can't hire the best operators. The best operators don't want to be hired.</h2>
+      <div class="split">
+        <div class="card">
+          <div class="who">STARTUPS</div>
+          <h3>Spend heavily to recruit full-time talent.</h3>
+          <p>Every senior hire is slow, expensive, and a big bet on one person.</p>
+        </div>
+        <div class="card">
+          <div class="who">OPERATORS</div>
+          <h3>Increasingly want to work independently.</h3>
+          <p>But going solo is hard. You need a brand, systems to serve multiple clients, and a consistent pipeline.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 02 SOLUTION -->
+  <section class="s light" id="solution">
+    <div class="wrap">
+      <div class="label"><b>02</b> SOLUTION</div>
+      <h2>Everything an operator needs to go independent, and win.</h2>
+      <div class="grid">
+        <div class="card">
+          <h3>AI-powered systems</h3>
+          <p>Tools and agents that let one operator scale their work across many companies.</p>
+        </div>
+        <div class="card">
+          <h3>A community</h3>
+          <p>Top operators sharing knowledge and referrals with each other.</p>
+        </div>
+        <div class="card">
+          <h3>Startup equity</h3>
+          <p>Opportunities to earn equity in the companies they work with.</p>
+        </div>
+      </div>
+      <p class="lede" style="margin-top:32px">And startups get access to proven operators without making a full-time hire.</p>
+    </div>
+  </section>
+
+  <!-- 03 WHY NOW -->
+  <section class="s" id="why-now">
+    <div class="wrap">
+      <div class="label"><b>03</b> WHY NOW</div>
+      <h2>AI agents make it possible for one operator to deliver high-quality work across multiple companies.</h2>
+      <p class="lede">What used to take a team now takes one great operator with the right systems. That changes who gets to work independently, and how much they can earn.</p>
+    </div>
+  </section>
+
+  <!-- 04 TEAM -->
+  <section class="s light" id="team">
+    <div class="wrap">
+      <div class="label"><b>04</b> TEAM</div>
+      <h2>We've done this ourselves.</h2>
+      <div class="team">
+        <div class="person">
+          <img src="/superemployee/assets/khaled-sketch.png" alt="Sketch portrait of Khaled Alameldin">
+          <div>
+            <div class="role">CO-FOUNDER · CEO</div>
+            <div class="name">Khaled Alameldin</div>
+            <ul>
+              <li>Former YC Head of Growth</li>
+              <li>Leads growth for four YC-backed startups as an independent operator</li>
+              <li>Helped found a 2,000-member AI community</li>
+            </ul>
+          </div>
+        </div>
+        <div class="person">
+          <img src="/superemployee/assets/priyanka-sketch.png" alt="Sketch portrait of Priyanka Sundhar">
+          <div>
+            <div class="role">CO-FOUNDER</div>
+            <div class="name">Priyanka Sundhar</div>
+            <ul>
+              <li>Top-500-ranked tennis player</li>
+              <li>Generated the first $3M in sales as founding AE at a company that later went public</li>
+              <li>Founded a VC-backed AI sales-assistant startup used by hundreds of reps</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 05 TRACTION -->
+  <section class="s" id="traction">
+    <div class="wrap">
+      <div class="label"><b>05</b> TRACTION</div>
+      <h2>One month in.</h2>
+      <div class="stats">
+        <div class="stat"><div class="n"><span>$</span>60K</div><div class="d">MRR</div></div>
+        <div class="stat"><div class="n">6</div><div class="d">Design partners</div></div>
+        <div class="stat"><div class="n">1</div><div class="d">Superemployee</div></div>
+        <div class="stat"><div class="n">1<span style="font-size:.45em;letter-spacing:0"> mo</span></div><div class="d">Since launch</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 06 NETWORK EFFECTS -->
+  <section class="s" id="network">
+    <div class="wrap">
+      <div class="label"><b>06</b> NETWORK EFFECTS</div>
+      <h2>Every new company makes it better for operators. Every new operator makes it better for companies.</h2>
+      <div class="flow">
+        <div class="card">
+          <div class="who">FOR OPERATORS</div>
+          <h3>Earn $1M a year</h3>
+          <p>Plus a small piece of equity in every company that joins the platform.</p>
+        </div>
+        <div class="card">
+          <div class="who">FOR STARTUPS</div>
+          <h3>Guaranteed top-tier talent</h3>
+          <p>Access to proven operators and high-quality work, without a full-time hire.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 07 BUSINESS MODEL -->
+  <section class="s" id="model">
+    <div class="wrap">
+      <div class="label"><b>07</b> BUSINESS MODEL</div>
+      <h2>A 25% platform fee, plus a small equity stake in each participating startup.</h2>
+      <div class="math">
+        <div class="eq">
+          <div>1,000<small>SUPEREMPLOYEES</small></div>
+          <span class="op">×</span>
+          <div>$1M<small>PER YEAR</small></div>
+          <span class="op">×</span>
+          <div>25%<small>PLATFORM FEE</small></div>
+          <span class="op">=</span>
+          <div class="res">$250M<small>PER YEAR</small></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 08 THE ASK -->
+  <section class="ask" id="ask">
+    <div class="wrap">
+      <div class="tag">08 · THE ASK</div>
+      <div class="amount">$1M</div>
+      <div class="terms">on a SAFE at a <span>$10M valuation cap</span></div>
+      <div class="uses">
+        <div><b>01</b>Grow the operator community</div>
+        <div><b>02</b>Expand marketing</div>
+        <div><b>03</b>Deliver for existing clients</div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <span class="wm" style="letter-spacing:3px;font-size:12px;color:#9A9DA2">SUPEREMPLOYEE</span>
+    <span>Confidential. Please don't share this page.</span>
+  </div>
 </footer>
-</div>
 
 </body>
 </html>

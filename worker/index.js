@@ -253,6 +253,36 @@ async function prospeoSearch(env, body) {
 }
 
 /* ---------------- router ---------------- */
+/* ---------------- /superemployee password gate ---------------- */
+// Separate from the onboarding login. Override the default with a SUPEREMPLOYEE_PASSWORD secret.
+const SE_COOKIE = "se_session";
+const sePassword = env => env.SUPEREMPLOYEE_PASSWORD || "superemployee";
+async function seSessionValue(env) {
+  const exp = Date.now() + SESSION_DAYS * 864e5;
+  return exp + "." + await hmac(sePassword(env), "se:" + exp);
+}
+async function seAuthed(req, env) {
+  const c = (req.headers.get("cookie") || "").split(/;\s*/).find(x => x.startsWith(SE_COOKIE + "="));
+  if (!c) return false;
+  const [exp, sig] = c.slice(SE_COOKIE.length + 1).split(".");
+  if (!exp || !sig || Number(exp) < Date.now()) return false;
+  return timingSafeEqual(sig, await hmac(sePassword(env), "se:" + exp));
+}
+const SE_LOGIN_HTML = (error = "") => `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Superemployee</title><meta name="robots" content="noindex"><link rel="icon" href="/favicon.svg">
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;900&family=Sora:wght@300;400;600&display=swap" rel="stylesheet">
+<style>*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;background:#0B0C0E;color:#F3F1EC;font-family:Sora,system-ui,sans-serif;padding:16px}
+form{width:100%;max-width:380px;display:flex;flex-direction:column;gap:14px;text-align:center}
+.wm{font-family:Unbounded,sans-serif;font-weight:900;font-size:28px;letter-spacing:.02em;margin:0 0 4px}
+.k{font-size:11px;letter-spacing:4px;color:#E9A23B;margin:0 0 18px}
+input{font:inherit;font-size:16px;padding:14px 18px;border-radius:999px;border:1px solid #3A3D42;background:#121418;color:#F3F1EC;text-align:center}
+input:focus{outline:none;border-color:#E9A23B}
+button{font:inherit;font-weight:600;font-size:15px;padding:14px;border:0;border-radius:999px;background:#F3F1EC;color:#0B0C0E;cursor:pointer}
+button:hover{background:#E9A23B}.e{margin:0;font-size:14px;color:#E9A23B;min-height:1.2em}</style></head>
+<body><form method="post" action="/superemployee/"><h1 class="wm">SUPEREMPLOYEE</h1><p class="k">PRIVATE · INVESTORS ONLY</p>
+<label for="pw" style="position:absolute;left:-9999px">Password</label><input id="pw" name="password" type="password" placeholder="Password" autocomplete="current-password" required autofocus>
+<button>Enter</button><p class="e">${error}</p></form></body></html>`;
+const seLogin = (error, status) => new Response(SE_LOGIN_HTML(error), { status, headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store", "x-robots-tag": "noindex" } });
+
 const LOGIN_HTML = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Cracked GTM Onboarding</title><meta name="robots" content="noindex">
 <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@500;700&display=swap" rel="stylesheet">
 <style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#FDFCF7;color:#111;font-family:Archivo,system-ui,sans-serif;padding:16px}
@@ -267,6 +297,21 @@ export default {
     const url = new URL(req.url);
     const path = url.pathname;
     try {
+      if (path === "/superemployee" || path.startsWith("/superemployee/")) {
+        if (req.method === "POST") {
+          const form = await req.formData().catch(() => null);
+          const pw = String(form?.get("password") || "");
+          if (!pw || !timingSafeEqual(await hmac("cmp", pw), await hmac("cmp", sePassword(env)))) return seLogin("Wrong password", 401);
+          return new Response(null, { status: 303, headers: { location: "/superemployee/", "set-cookie": `${SE_COOKIE}=${await seSessionValue(env)}; Path=/superemployee; HttpOnly; Secure; SameSite=Lax; Max-Age=${SESSION_DAYS * 86400}` } });
+        }
+        if (!(await seAuthed(req, env))) return seLogin("", 401);
+        if (path === "/superemployee") return Response.redirect(url.origin + "/superemployee/", 301);
+        const res = await env.ASSETS.fetch(req);
+        const out = new Response(res.body, res);
+        out.headers.set("cache-control", "private, no-store"); out.headers.set("x-robots-tag", "noindex");
+        return out;
+      }
+
       if (path === "/api/login" && req.method === "POST") {
         if (!env.ONBOARDING_PASSWORD) return fail(503, "Set the ONBOARDING_PASSWORD secret on the Worker first.");
         const { password } = await req.json().catch(() => ({}));

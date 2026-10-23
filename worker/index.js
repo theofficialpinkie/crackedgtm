@@ -253,35 +253,58 @@ async function prospeoSearch(env, body) {
 }
 
 /* ---------------- router ---------------- */
-/* ---------------- /superemployee password gate ---------------- */
-// Separate from the onboarding login. Override the default with a SUPEREMPLOYEE_PASSWORD secret.
+/* ---------------- /superemployee password gate + Slack view alerts ---------------- */
+// Separate from the onboarding login. Visitors enter their email plus the shared password.
+// Optional secrets: SUPEREMPLOYEE_PASSWORD (overrides the default below),
+//                   SLACK_WEBHOOK_URL (Slack incoming webhook; posts who opened the memo).
 const SE_COOKIE = "se_session";
+const SE_SEEN = "se_seen";           // throttles "reopened" alerts to one per browser per 30 min
+const SE_SEEN_MIN = 30;
 const sePassword = env => env.SUPEREMPLOYEE_PASSWORD || "superemployee";
-async function seSessionValue(env) {
-  const exp = Date.now() + SESSION_DAYS * 864e5;
-  return exp + "." + await hmac(sePassword(env), "se:" + exp);
+const b64e = s => btoa(unescape(encodeURIComponent(s))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+const b64d = s => { try { return decodeURIComponent(escape(atob(s.replace(/-/g, "+").replace(/_/g, "/")))); } catch { return ""; } };
+const cookieOf = (req, name) => { const c = (req.headers.get("cookie") || "").split(/;\s*/).find(x => x.startsWith(name + "=")); return c ? c.slice(name.length + 1) : ""; };
+const validEmail = e => /^[^\s@<>]{1,64}@[^\s@<>]{1,190}\.[a-z]{2,24}$/i.test(e);
+
+async function seSessionValue(env, email) {
+  const exp = Date.now() + SESSION_DAYS * 864e5, em = b64e(email);
+  return exp + "." + em + "." + await hmac(sePassword(env), "se:" + exp + ":" + em);
 }
-async function seAuthed(req, env) {
-  const c = (req.headers.get("cookie") || "").split(/;\s*/).find(x => x.startsWith(SE_COOKIE + "="));
-  if (!c) return false;
-  const [exp, sig] = c.slice(SE_COOKIE.length + 1).split(".");
-  if (!exp || !sig || Number(exp) < Date.now()) return false;
-  return timingSafeEqual(sig, await hmac(sePassword(env), "se:" + exp));
+// Returns the visitor's email when the session cookie is valid, otherwise null.
+async function seSession(req, env) {
+  const [exp, em, sig] = cookieOf(req, SE_COOKIE).split(".");
+  if (!exp || !em || !sig || Number(exp) < Date.now()) return null;
+  if (!timingSafeEqual(sig, await hmac(sePassword(env), "se:" + exp + ":" + em))) return null;
+  return b64d(em) || null;
 }
-const SE_LOGIN_HTML = (error = "") => `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Superemployee</title><meta name="robots" content="noindex"><link rel="icon" href="/favicon.svg">
-<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;900&family=Sora:wght@300;400;600&display=swap" rel="stylesheet">
-<style>*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;background:#0B0C0E;color:#F3F1EC;font-family:Sora,system-ui,sans-serif;padding:16px}
-form{width:100%;max-width:380px;display:flex;flex-direction:column;gap:14px;text-align:center}
-.wm{font-family:Unbounded,sans-serif;font-weight:900;font-size:28px;letter-spacing:.02em;margin:0 0 4px}
-.k{font-size:11px;letter-spacing:4px;color:#E9A23B;margin:0 0 18px}
-input{font:inherit;font-size:16px;padding:14px 18px;border-radius:999px;border:1px solid #3A3D42;background:#121418;color:#F3F1EC;text-align:center}
-input:focus{outline:none;border-color:#E9A23B}
-button{font:inherit;font-weight:600;font-size:15px;padding:14px;border:0;border-radius:999px;background:#F3F1EC;color:#0B0C0E;cursor:pointer}
-button:hover{background:#E9A23B}.e{margin:0;font-size:14px;color:#E9A23B;min-height:1.2em}</style></head>
-<body><form method="post" action="/superemployee/"><h1 class="wm">SUPEREMPLOYEE</h1><p class="k">PRIVATE · INVESTORS ONLY</p>
-<label for="pw" style="position:absolute;left:-9999px">Password</label><input id="pw" name="password" type="password" placeholder="Password" autocomplete="current-password" required autofocus>
-<button>Enter</button><p class="e">${error}</p></form></body></html>`;
-const seLogin = (error, status) => new Response(SE_LOGIN_HTML(error), { status, headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store", "x-robots-tag": "noindex" } });
+async function seNotify(env, req, email, kind) {
+  if (!env.SLACK_WEBHOOK_URL) return;
+  const cf = req.cf || {};
+  const where = [cf.city, cf.region, cf.country].filter(Boolean).join(", ") || "unknown location";
+  const when = new Date().toLocaleString("en-US", { timeZone: "America/Los_Angeles", dateStyle: "medium", timeStyle: "short" });
+  const label = kind === "new" ? "signed in and opened the memo" : "reopened the memo";
+  const safe = String(email).replace(/[<>&]/g, "");
+  const text = `:eyes: *${safe}* ${label}\n${where} · ${when} PT`;
+  try {
+    await fetch(env.SLACK_WEBHOOK_URL, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ text }) });
+  } catch {}
+}
+const esc = s => String(s || "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+const SE_LOGIN_HTML = (error = "", email = "") => `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Superemployee</title><meta name="robots" content="noindex"><link rel="icon" href="/favicon.svg">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600&display=swap" rel="stylesheet">
+<style>*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;background:#FBFAF7;color:#16171A;font-family:Sora,system-ui,sans-serif;font-weight:300;padding:16px}
+form{width:100%;max-width:360px;display:flex;flex-direction:column;gap:12px}
+.n{font-weight:600;font-size:15px;letter-spacing:3px;margin:0}.m{margin:4px 0 18px;font-size:14px;color:#6A6D72}
+label{font-size:13px;color:#4E5258;margin-top:4px}
+input{font:inherit;font-size:16px;padding:12px 14px;border-radius:8px;border:1px solid #D4D1C9;background:#fff;color:#16171A}
+input:focus{outline:none;border-color:#16171A}
+button{margin-top:8px;font:inherit;font-weight:600;font-size:15px;padding:13px;border:0;border-radius:8px;background:#16171A;color:#FBFAF7;cursor:pointer}
+.e{margin:0;font-size:14px;color:#B3261E;min-height:1.2em}</style></head>
+<body><form method="post" action="/superemployee/"><p class="n">SUPEREMPLOYEE</p><p class="m">Investor memo · Confidential</p>
+<label for="em">Your email</label><input id="em" name="email" type="email" autocomplete="email" required value="${esc(email)}" ${email ? "" : "autofocus"}>
+<label for="pw">Password</label><input id="pw" name="password" type="password" autocomplete="current-password" required ${email ? "autofocus" : ""}>
+<button>Open memo</button><p class="e">${esc(error)}</p></form></body></html>`;
+const seLogin = (error, status, email = "") => new Response(SE_LOGIN_HTML(error, email), { status, headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store", "x-robots-tag": "noindex" } });
 
 const LOGIN_HTML = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Cracked GTM Onboarding</title><meta name="robots" content="noindex">
 <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@500;700&display=swap" rel="stylesheet">
@@ -293,22 +316,34 @@ button{font-family:'Archivo Black',sans-serif;font-size:16px;padding:14px;backgr
 <script>f.onsubmit=async e=>{e.preventDefault();const r=await fetch('/api/login',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({password:pw.value})});if(r.ok)location.reload();else{const b=await r.json().catch(()=>({}));err.textContent=b.error||'Wrong password';}};</script></body></html>`;
 
 export default {
-  async fetch(req, env) {
+  async fetch(req, env, ctx) {
     const url = new URL(req.url);
     const path = url.pathname;
     try {
       if (path === "/superemployee" || path.startsWith("/superemployee/")) {
+        const page = path === "/superemployee/" || path === "/superemployee/index.html";
         if (req.method === "POST") {
           const form = await req.formData().catch(() => null);
+          const email = String(form?.get("email") || "").trim().slice(0, 254);
           const pw = String(form?.get("password") || "");
-          if (!pw || !timingSafeEqual(await hmac("cmp", pw), await hmac("cmp", sePassword(env)))) return seLogin("Wrong password", 401);
-          return new Response(null, { status: 303, headers: { location: "/superemployee/", "set-cookie": `${SE_COOKIE}=${await seSessionValue(env)}; Path=/superemployee; HttpOnly; Secure; SameSite=Lax; Max-Age=${SESSION_DAYS * 86400}` } });
+          if (!validEmail(email)) return seLogin("Please enter a valid email.", 400, email);
+          if (!pw || !timingSafeEqual(await hmac("cmp", pw), await hmac("cmp", sePassword(env)))) return seLogin("Wrong password.", 401, email);
+          ctx.waitUntil(seNotify(env, req, email, "new"));
+          const h = new Headers({ location: "/superemployee/" });
+          h.append("set-cookie", `${SE_COOKIE}=${await seSessionValue(env, email)}; Path=/superemployee; HttpOnly; Secure; SameSite=Lax; Max-Age=${SESSION_DAYS * 86400}`);
+          h.append("set-cookie", `${SE_SEEN}=1; Path=/superemployee; HttpOnly; Secure; SameSite=Lax; Max-Age=${SE_SEEN_MIN * 60}`);
+          return new Response(null, { status: 303, headers: h });
         }
-        if (!(await seAuthed(req, env))) return seLogin("", 401);
+        const email = await seSession(req, env);
+        if (!email) return seLogin("", 401);
         if (path === "/superemployee") return Response.redirect(url.origin + "/superemployee/", 301);
         const res = await env.ASSETS.fetch(req);
         const out = new Response(res.body, res);
         out.headers.set("cache-control", "private, no-store"); out.headers.set("x-robots-tag", "noindex");
+        if (page && res.ok && !cookieOf(req, SE_SEEN)) {
+          ctx.waitUntil(seNotify(env, req, email, "return"));
+          out.headers.append("set-cookie", `${SE_SEEN}=1; Path=/superemployee; HttpOnly; Secure; SameSite=Lax; Max-Age=${SE_SEEN_MIN * 60}`);
+        }
         return out;
       }
 

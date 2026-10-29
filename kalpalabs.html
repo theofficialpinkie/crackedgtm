@@ -110,7 +110,6 @@ footer a{color:var(--muted)}
   footer{flex-direction:column;padding:28px 20px;text-align:center}
 }
 
-.lockup .mark{white-space:nowrap}
 .lockup .wm{font-family:'Archivo Black',sans-serif;font-size:24px;letter-spacing:-.02em}
 .wave{display:flex;align-items:center;gap:3px;height:40px}
 .wave i{display:block;width:5px;border-radius:3px;background:var(--ink)}
@@ -118,8 +117,17 @@ footer a{color:var(--muted)}
 .idea{padding:26px;background:#fff;border:1px solid var(--line);border-left:4px solid var(--yellow);border-radius:16px}
 .idea h3{margin:0 0 8px;font-size:18px;font-weight:700}
 .idea p{margin:0;font-size:18px;line-height:1.55;color:var(--body)}
-@media (max-width:820px){.ideas{grid-template-columns:1fr}.lockup .mark{white-space:nowrap}
-.lockup .wm{font-size:19px}}
+@media (max-width:820px){.ideas{grid-template-columns:1fr}.lockup .wm{font-size:19px}}
+.feature{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:40px;align-items:center;margin-top:32px}
+.feature figure{margin:0}
+.feature img{max-width:380px;margin:0 auto}
+.list{list-style:none;padding:0;margin:20px 0 0;display:flex;flex-direction:column;gap:12px}
+.list li{padding:16px 20px;background:#fff;border:1px solid var(--line);border-radius:12px;font-size:18px;line-height:1.5;color:var(--body)}
+.list li b{color:var(--ink)}
+.week{display:inline-block;margin-bottom:4px;font-size:12.5px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--red)}
+.cad{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;margin-top:28px}
+.posts2{grid-template-columns:repeat(2,minmax(0,1fr));max-width:600px}
+@media (max-width:820px){.feature,.cad,.posts2{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -138,43 +146,43 @@ footer a{color:var(--muted)}
     <span class="x">×</span>
     <span class="mark"><svg viewBox="0 0 300 300" width="52" height="52" aria-hidden="true"><polygon points="150,5 178,70 240,25 225,100 295,90 245,145 300,185 230,195 260,265 190,230 170,295 140,235 90,285 90,215 15,235 60,170 5,130 75,110 40,45 110,70" fill="#D7191F" stroke="#111111" stroke-width="12" stroke-linejoin="round"/></svg>Cracked GTM</span>
   </div>
-  <h1>Getting Kalpa Known: A Brand Plan for the Next 90 Days</h1>
+  <h1>Getting Kalpa Known: The Next 90 Days</h1>
   <p class="sub">For Prashant and Gautam, from Priyanka and Khaled</p>
 </header>
 
 <section class="letter">
   <div class="wrap narrow note">
     <p class="hey">Hey Prashant,</p>
-    <p>Great chatting, and thanks for walking us through Kalpa. Beating ElevenLabs on realism benchmarks is a big deal, and the Vapi integration you’re working on puts you right where voice AI builders already are.</p>
-    <p>What stuck with me is that the product is ahead of the brand. Right now the people who should know about Kalpa mostly don’t. So I think the job for the next 90 days is pretty simple: make Kalpa the name voice AI builders bring up when they talk about the best sounding voices.</p>
-    <p>You mentioned warm intros are where most of your pipeline will come from, and I agree that should stay the main engine. The brand work makes those intros land faster, because people have already heard of you by the time the intro shows up. We’d still suggest a small amount of targeted outreach on the side, just to pick up extra demos and meetings.</p>
-    <p>Here’s how Khaled and I would approach it. It’s a starting point, and we’d adjust as we learn.</p>
+    <p>Great chatting, and thanks for walking us through Kalpa. You beat ElevenLabs on realism and you’re about to plug into Vapi, but most voice AI builders haven’t heard of you yet. That’s the gap we want to close.</p>
+    <p>So here’s what Khaled and I would actually do. Social is the main engine: we’d run your and Gautam’s X and LinkedIn every week. We’d pull a couple of stunts and events that get people talking. And since you’re both technical founders, we’d help you build a real sales process so the intros and demos that come in actually turn into customers.</p>
+    <p>Warm intros stay your main source of meetings. We’d keep a small amount of outbound running alongside them to add extra demos.</p>
   </div>
   <div class="wrap narrow goal philo">
     <b>Our philosophy</b>
-    <p>We really care about our craft. Since everything is still early, we can only guarantee inputs, not outputs. What we do guarantee is best in class inputs: social, events, copy, website and outreach.</p>
+    <p>We really care about our craft. Since everything is still early, we can only guarantee inputs, not outputs. What we do guarantee is best in class inputs: social, events, sales coaching, outbound and assets.</p>
   </div>
 </section>
 
 <section class="block">
   <div class="wrap">
-    <h2>Telling the story</h2>
-    <p class="lead">Before we turn up the volume, we’d tighten what people hear. A one line explanation of Kalpa that a developer can repeat to a friend, and proof they can check themselves.</p>
-    <div class="grid2">
-      <div class="tile"><h3>One line pitch</h3><p>A short, plain explanation of what Kalpa is and why it sounds better, used everywhere.</p></div>
-      <div class="tile"><h3>Benchmark page</h3><p>Turn the Audio Realism results into a page people share, with side by side audio clips anyone can listen to.</p></div>
-      <div class="tile"><h3>Website</h3><p>Rework the homepage opening so a developer gets it in five seconds and can hear the voices right away.</p></div>
-      <div class="tile"><h3>Demo clips</h3><p>A small library of short, shareable audio and video clips we can use across posts, events and intros.</p></div>
+    <span class="num">The main thing</span>
+    <h2>Social on X and LinkedIn</h2>
+    <p class="lead">This is where Kalpa gets known. Khaled leads it, we write everything, and you approve before anything goes out.</p>
+    <div class="cad">
+      <div class="tile"><h3>One 30 minute call a week</h3><p>We interview you or Gautam about what you shipped, learned or tested, and turn it into the week’s posts.</p></div>
+      <div class="tile"><h3>Posts every week</h3><p>X for voice AI builders (demos, benchmarks, technical takes). LinkedIn for the founder story, partners and investors.</p></div>
+      <div class="tile"><h3>Distribution</h3><p>We get posts in front of the right people: replying in voice AI threads, tagging partners, and boosting through our own network.</p></div>
     </div>
-  </div>
-</section>
-
-<section class="block soft">
-  <div class="wrap">
-    <h2>Founder content on X and LinkedIn</h2>
-    <p class="lead">We’d do a short call with you each week and turn it into posts for you and Gautam. Khaled leads this side, and you approve everything before it goes out.</p>
-    <p>X is where voice AI builders hang out, so that’s where we’d lean in hardest: blind listening tests, benchmark drops, behind the scenes on how you train the model, and quick demos of things only Kalpa can do. LinkedIn would carry the founder story (ex-Google and quant backgrounds, YC, building a better voice model) for investors, partners and the people who make intros.</p>
-    <div class="posts">
+    <h3 class="sub-h">The first five posts we’d write</h3>
+    <ul class="list">
+      <li><b>The blind test.</b> Two clips, one Kalpa and one ElevenLabs. Guess which is which. Reveal in the replies.</li>
+      <li><b>Why one model for every audio task.</b> Prashant on why Kalpa does cloning, editing, dubbing and understanding in one model instead of five.</li>
+      <li><b>The founder story.</b> From Google and quant trading to YC, and why you two decided to build a voice model.</li>
+      <li><b>The weird demo.</b> Clone a voice, add an accent, then make it sing, in one prompt. Short video, no explanation needed.</li>
+      <li><b>The Vapi launch.</b> When the integration goes live: a demo, a post from both sides, and a reason for builders to try it that week.</li>
+    </ul>
+    <h3 class="sub-h">Posts we’ve written for founders</h3>
+    <div class="posts posts2">
       <figure>
         <img src="leeroo-assets/post-audrey.webp" alt="Audrey Djiya's LinkedIn post for Handled (YC S24): 223 likes, 28 comments" loading="lazy" width="546" height="1235">
         <figcaption><a href="https://www.linkedin.com/posts/audrey-djiya-7a7a24101_my-dad-was-my-first-hire-two-and-a-half-share-7515746916018692096-XxJE/" target="_blank" rel="noopener">See the post on LinkedIn</a></figcaption>
@@ -183,32 +191,66 @@ footer a{color:var(--muted)}
         <img src="leeroo-assets/post-dinner.webp" alt="Kaushik Mahorker's LinkedIn post about an executive dinner for Wildcard: 48 likes, 8 comments" loading="lazy" width="886" height="1150">
         <figcaption><a href="https://www.linkedin.com/feed/update/urn:li:ugcPost:7506832695390281728" target="_blank" rel="noopener">See the post on LinkedIn</a></figcaption>
       </figure>
-      <figure>
-        <img src="leeroo-assets/post-croissant.webp" alt="Khaled's LinkedIn post about delivering croissants to SF brands: 88 likes, 24 comments" loading="lazy" width="550" height="1135">
-        <figcaption><a href="https://www.linkedin.com/feed/update/urn:li:share:7498431760192671744" target="_blank" rel="noopener">See Khaled’s post on LinkedIn</a></figcaption>
-      </figure>
-    </div>
-  </div>
-</section>
-
-<section class="block">
-  <div class="wrap">
-    <h2>Events and stunts</h2>
-    <p class="lead">The fastest way to build a name in voice is to let people hear it. We’d run a couple of moments that get people talking, and pick based on where the right builders are most likely to show up.</p>
-    <div class="ideas">
-      <div class="idea"><h3>The blind taste test</h3><p>A booth or table at voice AI and dev events where people guess which clip is Kalpa and which is ElevenLabs. Great in person, and even better as a video afterward.</p></div>
-      <div class="idea"><h3>Voice AI builder night</h3><p>A small SF dinner or hack night for people building voice agents, co-hosted with a partner like Vapi so the right crowd shows up.</p></div>
-      <div class="idea"><h3>Integration launch</h3><p>When the Vapi integration goes live, we’d treat it like a real launch: posts from both sides, a demo video, and a reason for builders to try it that week.</p></div>
-      <div class="idea"><h3>Something less conventional</h3><p>Like Khaled delivering croissants to SF brands. For Kalpa it could be cloning a well known founder’s voice (with permission) for a demo people can’t stop sharing.</p></div>
     </div>
   </div>
 </section>
 
 <section class="block soft">
   <div class="wrap">
-    <h2>Warm intros first, with a little outreach on the side</h2>
-    <p class="lead">Warm intros stay the main engine. We’d help you map who in your network (YC, investors, Vapi and other partners) can open doors to voice agent companies, and write a short forwardable blurb so every intro is easy to make.</p>
-    <p>On the side, we’d run a small, targeted outreach campaign to teams already building voice agents on Vapi, Pipecat and similar platforms. Every message written for that company, not blasted to thousands of people. The goal there is just extra demos and meetings, not replacing the intros.</p>
+    <h2>Stunts and events</h2>
+    <p class="lead">Social gets louder when there’s something real to post about. We plan and run these ourselves.</p>
+    <div class="feature">
+      <figure>
+        <img src="leeroo-assets/post-croissant.webp" alt="Khaled's LinkedIn post about delivering croissants to SF brands: 88 likes, 24 comments" loading="lazy" width="550" height="1135">
+      </figure>
+      <div>
+        <h3 class="sub-h" style="margin-top:0">Khaled delivered croissants to SF brands</h3>
+        <p>He showed up in person at the companies he wanted to work with, croissants in hand. It got people talking online and opened doors that cold messages wouldn’t. <a href="https://www.linkedin.com/feed/update/urn:li:share:7498431760192671744" target="_blank" rel="noopener"><b>See the post</b></a>.</p>
+        <p>That’s the kind of thing we’d do for Kalpa. Some ideas:</p>
+        <ul class="list">
+          <li><b>Blind taste test booth</b> at voice AI and dev events. People guess Kalpa vs ElevenLabs, and we film it.</li>
+          <li><b>Voice AI builder dinner</b> in SF for 10 to 15 people building voice agents, co-hosted with Vapi.</li>
+          <li><b>A voice drop</b> to the founders you most want as customers: a personal message in their own cloned voice (with permission).</li>
+        </ul>
+      </div>
+    </div>
+    <!-- EVENT PHOTOS: drop Khaled's event pictures here -->
+  </div>
+</section>
+
+<section class="block">
+  <div class="wrap">
+    <h2>Sales coaching for two technical founders</h2>
+    <p class="lead">You’ve built a better model. Selling it is a different skill, and it’s one we’ve done for years. We’d set up a sales process you can actually run.</p>
+    <div class="grid2">
+      <div class="tile"><h3>Review your calls</h3><p>We listen to your recorded sales calls and send back notes after each one: what landed, what to cut, what to ask next time.</p></div>
+      <div class="tile"><h3>Join live demos</h3><p>We sit in on early demos with you, then debrief right after.</p></div>
+      <div class="tile"><h3>Build the sales process</h3><p>Discovery questions, a demo flow that ends with a next step, how to talk pricing, and follow-ups that don’t go cold.</p></div>
+      <div class="tile"><h3>Tighten the pitch</h3><p>A one or two sentence explanation of Kalpa that a developer gets immediately and repeats to their team.</p></div>
+    </div>
+    <p class="target">For context: I was the first sales hire at Securitize through its IPO, and I’ve helped scale companies to $3M+ ARR. Your calls get the same attention we’d give our own.</p>
+  </div>
+</section>
+
+<section class="block soft">
+  <div class="wrap">
+    <h2>Outbound and assets, always on</h2>
+    <p class="lead">Warm intros lead. Alongside them, we keep a steady outbound campaign running to teams already building voice agents on Vapi, Pipecat and similar platforms. We build our own lists and write every message for that company. The goal is extra demos, not replacing the intros.</p>
+    <p>We also make the assets that every intro, post and demo needs:</p>
+    <div class="grid3">
+      <div class="tile"><h3>Marketing</h3><p>A benchmark page with side by side audio, homepage copy, demo clips.</p></div>
+      <div class="tile"><h3>Sales</h3><p>A one-pager, a sales deck, and a short blurb that makes warm intros easy to forward.</p></div>
+      <div class="tile"><h3>Proof</h3><p>A case study with your first integration partner or customer, once there’s one to tell.</p></div>
+    </div>
+    <div class="decks">
+      <figure>
+        <img src="leeroo-assets/smarterd-deck.webp" alt="Deck slide for SmarterD: Next Gen IT/Cybersecurity Management and Analytics Platform" loading="lazy" width="1602" height="894">
+      </figure>
+      <figure>
+        <img src="leeroo-assets/4pm-deck.webp" alt="Deck slide for 4pm: AI-powered CRM helping B2B sales teams get their 9-5 done by 4pm" loading="lazy" width="1602" height="894">
+      </figure>
+    </div>
+    <p class="decks-cap">Decks we’ve designed</p>
   </div>
 </section>
 
@@ -216,9 +258,9 @@ footer a{color:var(--muted)}
   <div class="wrap">
     <h2>The 90 days</h2>
     <div class="months">
-      <div class="month"><b>MONTH 1</b><h3>Tell the Story</h3><ul><li>One line pitch and homepage</li><li>Benchmark page and demo clips</li><li>Founder content starts on X and LinkedIn</li><li>Map warm intros</li></ul></div>
-      <div class="month"><b>MONTH 2</b><h3>Make Some Noise</h3><ul><li>Vapi integration launch</li><li>First event or stunt</li><li>Blind listening test campaign</li><li>Light outreach for extra demos</li></ul></div>
-      <div class="month"><b>MONTH 3</b><h3>Turn Attention into Demos</h3><ul><li>Scale what’s working</li><li>Second event or stunt</li><li>Follow up with everyone who engaged</li><li>Write down the playbook</li></ul></div>
+      <div class="month"><b>MONTH 1</b><h3>Start Posting</h3><ul><li>Weekly content call and posts begin</li><li>First five posts live</li><li>Review your first sales calls</li><li>Benchmark page, one-pager, intro blurb</li><li>Outbound starts</li></ul></div>
+      <div class="month"><b>MONTH 2</b><h3>Make Some Noise</h3><ul><li>Vapi integration launch</li><li>First stunt or event</li><li>Sales process written and in use</li><li>Sit in on demos</li></ul></div>
+      <div class="month"><b>MONTH 3</b><h3>Turn It into Demos</h3><ul><li>Double down on the posts that worked</li><li>Second stunt or event</li><li>Follow up with everyone who engaged</li><li>Write down the playbook</li></ul></div>
     </div>
   </div>
 </section>
@@ -226,9 +268,9 @@ footer a{color:var(--muted)}
 <section class="block soft">
   <div class="wrap narrow">
     <h2>How we’d work together</h2>
-    <p>We’d do two to three calls a week to go over what went out, what we learned and what’s next, plus a shared Slack channel.</p>
-    <p><b>The goal after 90 days:</b> people in voice AI know the name Kalpa, a content engine that keeps running, a couple of moments people remember, and more demos coming in from both intros and outreach.</p>
-    <p>If this direction makes sense, we can go through it together on our next call and figure out where to start.</p>
+    <p>Two to three calls a week to go over what went out, what we learned and what’s next, plus a shared Slack channel.</p>
+    <p><b>The goal after 90 days:</b> people in voice AI know the name Kalpa, you have a content engine that runs every week, a sales process you’re confident in, and more demos coming in from intros and outbound.</p>
+    <p>If this direction makes sense, let’s go through it on our next call and pick where to start.</p>
   </div>
 </section>
 

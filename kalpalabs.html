@@ -55,10 +55,6 @@ nav .go{font-weight:600;font-size:14px;text-decoration:none;color:var(--muted)}
 .stunt figure{margin:0;border:1.5px solid var(--ink);box-shadow:4px 4px 0 var(--ink);background:#fff;overflow:hidden}
 .stunt figure img{width:100%;height:auto}
 .stunt p{margin:0 0 16px;font-size:16px;line-height:1.55}
-.next{padding:18px 20px;background:var(--ink);color:var(--paper)}
-.next b{display:block;margin-bottom:4px;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--yellow)}
-.next h3{margin:0 0 6px;font-family:'Archivo Black',sans-serif;font-size:18px}
-.next p{margin:0;color:#E6E3DA;font-size:15px}
 
 .cadence{margin:0;padding:0;list-style:none;border:1.5px solid var(--ink);background:#fff}
 .cadence li{display:flex;align-items:center;gap:16px;padding:14px 18px;border-bottom:1px solid #DDD9CE;font-size:16px;font-weight:600}
@@ -71,16 +67,18 @@ nav .go{font-weight:600;font-size:14px;text-decoration:none;color:var(--muted)}
 .gtm{margin:0;padding:0;list-style:none;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
 .gtm li{display:flex;gap:10px;padding:14px 16px;background:#fff;border:1.5px solid var(--ink);font-size:15px;font-weight:600;line-height:1.4}
 .gtm li::before{content:"";flex-shrink:0;width:7px;height:7px;margin-top:6px;background:var(--red)}
-.social{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);gap:36px;align-items:start}
+.social{display:block}
+.statrow{display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:14px;align-items:stretch}
+.statrow .minis{display:contents}
 .big{padding:22px;background:var(--yellow);border:1.5px solid var(--ink);box-shadow:4px 4px 0 var(--ink)}
 .big b{display:block;font-family:'Archivo Black',sans-serif;font-weight:400;font-size:44px;line-height:1;letter-spacing:-.02em}
 .big span{display:block;margin-top:6px;font-size:15px;font-weight:600}
-.minis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:12px}
+.minis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
 .mini{padding:16px;background:#fff;border:1.5px solid var(--ink);box-shadow:4px 4px 0 var(--ink)}
 .mini b{display:block;font-family:'Archivo Black',sans-serif;font-weight:400;font-size:30px;line-height:1;letter-spacing:-.02em}
 .mini span{display:block;margin-top:6px;font-size:14px;font-weight:600;line-height:1.35}
 .social p{margin:18px 0 0;font-size:15.5px;line-height:1.55}
-.posts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.posts{display:grid;grid-template-columns:minmax(0,300px) minmax(0,520px);gap:18px;margin-top:22px;align-items:start}
 .posts figure{margin:0}
 .posts img{width:100%;height:auto;border:1.5px solid var(--ink)}
 .posts figcaption{margin-top:6px;font-size:13px}
@@ -101,7 +99,7 @@ footer a{color:var(--paper)}
   section,.hero{padding:40px 16px}
   .hero .wrap{flex-wrap:wrap;gap:14px}
   .hero h1{margin:4px 0 0;width:100%}
-  .stats,.notes,.cards,.stunt,.gtm,.social,.team{grid-template-columns:1fr}
+  .stats,.notes,.cards,.stunt,.gtm,.statrow,.posts,.team{grid-template-columns:1fr}
   .person{align-items:flex-start}
   .stunt figure{max-width:300px}
   footer{flex-direction:column;padding:20px 16px;text-align:center}
@@ -160,14 +158,14 @@ footer a{color:var(--paper)}
   <div class="wrap">
     <h2>Social</h2>
     <div class="social">
-      <div>
+      <div class="statrow">
         <div class="big"><b>42,000+</b><span>impressions on social for our clients</span></div>
         <div class="minis">
           <div class="mini"><b>1.5x</b><span>conversions</span></div>
           <div class="mini"><b>$1M+</b><span>pipeline generated in under 6 weeks</span></div>
         </div>
-        <p>We interview founders each week and turn it into posts on X and LinkedIn. A few we’ve written:</p>
       </div>
+      <p>We interview founders each week and turn it into posts on X and LinkedIn. A few we’ve written:</p>
       <div class="posts">
         <figure>
           <img src="leeroo-assets/post-audrey.webp" alt="Audrey Djiya's LinkedIn post for Handled (YC S24): 223 likes, 28 comments" loading="lazy" width="546" height="1235">
@@ -189,11 +187,7 @@ footer a{color:var(--paper)}
       <figure><img src="leeroo-assets/post-croissant.webp" alt="Khaled's LinkedIn post about delivering croissants to SF brands: 88 likes, 24 comments" loading="lazy" width="550" height="1135"></figure>
       <div>
         <p>Khaled delivered croissants in person to the SF brands he wanted to work with. It got people talking online and opened doors cold messages didn’t. <a href="https://www.linkedin.com/feed/update/urn:li:share:7498431760192671744" target="_blank" rel="noopener"><b>See the post</b></a></p>
-        <div class="next">
-          <b>Creative stunt</b>
-          <h3>Builder dinner in SF</h3>
-          <p>A small dinner for people building voice agents, with live side by side demos of Kalpa against other voices. We’d film it and post it.</p>
-        </div>
+
       </div>
     </div>
   </div>

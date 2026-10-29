@@ -67,6 +67,27 @@ nav .go{font-weight:600;font-size:14px;text-decoration:none;color:var(--muted)}
 .cadence li em{margin-left:auto;font-style:normal;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted)}
 .fine{margin:16px 0 0;font-size:14px;color:var(--muted)}
 
+.sub3{margin:24px 0 10px;font-size:12px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted)}
+.gtm{margin:0;padding:0;list-style:none;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.gtm li{display:flex;gap:10px;padding:14px 16px;background:#fff;border:1.5px solid var(--ink);font-size:15px;font-weight:600;line-height:1.4}
+.gtm li::before{content:"";flex-shrink:0;width:7px;height:7px;margin-top:6px;background:var(--red)}
+.social{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);gap:36px;align-items:start}
+.big{padding:22px;background:var(--yellow);border:1.5px solid var(--ink);box-shadow:4px 4px 0 var(--ink)}
+.big b{display:block;font-family:'Archivo Black',sans-serif;font-weight:400;font-size:44px;line-height:1;letter-spacing:-.02em}
+.big span{display:block;margin-top:6px;font-size:15px;font-weight:600}
+.social p{margin:18px 0 0;font-size:15.5px;line-height:1.55}
+.posts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.posts figure{margin:0}
+.posts img{width:100%;height:auto;border:1.5px solid var(--ink)}
+.posts figcaption{margin-top:6px;font-size:13px}
+.team{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.person{display:flex;gap:18px;align-items:center;padding:18px;background:#fff;border:1.5px solid var(--ink);box-shadow:4px 4px 0 var(--ink)}
+.person img{width:96px;height:96px;flex-shrink:0;object-fit:cover;border:1.5px solid var(--ink)}
+.person h3{margin:0 0 8px;font-family:'Archivo Black',sans-serif;font-size:18px}
+.person ul{margin:0;padding:0;list-style:none;font-size:14.5px;line-height:1.6}
+.person ul b{font-family:'Archivo Black',sans-serif;font-weight:400}
+.teamfoot{margin:16px 0 0;font-size:15px;color:var(--muted)}
+
 footer{background:var(--ink);color:var(--paper);padding:22px 32px;display:flex;justify-content:space-between;gap:20px;font-size:13.5px}
 footer a{color:var(--paper)}
 
@@ -76,7 +97,8 @@ footer a{color:var(--paper)}
   section,.hero{padding:40px 16px}
   .hero .wrap{flex-wrap:wrap;gap:14px}
   .hero h1{margin:4px 0 0;width:100%}
-  .stats,.notes,.cards,.stunt{grid-template-columns:1fr}
+  .stats,.notes,.cards,.stunt,.gtm,.social,.team{grid-template-columns:1fr}
+  .person{align-items:flex-start}
   .stunt figure{max-width:300px}
   footer{flex-direction:column;padding:20px 16px;text-align:center}
 }
@@ -109,11 +131,11 @@ footer a{color:var(--paper)}
       <div class="stat"><b>~300ms</b><span>to first audio, with English, Hindi and code-switching live in the API</span></div>
       <div class="stat"><b>318</b><span>followers on @KalpaLabsAI. The benchmark announcement got under 5K views.</span></div>
     </div>
-    <ul class="notes">
-      <li>ElevenLabs is past $500M ARR at an ~$11B valuation and owns most of the mindshare in voice.</li>
-      <li>Cartesia has raised $191M. Builders compare voices side by side, so realism is a clear point of difference.</li>
-      <li>Builders reach voice models through orchestration layers like Vapi, where Kalpa is working on a partnership.</li>
-      <li>Hindi and English code-switching in one model is a gap most competitors don’t cover well.</li>
+    <p class="sub3">GTM today</p>
+    <ul class="gtm">
+      <li>Mainly enterprise deals in pipeline, which take a long time to close</li>
+      <li>Interested in working with startups and shortening the sales cycle</li>
+      <li>Needs more brand awareness to help close deals</li>
     </ul>
   </div>
 </section>
@@ -126,6 +148,28 @@ footer a{color:var(--paper)}
       <div class="card"><h3>Events and stunts</h3><p>Conferences, dinners and creative stunts that put Kalpa in front of voice builders.</p></div>
       <div class="card"><h3>Sales coaching</h3><p>We review your calls, join demos and set up a sales process.</p></div>
       <div class="card"><span class="tag">Optional</span><h3>Outbound and assets</h3><p>Outbound to voice agent teams, plus website, case study, deck and one-pager.</p></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>Social</h2>
+    <div class="social">
+      <div>
+        <div class="big"><b>42,000+</b><span>impressions on social for our clients</span></div>
+        <p>We interview founders each week and turn it into posts on X and LinkedIn. A few we’ve written:</p>
+      </div>
+      <div class="posts">
+        <figure>
+          <img src="leeroo-assets/post-audrey.webp" alt="Audrey Djiya's LinkedIn post for Handled (YC S24): 223 likes, 28 comments" loading="lazy" width="546" height="1235">
+          <figcaption><a href="https://www.linkedin.com/posts/audrey-djiya-7a7a24101_my-dad-was-my-first-hire-two-and-a-half-share-7515746916018692096-XxJE/" target="_blank" rel="noopener">Handled (YC S24)</a></figcaption>
+        </figure>
+        <figure>
+          <img src="leeroo-assets/post-dinner.webp" alt="Kaushik Mahorker's LinkedIn post about an executive dinner for Wildcard: 48 likes, 8 comments" loading="lazy" width="886" height="1150">
+          <figcaption><a href="https://www.linkedin.com/feed/update/urn:li:ugcPost:7506832695390281728" target="_blank" rel="noopener">Wildcard executive dinner</a></figcaption>
+        </figure>
+      </div>
     </div>
   </div>
 </section>
@@ -144,6 +188,17 @@ footer a{color:var(--paper)}
         </div>
       </div>
     </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>Team</h2>
+    <div class="team">
+      <div class="person"><img src="priyanka.jpg" alt="Sketch portrait of Priyanka Sundhar" width="96" height="96"><div><h3>Priyanka Sundhar</h3><ul><li><b>IPO</b> · Founding AE at Securitize</li><li><b>Acquired</b> · Growth lead at Structured Labs (YC)</li></ul></div></div>
+      <div class="person"><img src="khaled.jpg" alt="Sketch portrait of Khaled Alameldin" width="96" height="96"><div><h3>Khaled Alameldin</h3><ul><li><b>$0 to $3M</b> · Revenue at Revamp (YC)</li><li><b>3 YC startups</b> · Running growth today</li></ul></div></div>
+    </div>
+    <p class="teamfoot">We’ve both been the first GTM hire at early-stage startups, more than once.</p>
   </div>
 </section>
 

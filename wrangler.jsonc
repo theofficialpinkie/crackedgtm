@@ -3,13 +3,13 @@
   "compatibility_date": "2026-09-01",
   // Keep variables added in the Cloudflare dashboard when GitHub deploys a new version.
   "keep_vars": true,
-  // The Worker only runs for the onboarding tool, its API, and the password-gated /superemployee page. Every other path
+  // The Worker only runs for the onboarding tool, its API, and the password-gated /superemployee and client pages (e.g. /kalpalabs). Every other path
   // (the landing page, case studies, images) is served straight from static assets.
   "main": "worker/index.js",
   "assets": {
     "directory": ".",
     "binding": "ASSETS",
-    "run_worker_first": ["/onboarding", "/onboarding/*", "/superemployee", "/superemployee/*", "/api/*"]
+    "run_worker_first": ["/onboarding", "/onboarding/*", "/superemployee", "/superemployee/*", "/kalpalabs", "/kalpalabs/", "/kalpalabs.html", "/api/*"]
   },
   "durable_objects": {
     "bindings": [{ "name": "STORE", "class_name": "Store" }]

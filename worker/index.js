@@ -306,6 +306,48 @@ button{margin-top:8px;font:inherit;font-weight:600;font-size:15px;padding:13px;b
 <button>Open memo</button><p class="e">${esc(error)}</p></form></body></html>`;
 const seLogin = (error, status, email = "") => new Response(SE_LOGIN_HTML(error, email), { status, headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store", "x-robots-tag": "noindex" } });
 
+/* ---------------- Password-gated client pages (e.g. /kalpalabs) ---------------- */
+// Each entry gates one static page. Only a SHA-256 hash of the password lives here, since the repo is public.
+// To gate another client page: add an entry here and add "/<slug>", "/<slug>/" and "/<slug>.html" to run_worker_first in wrangler.jsonc.
+const CLIENT_PAGES = {
+  kalpalabs: { name: "Kalpa Labs", hash: "d508d4710076587c8912acd3cd3a6e7f8d5fe76a26b96eb9f76883bf703eda04" },
+};
+const sha256hex = async s => [...new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s)))].map(b => b.toString(16).padStart(2, "0")).join("");
+const cpCookie = slug => "cp_" + slug;
+async function cpSessionValue(slug, page) {
+  const exp = Date.now() + SESSION_DAYS * 864e5;
+  return exp + "." + await hmac(page.hash, "cp:" + slug + ":" + exp);
+}
+async function cpSession(req, slug, page) {
+  const [exp, sig] = cookieOf(req, cpCookie(slug)).split(".");
+  if (!exp || !sig || Number(exp) < Date.now()) return false;
+  return timingSafeEqual(sig, await hmac(page.hash, "cp:" + slug + ":" + exp));
+}
+const CP_LOGIN_HTML = (slug, page, error = "") => `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(page.name)} × Cracked GTM</title><meta name="robots" content="noindex"><link rel="icon" href="/favicon.svg">
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@500;700&display=swap" rel="stylesheet">
+<style>*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;background:#FDFCF7;color:#111;font-family:Archivo,system-ui,sans-serif;padding:16px}
+form{width:100%;max-width:380px;border:1.5px solid #111;box-shadow:6px 6px 0 #D7191F;background:#fff;padding:28px;display:flex;flex-direction:column;gap:12px}
+h1{margin:0 0 6px;font-family:'Archivo Black',sans-serif;font-size:24px;line-height:1.1;letter-spacing:-.02em}label{font-size:13px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#5C5A55}
+input{font:inherit;font-size:16px;padding:12px;border:1.5px solid #111}input:focus{outline:2px solid #FFD60A}
+button{font-family:'Archivo Black',sans-serif;font-size:15px;padding:13px;background:#111;color:#FDFCF7;border:0;cursor:pointer}p{margin:0;font-size:14px;color:#D7191F;min-height:1.2em}</style></head>
+<body><form method="post" action="/${slug}"><h1>${esc(page.name)} × Cracked GTM</h1><label for="pw">Password</label><input id="pw" name="password" type="password" autocomplete="current-password" required autofocus><button>Open</button><p>${esc(error)}</p></form></body></html>`;
+const cpLogin = (slug, page, error, status) => new Response(CP_LOGIN_HTML(slug, page, error), { status, headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store", "x-robots-tag": "noindex" } });
+async function clientPage(req, url, slug, page, env) {
+  if (req.method === "POST") {
+    const form = await req.formData().catch(() => null);
+    const pw = String(form?.get("password") || "");
+    if (!pw || !timingSafeEqual(await sha256hex(pw), page.hash)) return cpLogin(slug, page, "Wrong password.", 401);
+    const h = new Headers({ location: "/" + slug });
+    h.append("set-cookie", `${cpCookie(slug)}=${await cpSessionValue(slug, page)}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${SESSION_DAYS * 86400}`);
+    return new Response(null, { status: 303, headers: h });
+  }
+  if (!(await cpSession(req, slug, page))) return cpLogin(slug, page, "", 401);
+  const res = await env.ASSETS.fetch(new Request(url.origin + "/" + slug));
+  const out = new Response(res.body, res);
+  out.headers.set("cache-control", "private, no-store"); out.headers.set("x-robots-tag", "noindex");
+  return out;
+}
+
 const LOGIN_HTML = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Cracked GTM Onboarding</title><meta name="robots" content="noindex">
 <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@500;700&display=swap" rel="stylesheet">
 <style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#FDFCF7;color:#111;font-family:Archivo,system-ui,sans-serif;padding:16px}
@@ -320,6 +362,9 @@ export default {
     const url = new URL(req.url);
     const path = url.pathname;
     try {
+      const cpSlug = path.replace(/^\/|\.html$|\/$/g, "");
+      if (Object.hasOwn(CLIENT_PAGES, cpSlug)) return await clientPage(req, url, cpSlug, CLIENT_PAGES[cpSlug], env);
+
       if (path === "/superemployee" || path.startsWith("/superemployee/")) {
         const page = path === "/superemployee/" || path === "/superemployee/index.html";
         if (req.method === "POST") {

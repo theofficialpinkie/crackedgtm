@@ -107,9 +107,8 @@ section{border-bottom:2px solid var(--ink);padding:104px 24px}
 .post{display:grid;grid-template-columns:600px 1fr;gap:56px;align-items:center}
 .post.flip{grid-template-columns:1fr 600px}
 .post.flip .post-frame{order:2}
-.post-frame{display:block;background:#fff;border:4px solid var(--ink);box-shadow:14px 14px 0 var(--ink);overflow:hidden;max-height:720px;position:relative}
-.post-frame img{width:100%;height:auto}
-.post-frame::after{content:"";position:absolute;left:0;right:0;bottom:0;height:80px;background:linear-gradient(rgba(255,255,255,0),#fff)}
+.post-frame{display:block;width:fit-content;max-width:100%;justify-self:center;background:#fff;border:4px solid var(--ink);box-shadow:14px 14px 0 var(--ink)}
+.post-frame img{width:auto;max-width:100%;height:auto}
 .post-copy{display:flex;flex-direction:column;align-items:flex-start;gap:20px}
 .post-copy .k{font-family:'Bangers',cursive;font-size:24px;letter-spacing:2px;padding:4px 14px;background:var(--ink);color:var(--yellow);transform:rotate(-2deg)}
 .post-copy h3{margin:0;font-family:'Archivo Black',sans-serif;font-size:clamp(30px,3.4vw,46px);line-height:1.05;letter-spacing:-.03em}
@@ -120,8 +119,8 @@ section{border-bottom:2px solid var(--ink);padding:104px 24px}
 .post-open{font-weight:700;font-size:16px}
 
 /* press */
-.press-grid{display:grid;grid-template-columns:1.6fr 1fr;gap:56px;align-items:center}
-.press-grid > img{width:100%;border:4px solid var(--ink);box-shadow:12px 12px 0 var(--red)}
+.press-grid{display:grid;grid-template-columns:1.15fr 1fr;gap:56px;align-items:center}
+.press-grid > img{width:100%;max-width:645px;height:auto;border:4px solid var(--ink);box-shadow:12px 12px 0 var(--red)}
 .press-copy{display:flex;flex-direction:column;gap:22px}
 .press-copy h2{margin:0;font-family:'Archivo Black',sans-serif;font-size:clamp(32px,3.6vw,48px);line-height:1.02;letter-spacing:-.03em}
 .press-copy p{margin:0;font-size:20px;line-height:1.5;font-weight:600}
@@ -173,20 +172,6 @@ section{border-bottom:2px solid var(--ink);padding:104px 24px}
 .mini-grid div{min-height:96px;padding:12px;display:flex;align-items:center;justify-content:center;background:#fff;border:3px solid var(--ink);box-shadow:5px 5px 0 var(--red)}
 .mini-grid img{max-height:34px;max-width:150px;width:auto;height:auto}
 
-/* pricing */
-.pricing{background:var(--band)}
-.price-row{display:grid;grid-template-columns:1fr auto 1fr;gap:28px;align-items:center}
-.price{padding:40px 44px;border:4px solid var(--ink);display:flex;flex-direction:column;gap:10px;background:#fff;box-shadow:10px 10px 0 var(--ink)}
-.price.y{background:var(--yellow);box-shadow:10px 10px 0 var(--red)}
-.price .k{font-family:'Bangers',cursive;font-size:26px;letter-spacing:2px;color:var(--red)}
-.price.y .k{color:var(--ink)}
-.price b{font-family:'Archivo Black',sans-serif;font-weight:400;font-size:clamp(56px,6.6vw,96px);line-height:1;letter-spacing:-.035em}
-.price b small{font-size:.45em;letter-spacing:-.01em}
-.price h3{margin:0;font-family:'Archivo Black',sans-serif;font-size:24px}
-.price p{margin:0;font-size:18px;font-weight:600;line-height:1.45;color:#333}
-.arrow{width:72px;height:44px}
-.price-foot{margin:36px 0 0;font-size:20px;font-weight:600;color:var(--muted)}
-
 /* cta */
 .cta{background:var(--red);color:#fff;padding:120px 24px;display:flex;flex-direction:column;align-items:center;gap:32px;text-align:center}
 .cta h2{margin:0;max-width:1000px;font-family:'Archivo Black',sans-serif;font-size:clamp(48px,6vw,84px);line-height:.98;letter-spacing:-.035em;text-shadow:6px 6px 0 var(--ink)}
@@ -206,9 +191,6 @@ footer a{color:var(--paper)}
   .case-right{border-left:none;border-top:3px solid var(--ink)}
   .post,.post.flip{grid-template-columns:1fr;gap:28px}
   .post.flip .post-frame{order:0}
-  .post-frame{max-height:640px}
-  .price-row{grid-template-columns:1fr}
-  .arrow{transform:rotate(90deg);justify-self:center}
 }
 @media (max-width:820px){
   section{padding:72px 20px}
@@ -229,7 +211,6 @@ footer a{color:var(--paper)}
   .res-pair{grid-template-columns:1fr 1fr}
   .track{padding:26px}
   .mini-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
-  .price{padding:30px 26px}
   .cta{padding:88px 20px}
   .cta p{font-size:19px}
   footer{flex-direction:column;padding:32px 20px;text-align:center}
@@ -422,11 +403,11 @@ footer a{color:var(--paper)}
 
 <section class="press" id="press">
   <div class="wrap press-grid">
-    <img src="assets/business-insider.webp" alt="Business Insider homepage leading with a story featuring Khaled" width="965" height="668" loading="lazy">
+    <img src="assets/business-insider.webp" alt="Business Insider article Cig Tech featuring Khaled" width="1290" height="1154" loading="lazy">
     <div class="press-copy">
       <span class="kicker">PRESS</span>
       <h2>Our most viral stunt <span class="red">wasn't even planned.</span></h2>
-      <p>Khaled made the Business Insider homepage. No PR firm. No press release. Just vibes.</p>
+      <p>Khaled landed on the Business Insider homepage and in their Cig Tech story. No PR firm. No press release. Just vibes.</p>
       <span class="stamp">Earned media: unlocked</span>
       <p class="fine">We don't recommend smoking. We do recommend getting your founder in the press.</p>
     </div>
@@ -542,30 +523,6 @@ footer a{color:var(--paper)}
   </div>
 </section>
 
-<section class="pricing" id="pricing">
-  <div class="wrap">
-    <div class="sec-head">
-      <span class="kicker">PRICING</span>
-      <h2>Start with a week. <span class="red">Stay if it works.</span></h2>
-    </div>
-    <div class="price-row">
-      <article class="price">
-        <span class="k">FIRST WEEK</span>
-        <b>$2.5K</b>
-        <h3>Trial week</h3>
-        <p>One week of real work together before you commit.</p>
-      </article>
-      <svg class="arrow" viewBox="0 0 72 44" aria-hidden="true"><path d="M2 14h40V3l28 19-28 19V30H2z" fill="#D7191F" stroke="#111111" stroke-width="3" stroke-linejoin="round"/></svg>
-      <article class="price y">
-        <span class="k">THREE MONTH ENGAGEMENT</span>
-        <b>$10K<small>/mo</small></b>
-        <h3>After the trial week</h3>
-        <p>3-month minimum commitment.</p>
-      </article>
-    </div>
-    <p class="price-foot">Two senior operators for less than one full-time growth hire.</p>
-  </div>
-</section>
 
 <section class="cta" id="book">
   <h2>Ready to go from zero to one?</h2>

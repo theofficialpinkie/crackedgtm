@@ -342,6 +342,12 @@ textarea.in.sm{min-height:84px}
 .lrow .detail{display:flex;flex-direction:column;gap:10px}
 .toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .toolbar .sp{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+.ghost.sm{min-height:30px;padding:0 12px;font-size:12.5px}
+.li{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:13.5px;padding:8px 12px;border-radius:12px;background:color-mix(in srgb,var(--mist) 60%,transparent)}
+.li a{color:var(--ink);font-weight:700}
+.li .big{font-family:var(--f-display);font-weight:900;font-size:17px}
+#rsWrap:empty{display:none}
+#rsWrap{margin-bottom:20px}
 @media (max-width:760px){
   .row3,.checks,.statrow{grid-template-columns:minmax(0,1fr)}
   .statrow{grid-template-columns:1fr 1fr}
@@ -366,6 +372,7 @@ textarea.in.sm{min-height:84px}
 </div></nav>
 
 <main>
+  <div id="rsWrap"></div>
   <section class="view home" id="v-home">
     <div class="stage" aria-hidden="true" style="aspect-ratio:2.2/1">
       <h1 class="word" style="font-size:clamp(52px,10vw,104px)">List<br>Builder</h1>
@@ -570,7 +577,7 @@ function openClient(c){
   S.intake = {...S.intake, ...lb.intake};
   addSpend(0, 0); writeIntake();
   if (S.unlocked >= 2 && S.analysis) renderIcp();
-  if (S.unlocked >= 3) renderTrain();
+  if (S.unlocked >= 3){ renderTrain(); if (S.round) prepRound(); }
   if (S.unlocked >= 4) renderList();
   show(S.unlocked >= 4 ? "list" : S.unlocked >= 3 ? "train" : S.unlocked >= 2 ? "icp" : "intake");
 }
@@ -579,6 +586,7 @@ function openClient(c){
 function show(view){
   S.view = view;
   ["home", "intake", "icp", "train", "list"].forEach(v => $("#v-" + v).hidden = v !== view);
+  $("#rsWrap").hidden = !(view === "train" || view === "list");
   document.querySelectorAll("#seg button").forEach((b, i) => { b.classList.toggle("on", b.dataset.view === view); b.disabled = i + 1 > S.unlocked; });
   if (view === "list") renderList();
   window.scrollTo({top: 0, behavior: "smooth"});
@@ -922,6 +930,48 @@ async function prospeoPull(maxPages){
   return added;
 }
 
+/* ================= LinkedIn company facts (via Prospeo) ================= */
+const BAY = ["san francisco", "oakland", "berkeley", "palo alto", "mountain view", "menlo park", "redwood city", "san mateo", "sunnyvale", "san jose", "santa clara", "cupertino", "burlingame", "emeryville", "fremont", "los altos", "foster city", "san carlos", "belmont", "millbrae", "daly city", "sausalito", "mill valley", "walnut creek", "hayward", "alameda", "san bruno", "san rafael"];
+function inFocus(loc){
+  const L = String(loc || "").toLowerCase(); if (!L || !S.intake.locs.length) return null;
+  return S.intake.locs.some(f => { const fl = f.toLowerCase(); const city = fl.split(",")[0].replace(/ bay area$/, "").trim();
+    if (city && L.includes(city)) return true; return /bay area/.test(fl) && BAY.some(b => L.includes(b)); });
+}
+async function enrichLinkedIn(ids){
+  if (!status.prospeo) return 0;
+  const todo = ids.map(id => S.pool[id]).filter(t => t && !t.li && (t.site || t.name)).slice(0, 100);
+  if (!todo.length) return 0;
+  const r = await api("/api/prospeo/companies", {companies: todo.map(t => ({id: t.id, website: t.site, name: t.site ? "" : t.name}))});
+  let n = 0;
+  todo.forEach(t => {
+    const c = r.companies?.[t.id]; if (!c){ t.li = {none: true}; return; }
+    t.li = c; n++;
+    if (c.employees != null) t.size = String(c.employees); else if (c.range) t.size = c.range;
+    if (c.location){ t.loc = c.location; if (t.s){ const f = inFocus(c.location); if (f !== null) t.s.inLoc = f; } }
+    if (c.stage) t.stage = c.stage + (c.fundedAt ? " (" + String(c.fundedAt).slice(0, 7) + ")" : "");
+    if (!t.what && c.description) t.what = c.description;
+    if (!t.site && c.website) t.site = domainOf(c.website);
+  });
+  return n;
+}
+function liHTML(t){
+  const c = t.li; if (!c || c.none) return status.prospeo && !c ? `<div class="li" id="li-${esc(t.id)}"><span class="spin"></span> Checking LinkedIn…</div>` : "";
+  return `<div class="li" id="li-${esc(t.id)}">${c.linkedin ? `<a href="${esc(c.linkedin)}" target="_blank" rel="noopener">LinkedIn ↗</a>` : "<b>LinkedIn</b>"}
+    ${c.employees != null ? `<span class="big">${Number(c.employees).toLocaleString()}</span> employees` : c.range ? `<span class="big">${esc(c.range)}</span> employees` : "size not listed"}
+    ${c.location ? ` · ${esc(c.location)}` : ""}${c.stage ? ` · ${esc(c.stage)}${c.fundedAt ? " " + esc(String(c.fundedAt).slice(0, 7)) : ""}` : ""}${c.totalFunding ? ` · ${esc(c.totalFunding)} raised` : ""}</div>`;
+}
+// Look up the round's companies on LinkedIn, then patch the open card in place (never re-render mid-decision)
+function prepRound(){
+  const R = S.round; if (!R || !R.ids.length) return;
+  enrichLinkedIn(R.ids).then(() => {
+    const id = R.ids[R.at]; const t = S.pool[id]; const box = document.getElementById("li-" + id);
+    if (t && box) box.outerHTML = liHTML(t) || "";
+    const meta = document.getElementById("tmeta"); if (t && meta && meta.dataset.id === id) meta.innerHTML = metaHTML(t);
+    save();
+  }).catch(() => { R.ids.forEach(id => { const t = S.pool[id]; if (t && !t.li) t.li = {none: true}; }); const b = document.querySelector(".li"); if (b && /Checking/.test(b.textContent)) b.remove(); });
+}
+const metaHTML = t => esc([t.site, t.loc, t.size && (/^\d+$/.test(t.size) ? t.size + " employees" : t.size + " people"), t.stage].filter(Boolean).join(" · ")) + (t.site ? ` · <a href="https://${esc(t.site)}" target="_blank" rel="noopener">open site ↗</a>` : "");
+
 /* ================= scoring ================= */
 function examplesBlock(){
   const rev = Object.values(S.pool).filter(t => t.review === "keep" || t.review === "pass").sort((a, b) => (b.reviewedAt || 0) - (a.reviewedAt || 0));
@@ -954,7 +1004,7 @@ For each company row decide:
 Use only the row plus well-known public facts about the company. Never invent details.
 Reply with only a JSON array in row order: [{"i":0,"category":"","verdict":"","fit":0,"confidence":0,"in_location":null,"checks":[true,false,null],"why":"","unsure":""}]`;
 }
-const rowText = (t, n) => `#${n} ${t.name} | ${t.site || "?"} | ${t.what || "?"} | location: ${t.loc || "?"} | size: ${t.size || "?"} | stage: ${t.stage || "?"} | signal: ${t.sig || "?"}${t.evidence ? " (" + t.evidence.slice(0, 160) + ")" : ""}${t.people?.length ? " | people: " + t.people.slice(0, 2).map(p => p.title).join(", ") : ""}`;
+const rowText = (t, n) => `#${n} ${t.name} | ${t.site || "?"} | ${t.what || "?"} | location: ${t.loc || "?"} | size: ${t.size ? t.size + (t.li && !t.li.none ? " (LinkedIn)" : "") : "?"} | stage: ${t.stage || "?"} | signal: ${t.sig || "?"}${t.evidence ? " (" + t.evidence.slice(0, 160) + ")" : ""}${t.people?.length ? " | people: " + t.people.slice(0, 2).map(p => p.title).join(", ") : ""}`;
 async function scoreAll(ids, onProgress){
   const prefix = scorePrefix(); const chunks = [];
   for (let i = 0; i < ids.length; i += 12) chunks.push(ids.slice(i, i + 12));
@@ -1005,13 +1055,14 @@ function pickBatch(){
   const byFit = pool.slice().sort((a, b) => b.s.fit - a.s.fit);
   const unsure = pool.slice().sort((a, b) => (a.s.conf + Math.abs(a.s.fit - 60) * 0.6) - (b.s.conf + Math.abs(b.s.fit - 60) * 0.6));
   const out = [];
+  pool.filter(t => t.priority && !(S.intake.locOnly && t.s.inLoc === false)).sort((a, b) => b.s.fit - a.s.fit).slice(0, BATCH - 1).forEach(t => { if (take(t)) out.push(t); });
   if (take(byFit[0])) out.push(byFit[0]);
   for (const t of unsure){ if (out.length >= BATCH - 1) break; if (take(t)) out.push(t); }
   const low = byFit.slice().reverse().find(t => !used.has(t.id) && t.s.fit < 50); if (low && take(low)) out.push(low);
   for (const t of byFit){ if (out.length >= BATCH) break; if (take(t)) out.push(t); }
   return out.slice(0, BATCH).map(t => t.id);
 }
-function newRound(ids){ S.round = {n: S.rounds.length + 1, ids: ids || pickBatch(), at: 0, results: []}; }
+function newRound(ids){ S.round = {n: S.rounds.length + 1, ids: ids || pickBatch(), at: 0, results: []}; prepRound(); }
 const roundDone = () => S.round && S.round.at >= S.round.ids.length;
 function renderTrain(){
   const R = S.round; const v = $("#v-train");
@@ -1022,10 +1073,11 @@ function renderTrain(){
   const dots = R.ids.map((id, i) => { const res = R.results[i]; return `<i class="${res ? (res.call === "keep" ? "k" : res.call === "pass" ? "p" : "u") : ""} ${i === R.at ? "cur" : ""}"></i>`; }).join("");
   const last = S.rounds[S.rounds.length - 1];
   v.innerHTML = `
-    <div class="progress"><div class="vh" style="padding:0"><h1 style="font-size:28px">Round ${R.n}</h1></div><div class="dots">${dots}</div><span class="note">${R.at + 1} of ${R.ids.length}${last ? ` · last round the engine called ${last.agree} of ${last.total} your way` : " · tell it what you think, it learns after every 5"}</span></div>
+    <div class="progress"><div class="vh" style="padding:0"><h1 style="font-size:28px">Round ${R.n}</h1></div><div class="dots">${dots}</div><button class="ghost sm" type="button" data-rs style="margin-left:auto;order:3">+ Add research</button><span class="note">${R.at + 1} of ${R.ids.length}${last ? ` · last round the engine called ${last.agree} of ${last.total} your way` : " · tell it what you think, it learns after every 5"}</span></div>
     <div class="tcard" id="tcard">
       <div class="top"><span class="cat ${s.category || "irrelevant"}">${esc(s.category === "customer" ? "Possible customer" : s.category === "competitor" ? "Competitor" : s.category === "channel" ? "Channel / partner" : "Unclear fit")}</span>${t.sig ? `<span class="tag">${esc(t.sig)}</span>` : ""}<span class="tag">${esc(t.src)}</span></div>
-      <div><h2>${esc(t.name)}</h2><p class="meta">${esc([t.site, t.loc, t.size && t.size + " people", t.stage].filter(Boolean).join(" · "))}${t.site ? ` · <a href="https://${esc(t.site)}" target="_blank" rel="noopener">open site ↗</a>` : ""}</p></div>
+      <div><h2>${esc(t.name)}</h2><p class="meta" id="tmeta" data-id="${esc(t.id)}">${metaHTML(t)}</p></div>
+      ${liHTML(t)}
       <p class="what">${esc(t.what || "No description found.")}</p>
       ${t.evidence ? `<div class="ev"><b>Signal:</b> ${esc(t.evidence)}${t.evidenceUrl ? ` · <a href="${esc(t.evidenceUrl)}" target="_blank" rel="noopener">source ↗</a>` : ""}</div>` : ""}
       ${S.checks.length ? `<div class="checks">${S.checks.map((c, i) => { const v2 = s.checks?.[i]; return `<div class="ck"><span class="m ${v2 === true ? "y" : v2 === false ? "n" : "u"}">${v2 === true ? "✓" : v2 === false ? "✕" : "?"}</span><div>${esc(c.name)}<small>${esc(c.test)}</small></div></div>`; }).join("")}</div>` : ""}
@@ -1146,6 +1198,66 @@ function wireTrainFoot(){
   const m = $("#moreBtn"); if (m) m.onclick = async () => { m.disabled = true; try { await refill("#moreStatus", 25); } catch(e){} newRound(); renderTrain(); save(); };
 }
 
+/* ================= research you found ================= */
+document.addEventListener("click", e => { if (e.target.closest("[data-rs]")) openResearch(); });
+function openResearch(){
+  $("#rsWrap").innerHTML = `<div class="card">
+    <div class="sect"><h2>Add research you found</h2><span>an article, a list of companies, founder LinkedIn links, your notes</span><button class="x r" type="button" id="rsClose" aria-label="Close">✕</button></div>
+    <textarea class="in" id="rsText" rows="8" placeholder="Paste anything. Names, links, funding, growth, founder bios. The engine pulls out every company and person."></textarea>
+    <div class="row2"><input class="in" id="rsUrl" placeholder="or a link to the article" autocomplete="off"><input class="in" id="rsLabel" placeholder="What is it? e.g. fast-growing voice AI startups" autocomplete="off"></div>
+    <div class="foot"><button class="pill sm" type="button" id="rsGo">Add these companies</button><div class="status" id="rsStatus"></div></div></div>`;
+  $("#rsClose").onclick = () => $("#rsWrap").innerHTML = "";
+  $("#rsGo").onclick = () => addResearch().catch(e => $("#rsStatus").insertAdjacentHTML("beforeend", `<div class="bad">✕ ${esc(e.error || "Couldn't read that. Try again.")}</div>`));
+  $("#rsWrap").scrollIntoView({behavior: "smooth", block: "start"}); $("#rsText").focus({preventScroll: true});
+}
+async function addResearch(){
+  let text = $("#rsText").value.trim(); const url = $("#rsUrl").value.trim(); const label = $("#rsLabel").value.trim();
+  if (!text && !url) return;
+  $("#rsGo").disabled = true; $("#rsStatus").innerHTML = "";
+  if (url){ const l = line("#rsStatus", "Reading the link"); try { text = (text ? text + "\n\n" : "") + ((await api("/api/pull-site", {url})).text || ""); l.done(); } catch(e){ l.done(false, "Couldn't read the link: " + e.error); } }
+  if (!text){ $("#rsGo").disabled = false; return; }
+  const l2 = line("#rsStatus", "Pulling out the companies", ["reading names and links", "noting funding and growth", "matching founders to their companies"]);
+  const r = await claude(`Extract every company mentioned in research the team found for ${S.intake.name} (who sells: ${S.analysis?.sells || ""}). Include companies that appear only through a person, like a founder bio that names their company.
+${label ? "The team describes it as: " + label : ""}
+TEXT:
+${text.slice(0, 40000)}
+
+Rules: use only what the text says, never invent. website: a bare domain if a link or domain appears, else "". people: everyone named, with role and LinkedIn URL when given. evidence: the specific facts that make the company interesting (funding with amount, stage and date; growth numbers; launches), in one line.
+Reply with only {"source_label":"short name for this source","signal":{"signal":"the pattern these companies share, phrased as a buying signal","query":"a web search query that finds more companies like these"},"insight":"one sentence on what this suggests about who to target","companies":[{"name":"","website":"","what":"","location":"","funding":"","evidence":"","people":[{"name":"","title":"","linkedin":""}]}]}`, {max: 8000});
+  const cos = arr(r.companies).filter(c => c && c.name);
+  l2.done(true, `Found ${cos.length} compan${cos.length === 1 ? "y" : "ies"}`);
+  const src = r.source_label || label || "Your research";
+  const ids = []; let fresh = 0;
+  cos.forEach(c => {
+    const people = arr(c.people).filter(p => p && p.name).map(p => ({name: p.name, title: p.title || "", linkedin: /linkedin\.com\/in\//i.test(p.linkedin || "") ? p.linkedin : "", pid: ""}));
+    const evidence = [c.funding, c.evidence].filter(Boolean).join(". ").replace(/\.\./g, ".");
+    if (addCandidate({name: c.name, site: c.website, what: c.what, loc: c.location, stage: c.funding, sig: src, evidence, src: "Your research", people})) fresh++;
+    const id = keyOf(c.name, c.website); const t = S.pool[id] || Object.values(S.pool).find(x => x.name.toLowerCase() === c.name.toLowerCase());
+    if (!t) return;
+    t.priority = true; t.src = "Your research"; if (evidence && !String(t.evidence).includes(evidence.slice(0, 30))) t.evidence = [evidence, t.evidence].filter(Boolean).join(" · ");
+    if (!t.loc && c.location) t.loc = c.location; if (!t.what && c.what) t.what = c.what;
+    people.forEach(p => { t.people = arr(t.people); if (!t.people.some(x => x.name === p.name)) t.people.unshift(p); });
+    ids.push(t.id);
+  });
+  S.intake.sources.push({id: nid("s"), name: "Research: " + src, kind: "notes", text: text.slice(0, 40000), csv: null, meta: `${cos.length} companies · added while training`});
+  if (r.signal?.signal && !S.signals.some(x => x.signal.toLowerCase() === r.signal.signal.toLowerCase())) S.signals.push({signal: r.signal.signal, why: r.insight || "From your research", query: r.signal.query || ""});
+  if (ids.length){
+    const l3 = line("#rsStatus", `Checking ${ids.length} on LinkedIn and judging them`);
+    try { await enrichLinkedIn(ids); } catch(e){}
+    ids.forEach(id => { const t = S.pool[id]; if (t && !t.review) t.s = null; });
+    await scoreAll(ids.filter(id => !S.pool[id].review));
+    ids.forEach(id => { const t = S.pool[id]; if (t?.s && t.loc){ const f = inFocus(t.loc); if (f !== null) t.s.inLoc = f; } });
+    l3.done();
+  }
+  save();
+  const away = ids.filter(id => S.pool[id]?.s?.inLoc === false).length;
+  const queue = ids.filter(id => { const t = S.pool[id]; return t && !t.review && !(S.intake.locOnly && t.s?.inLoc === false); });
+  $("#rsStatus").insertAdjacentHTML("beforeend", `<div class="ok">✓ Added ${fresh} new compan${fresh === 1 ? "y" : "ies"}${cos.length - fresh ? ` (${cos.length - fresh} were already on your list)` : ""}.${away && S.intake.locOnly ? ` ${away} ${away === 1 ? "is" : "are"} outside ${esc(S.intake.locs[0] || "your location")}, so ${away === 1 ? "it's" : "they're"} in Filtered out.` : ""} ${queue.length ? "The rest come up first in your next round." : ""}</div>${r.insight ? `<div>${esc(r.insight)}</div>` : ""}`);
+  $("#rsGo").outerHTML = queue.length ? `<button class="pill sm" type="button" id="rsReview">Review ${Math.min(BATCH, queue.length)} now</button>` : "";
+  const rv = $("#rsReview"); if (rv) rv.onclick = () => { $("#rsWrap").innerHTML = ""; newRound(queue.slice(0, BATCH)); renderTrain(); show("train"); save(); };
+  if (S.view === "list") renderList();
+}
+
 /* ================= list ================= */
 function buckets(){
   const all = Object.values(S.pool);
@@ -1174,8 +1286,9 @@ function renderList(){
     </div>
     <div class="toolbar">
       <button class="pill sm" type="button" id="trainMore">${B.needs.length ? `Train on the next ${Math.min(BATCH, B.needs.length)}` : "Train another round"}</button>
+      <button class="ghost" type="button" data-rs>+ Add research</button>
       <button class="ghost" type="button" id="findMore">Find 50 more</button>
-      <button class="ghost" type="button" id="peopleBtn">Find founders</button>
+      <button class="ghost" type="button" id="peopleBtn">Founders + LinkedIn sizes</button>
       <button class="ghost" type="button" id="emailBtn">Get emails</button>
       <button class="ghost" type="button" id="csvBtn">Download CSV</button>
     </div>
@@ -1194,10 +1307,11 @@ function rowHTML(t){
     <div class="score ${s.fit >= 80 ? "top" : ""}">${sc}</div>
     <div style="min-width:0">
       <div class="nm"><b>${esc(t.name)}</b>${s.category ? `<span class="cat ${s.category}">${esc(s.category)}</span>` : ""}${t.review === "keep" ? '<span class="tag good">You kept</span>' : t.review === "pass" ? `<span class="tag bad">You passed${t.reason ? ": " + esc(t.reason) : ""}</span>` : ""}${t.sig ? `<span class="tag">${esc(t.sig)}</span>` : ""}</div>
-      <div class="meta">${esc([t.site, t.loc, t.size && t.size + " people", t.stage].filter(Boolean).join(" · "))}</div>
+      <div class="meta">${esc([t.site, t.loc, t.size && (/^\d+$/.test(t.size) ? t.size + " employees" : t.size + " people"), t.stage].filter(Boolean).join(" · "))}</div>
       <p class="why">${esc(s.why || t.what)}</p>
       <details><summary>Details${t.people?.length ? " · " + t.people.length + (t.people.length === 1 ? " person" : " people") : ""}${t.opener ? " · opener" : ""}</summary><div class="detail">
         <p>${esc(t.what)}</p>
+        ${t.li && !t.li.none ? liHTML(t) : ""}
         ${t.evidence ? `<div class="ev"><b>Signal:</b> ${esc(t.evidence)}${t.evidenceUrl ? ` · <a href="${esc(t.evidenceUrl)}" target="_blank" rel="noopener">source ↗</a>` : ""}</div>` : ""}
         ${S.checks.length && s.checks ? `<div class="checks">${S.checks.map((c, i) => { const v = s.checks[i]; return `<div class="ck"><span class="m ${v === true ? "y" : v === false ? "n" : "u"}">${v === true ? "✓" : v === false ? "✕" : "?"}</span><div>${esc(c.name)}</div></div>`; }).join("")}</div>` : ""}
         ${s.unsure ? `<p class="unsure"><b>Not sure about:</b> ${esc(s.unsure)}</p>` : ""}
@@ -1243,8 +1357,11 @@ async function findMore(){
   } catch(e){ $("#listStatus").innerHTML = `<div class="bad">✕ ${esc(e.error || "Couldn't find more")}</div>`; }
 }
 async function findPeople(){
-  const B = buckets(); const todo = [...B.kept, ...B.ready].filter(t => t.site && !arr(t.people).length).slice(0, 60);
-  $("#listStatus").innerHTML = ""; if (!todo.length){ $("#listStatus").innerHTML = '<div class="ok">✓ Everyone on the list already has people.</div>'; return; }
+  const B = buckets(); $("#listStatus").innerHTML = "";
+  const noLi = [...B.kept, ...B.ready].filter(t => !t.li).map(t => t.id);
+  if (noLi.length){ const l0 = line("#listStatus", `Checking ${noLi.length} companies on LinkedIn`); try { const n = await enrichLinkedIn(noLi); l0.done(true, `LinkedIn sizes for ${n} companies`); } catch(e){ l0.done(false, e.error); } }
+  const todo = [...B.kept, ...B.ready].filter(t => t.site && !arr(t.people).length).slice(0, 60);
+  if (!todo.length){ $("#listStatus").innerHTML = '<div class="ok">✓ Everyone on the list already has people.</div>'; return; }
   const l = line("#listStatus", `Finding founders and CEOs at ${todo.length} companies`);
   try {
     for (let i = 0; i < todo.length; i += 25){
@@ -1269,9 +1386,9 @@ async function getEmails(){
 }
 function downloadCsv(){
   const B = buckets(); const q = v => '"' + String(v ?? "").replace(/"/g, '""') + '"';
-  const rows = [["Status", "Fit", "Company", "Website", "Location", "Size", "What they do", "Why reach out", "Signal", "Evidence", "Opener", "Person", "Title", "LinkedIn", "Email"]];
+  const rows = [["Status", "Fit", "Company", "Website", "Company LinkedIn", "Location", "Employees (LinkedIn)", "Funding", "What they do", "Why reach out", "Signal", "Evidence", "Opener", "Person", "Title", "LinkedIn", "Email"]];
   [...B.kept.map(t => ["Kept", t]), ...B.ready.map(t => ["Ready", t])].forEach(([st, t]) => {
-    const base = [st, t.s?.fit ?? "", t.name, t.site, t.loc, t.size, t.what, t.s?.why || "", t.sig, t.evidence, t.opener || ""];
+    const base = [st, t.s?.fit ?? "", t.name, t.site, t.li?.linkedin || "", t.loc, t.li?.employees ?? t.li?.range ?? t.size ?? "", t.stage || "", t.what, t.s?.why || "", t.sig, t.evidence, t.opener || ""];
     const ps = arr(t.people).length ? t.people : [{}];
     ps.forEach(p => rows.push([...base, p.name || "", p.title || "", p.linkedin || "", p.email || ""]));
   });

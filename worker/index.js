@@ -705,6 +705,35 @@ Reply with only: {"findings":[{"where":"page or url","what":"one plain sentence"
         if (error && !credits && !Object.values(out).some(x => x.email)) return fail(502, error);
         return json({ emails: out, credits, ...(error ? { warning: error } : {}) });
       }
+      if (path === "/api/prospeo/companies" && req.method === "POST") {
+        // LinkedIn-sourced company facts (headcount, location, funding) for up to 100 companies, 50 per Prospeo call.
+        // 1 credit per match; re-enriching within 90 days is free.
+        if (!env.PROSPEO_API_KEY) return fail(503, "PROSPEO_API_KEY is not set on the Worker.");
+        const { companies = [] } = await req.json();
+        const rows = arr2(companies).slice(0, 100).map(c => {
+          const item = { identifier: String(c.id) };
+          if (/linkedin\.com\/company\//i.test(c.linkedin || "")) item.company_linkedin_url = c.linkedin;
+          if (rootDomain(c.website || "")) item.company_website = rootDomain(c.website);
+          if (!item.company_linkedin_url && !item.company_website && c.name) item.company_name = String(c.name).slice(0, 120);
+          return item.company_linkedin_url || item.company_website || item.company_name ? item : null;
+        }).filter(Boolean);
+        const out = {}; let credits = 0, error = "";
+        for (let i = 0; i < rows.length; i += 50) {
+          if (i) await new Promise(r => setTimeout(r, 1200));
+          const r = await fetch("https://api.prospeo.io/bulk-enrich-company", { method: "POST", headers: { "X-KEY": env.PROSPEO_API_KEY, "content-type": "application/json" }, body: JSON.stringify({ data: rows.slice(i, i + 50) }) });
+          const d = await r.json().catch(() => ({}));
+          if (!r.ok || d.error) { error = "Prospeo said: " + (d.error_code || d.message || r.status); if (["INSUFFICIENT_CREDITS", "INVALID_API_KEY"].includes(d.error_code) || r.status === 429) break; continue; }
+          credits += Number(d.total_cost) || 0;
+          for (const m of d.matched || []) {
+            const c = m.company || {}; const loc = c.location || {}; const f = c.funding || {};
+            out[String(m.identifier)] = { name: c.name || "", website: c.website || c.domain || "", employees: c.employee_count ?? null, range: c.employee_range || "", linkedin: c.linkedin_url || "",
+              location: [loc.city, loc.state, loc.country].filter(Boolean).join(", "), stage: f.latest_funding_stage || "", fundedAt: f.latest_funding_date || "", totalFunding: f.total_funding_printed || "",
+              description: String(c.description || c.description_ai || "").slice(0, 300), industry: c.industry || "" };
+          }
+        }
+        if (error && !Object.keys(out).length) return fail(502, error);
+        return json({ companies: out, credits, ...(error ? { warning: error } : {}) });
+      }
       if (path === "/api/prospeo/suggest" && req.method === "POST") {
         // Free Prospeo lookup that returns location names exactly as Prospeo stores them
         if (!env.PROSPEO_API_KEY) return fail(503, "PROSPEO_API_KEY is not set on the Worker.");

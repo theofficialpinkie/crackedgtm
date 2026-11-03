@@ -6,402 +6,487 @@
 <meta name="robots" content="noindex,nofollow">
 <link rel="icon" href="/favicon.svg">
 <title>Cracked GTM Engine</title>
-<meta name="description" content="Cracked GTM onboarding engine demo: calls, customers and a website in, a self-improving target list out.">
+<meta name="description" content="Onboard a client from their calls, CRM, customers and website. Get an ICP you can steer and a target list that learns from your reviews.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-/* Layout: one calm column, three steps that unlock in order. Crackedgtm.ai tokens, used quietly: red only for the primary action, yellow only for "this just changed". */
+/* Layout: soft clay + frosted glass. One centered column, three views (intake, ICP, targets) behind a pill nav.
+   Blush paper, warm graphite ink, glass tiles tinted sage / mist / cream. Graphite pill = the one action. */
 :root{
-  --ink:#111111; --paper:#FBFAF6; --card:#FFFFFF; --soft:#F2F0E8; --line:#E2DFD4; --line-strong:#111111;
-  --muted:#6B6860; --red:#D7191F; --on-red:#FFFFFF; --yellow:#FFE45C; --on-yellow:#111111;
-  --good:#1F8A4C; --bad:#B42318; --good-bg:#E7F4EC; --bad-bg:#FBEAEA; --end-bg:#111111; --end-ink:#FBFAF6; --end-dim:#C9C5B8; --end-line:#3B3A35;
-  --f-display:'Archivo Black','Arial Black',Impact,sans-serif;
-  --f-body:'Archivo',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --bg:#F7EEEC; --bg2:#F2E6E3; --ink:#4B4543; --ink-2:#6E6764; --muted:#9A918D;
+  --glass:rgba(255,255,255,.62); --glass-2:rgba(255,255,255,.82); --rim:rgba(255,255,255,.95); --edge:rgba(120,95,88,.14);
+  --sage:#DDE5DA; --sage-ink:#8FA389; --mist:#DCE6EC; --mist-ink:#9DB6C6; --cream:#EFE9DD; --cream-ink:#B8AC93;
+  --pill:#5B5452; --pill-2:#454040; --on-pill:#FFFFFF;
+  --good:#4E8B63; --good-bg:#E2EFE5; --bad:#B4554C; --bad-bg:#F6E1DE; --hi:#FFE9A8; --on-hi:#4B4543;
+  --shadow:0 1px 0 var(--rim) inset, 0 18px 40px -18px rgba(110,80,72,.35), 0 2px 6px rgba(110,80,72,.08);
+  --shadow-sm:0 1px 0 var(--rim) inset, 0 6px 16px -8px rgba(110,80,72,.28);
+  --f-display:'Nunito','Arial Rounded MT Bold','Helvetica Rounded',system-ui,sans-serif;
+  --f-body:'DM Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
   --f-mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+  --r:22px; --r-sm:14px;
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
-  --ink:#F2EFE6; --paper:#141412; --card:#1C1C1A; --soft:#24241F; --line:#34332E; --line-strong:#F2EFE6;
-  --muted:#A29E92; --red:#F0373D; --good:#4CC57F; --bad:#FF7B72; --good-bg:#16291E; --bad-bg:#2E1716; --end-bg:#000000; --end-line:#2B2A26; color-scheme:dark}}
+  --bg:#1D1A19; --bg2:#242120; --ink:#EDE6E3; --ink-2:#C4BBB7; --muted:#8E8582;
+  --glass:rgba(255,255,255,.06); --glass-2:rgba(255,255,255,.1); --rim:rgba(255,255,255,.1); --edge:rgba(255,255,255,.08);
+  --sage:#2C3329; --sage-ink:#8FA389; --mist:#273038; --mist-ink:#9DB6C6; --cream:#332F28; --cream-ink:#B8AC93;
+  --pill:#EDE6E3; --pill-2:#D6CDC9; --on-pill:#1D1A19;
+  --good:#7FC495; --good-bg:#1F2D23; --bad:#E88B81; --bad-bg:#3A2321; --hi:#5E5230; --on-hi:#FFF4D2;
+  --shadow:0 1px 0 var(--rim) inset, 0 18px 40px -18px rgba(0,0,0,.7); --shadow-sm:0 1px 0 var(--rim) inset, 0 6px 16px -8px rgba(0,0,0,.6);
+  color-scheme:dark}}
 :root[data-theme="dark"]{
-  --ink:#F2EFE6; --paper:#141412; --card:#1C1C1A; --soft:#24241F; --line:#34332E; --line-strong:#F2EFE6;
-  --muted:#A29E92; --red:#F0373D; --good:#4CC57F; --bad:#FF7B72; --good-bg:#16291E; --bad-bg:#2E1716; --end-bg:#000000; --end-line:#2B2A26; color-scheme:dark}
+  --bg:#1D1A19; --bg2:#242120; --ink:#EDE6E3; --ink-2:#C4BBB7; --muted:#8E8582;
+  --glass:rgba(255,255,255,.06); --glass-2:rgba(255,255,255,.1); --rim:rgba(255,255,255,.1); --edge:rgba(255,255,255,.08);
+  --sage:#2C3329; --sage-ink:#8FA389; --mist:#273038; --mist-ink:#9DB6C6; --cream:#332F28; --cream-ink:#B8AC93;
+  --pill:#EDE6E3; --pill-2:#D6CDC9; --on-pill:#1D1A19;
+  --good:#7FC495; --good-bg:#1F2D23; --bad:#E88B81; --bad-bg:#3A2321; --hi:#5E5230; --on-hi:#FFF4D2;
+  --shadow:0 1px 0 var(--rim) inset, 0 18px 40px -18px rgba(0,0,0,.7); --shadow-sm:0 1px 0 var(--rim) inset, 0 6px 16px -8px rgba(0,0,0,.6);
+  color-scheme:dark}
 *{box-sizing:border-box}
 [hidden]{display:none!important}
-body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased}
-button,input,textarea{font:inherit;color:inherit}
-:focus-visible{outline:2px solid var(--red);outline-offset:2px}
+html{min-height:100%}
+body{margin:0;min-height:100vh;background:radial-gradient(1200px 700px at 50% -10%,var(--bg2),transparent 70%),var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased}
+button,input,textarea,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--ink-2);outline-offset:3px}
 h1,h2,h3,p{margin:0}
 h1,h2,h3{text-wrap:balance}
 a{color:inherit}
 
-.top{position:sticky;top:0;z-index:20;background:var(--paper);border-bottom:1px solid var(--line);padding:12px max(16px,env(safe-area-inset-right,0px)) 12px max(16px,env(safe-area-inset-left,0px))}
-.top .in{max-width:880px;margin:0 auto;display:flex;align-items:center;gap:10px}
-.brand{font-family:var(--f-display);font-size:16px;letter-spacing:-.02em;text-decoration:none;margin-right:auto;display:flex;align-items:baseline;gap:8px}
-.brand span{font-family:var(--f-body);font-weight:600;font-size:12px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:38px;padding:0 14px;border:1px solid var(--line-strong);background:var(--card);color:var(--ink);font-weight:700;font-size:14px;cursor:pointer;transition:transform .1s ease;white-space:nowrap}
-.btn:hover{transform:translateY(-1px)}
-.btn:disabled{opacity:.4;cursor:not-allowed;transform:none}
-.btn.primary{background:var(--red);border-color:var(--red);color:var(--on-red);font-family:var(--f-display);font-weight:400;letter-spacing:-.01em;min-height:44px;padding:0 20px;box-shadow:3px 3px 0 var(--line-strong)}
-.btn.quiet{border-color:var(--line)}
-.btn.sm{min-height:30px;padding:0 10px;font-size:12.5px}
+/* nav */
+.nav{position:sticky;top:0;z-index:30;padding:14px max(16px,env(safe-area-inset-right,0px)) 14px max(16px,env(safe-area-inset-left,0px));background:linear-gradient(var(--bg) 60%,transparent)}
+.nav .navin{max-width:960px;margin:0 auto;display:flex;align-items:center;gap:12px}
+.mark{font-family:var(--f-display);font-weight:900;font-size:19px;letter-spacing:-.02em;color:var(--ink);text-decoration:none;margin-right:auto;cursor:pointer;background:none;border:0;padding:0}
+.seg{display:flex;padding:4px;border-radius:999px;background:var(--glass);box-shadow:var(--shadow-sm);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+.seg button{all:unset;cursor:pointer;padding:6px 14px;border-radius:999px;font-size:13px;font-weight:600;color:var(--muted)}
+.seg button.on{background:var(--glass-2);color:var(--ink);box-shadow:var(--shadow-sm)}
+.seg button:disabled{cursor:not-allowed;opacity:.5}
+.mode{display:flex;align-items:center;gap:7px;font-size:12.5px;font-weight:600;color:var(--ink-2);padding:6px 12px;border-radius:999px;background:var(--glass);box-shadow:var(--shadow-sm);white-space:nowrap}
+.mode i{width:7px;height:7px;border-radius:50%;background:var(--cream-ink)}
+.mode.live i{background:var(--good);box-shadow:0 0 0 3px var(--good-bg)}
 
-main{max-width:880px;margin:0 auto;padding:36px max(16px,env(safe-area-inset-right,0px)) 80px max(16px,env(safe-area-inset-left,0px));display:flex;flex-direction:column;gap:28px}
-.hero{display:flex;flex-direction:column;gap:12px}
-.hero .ey{font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--red)}
-.hero h1{font-family:var(--f-display);font-weight:400;font-size:clamp(30px,5vw,48px);line-height:1;letter-spacing:-.035em}
-.hero p{font-size:17px;color:var(--muted);max-width:60ch}
+/* buttons */
+.pill{display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:50px;padding:0 28px;border-radius:999px;border:0;cursor:pointer;
+  background:linear-gradient(180deg,var(--pill),var(--pill-2));color:var(--on-pill);font-family:var(--f-display);font-weight:800;font-size:17px;letter-spacing:-.01em;
+  box-shadow:0 1px 0 rgba(255,255,255,.25) inset,0 -2px 0 rgba(0,0,0,.18) inset,0 14px 28px -12px rgba(70,50,45,.55);transition:transform .15s ease,box-shadow .15s ease}
+.pill:hover{transform:translateY(-1px)}
+.pill:active{transform:translateY(1px)}
+.pill:disabled{opacity:.45;cursor:not-allowed;transform:none}
+.pill.sm{min-height:38px;padding:0 18px;font-size:14px}
+.ghost{display:inline-flex;align-items:center;gap:8px;min-height:36px;padding:0 14px;border-radius:999px;border:0;background:var(--glass);box-shadow:var(--shadow-sm);cursor:pointer;font-weight:600;font-size:13.5px;color:var(--ink)}
+.ghost:hover{background:var(--glass-2)}
+.ghost:disabled{opacity:.45;cursor:not-allowed}
+.link{all:unset;cursor:pointer;color:var(--ink-2);font-weight:600;display:inline-flex;align-items:center;gap:8px}
+.link:hover{color:var(--ink)}
 
-.stepper{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:6px}
-.stepper button{all:unset;cursor:pointer;display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:var(--muted);padding:6px 4px}
-.stepper button .n{width:24px;height:24px;display:grid;place-items:center;border:1px solid var(--line);font-family:var(--f-mono);font-size:12px;font-weight:500}
-.stepper button.on{color:var(--ink)}
-.stepper button.on .n{background:var(--ink);color:var(--paper);border-color:var(--ink)}
-.stepper button.done .n{background:var(--good);border-color:var(--good);color:#fff}
-.stepper .sep{width:28px;height:1px;background:var(--line)}
+main{max-width:960px;margin:0 auto;padding:8px max(16px,env(safe-area-inset-right,0px)) 80px max(16px,env(safe-area-inset-left,0px))}
+.view{display:flex;flex-direction:column;gap:20px;animation:rise .35s ease}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}}
 
-.step{background:var(--card);border:1px solid var(--line);display:flex;flex-direction:column;scroll-margin-top:80px;transition:opacity .3s ease}
-.step.active{border-color:var(--line-strong);box-shadow:5px 5px 0 var(--line-strong)}
-.step.locked{opacity:.45;pointer-events:none}
-.step.collapsed .step-b{display:none}
-.step.collapsed .step-h{padding-bottom:18px}
-.step .sum{display:none;flex-basis:100%;font-size:13.5px;color:var(--muted)}
-.step.collapsed .sum{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-.step.collapsed .step-h .sub{display:none}
-.sum button{all:unset;cursor:pointer;font-weight:700;color:var(--ink);text-decoration:underline}
-.step-h{padding:20px 22px 0;display:flex;gap:12px;align-items:baseline;flex-wrap:wrap}
-.step-h .n{font-family:var(--f-mono);font-size:12px;color:var(--muted)}
-.step-h h2{font-family:var(--f-display);font-weight:400;font-size:22px;letter-spacing:-.025em;line-height:1.1}
-.step-h .sub{flex-basis:100%;font-size:14px;color:var(--muted)}
-.step-b{padding:18px 22px 22px;display:flex;flex-direction:column;gap:20px;min-width:0}
-.label{font-size:11.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-.label .opt{font-weight:500;letter-spacing:0;text-transform:none}
-.group{display:flex;flex-direction:column;gap:8px;min-width:0}
-input.text{width:100%;padding:10px 12px;border:1px solid var(--line);background:var(--paper)}
-input.text:focus{border-color:var(--line-strong);outline:none}
+/* home */
+.home{align-items:center;text-align:center;padding:56px 0 40px;gap:26px}
+.stage{position:relative;width:min(640px,100%);aspect-ratio:16/9;max-width:100%;display:grid;place-items:center}
+.word{position:relative;z-index:2;font-family:var(--f-display);font-weight:900;font-size:clamp(64px,13vw,132px);line-height:.86;letter-spacing:-.045em;color:var(--ink);
+  text-shadow:0 1px 0 rgba(255,255,255,.35),0 -1px 0 rgba(0,0,0,.25),0 3px 0 rgba(0,0,0,.08),0 14px 22px rgba(90,60,55,.28)}
+.tile{position:absolute;z-index:1;border-radius:30px;background:var(--glass);border:1px solid var(--rim);box-shadow:var(--shadow);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);display:grid;place-items:center;animation:bob 6s ease-in-out infinite}
+.tile svg{width:44%;height:44%}
+.t1{width:26%;aspect-ratio:1.25;left:7%;top:2%;background:color-mix(in srgb,var(--sage) 75%,transparent)}
+.t2{width:16%;aspect-ratio:.9;right:6%;top:18%;background:color-mix(in srgb,var(--cream) 70%,transparent);animation-delay:-2s}
+.t3{width:16%;aspect-ratio:1.1;left:6%;bottom:16%;background:color-mix(in srgb,var(--sage) 55%,transparent);animation-delay:-4s}
+.t4{width:22%;aspect-ratio:1.2;right:10%;bottom:4%;background:color-mix(in srgb,var(--mist) 70%,transparent);animation-delay:-1s}
+@keyframes bob{50%{transform:translateY(-6px)}}
+.home p.sub{font-size:17px;color:var(--ink-2);max-width:46ch}
+.home .acts{display:flex;flex-direction:column;align-items:center;gap:14px}
 
-.drop{border:1.5px dashed var(--line);background:var(--paper);padding:12px;display:flex;flex-direction:column;gap:10px;transition:border-color .15s ease,background .15s ease}
-.drop.over{border-color:var(--red);background:var(--soft)}
-.drop .hint{font-size:13px;color:var(--muted);display:flex;gap:6px;flex-wrap:wrap;align-items:center}
-.drop .hint label{color:var(--ink);font-weight:700;text-decoration:underline;cursor:pointer}
-.files{display:flex;flex-direction:column;gap:6px}
-.files:empty{display:none}
-.file{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:center;background:var(--card);border:1px solid var(--line);padding:8px 10px;font-size:13.5px;animation:pop .25s ease}
-.file .ic{width:28px;height:28px;display:grid;place-items:center;background:var(--soft);font-family:var(--f-mono);font-size:10px;font-weight:500}
-.file .ic.g{background:#2B7A4B;color:#fff;font-size:12px}
-.file b{display:block;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.file span{color:var(--muted);font-size:12px}
-.file button{all:unset;cursor:pointer;color:var(--muted);font-size:12px;padding:2px 6px}
-.file button:hover{color:var(--ink)}
-.preview{grid-column:1/-1;background:var(--paper);border-top:1px solid var(--line);margin:4px -10px -8px;padding:10px 12px;font-size:13px;white-space:pre-wrap;max-height:220px;overflow:auto}
-@keyframes pop{from{opacity:0;transform:translateY(4px)}}
-.cols2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px}
-.mini{width:100%;border-collapse:collapse;font-size:12.5px}
-.mini td,.mini th{padding:5px 8px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap;font-variant-numeric:tabular-nums}
-.mini th{font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:700}
-.scroll{overflow-x:auto}
-.foot-row{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
-.status{font-family:var(--f-mono);font-size:12px;color:var(--muted);display:flex;flex-direction:column;gap:3px}
-.status div{animation:pop .2s ease}
+/* glass card */
+.card{background:var(--glass);border:1px solid var(--rim);border-radius:var(--r);box-shadow:var(--shadow);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);padding:22px;display:flex;flex-direction:column;gap:16px;min-width:0}
+.vh{display:flex;flex-direction:column;align-items:flex-start;gap:8px;padding:8px 4px 0}
+.vh h1{font-family:var(--f-display);font-weight:900;font-size:clamp(28px,4.4vw,40px);letter-spacing:-.03em;line-height:1.02}
+.vh p{flex-basis:100%;color:var(--ink-2);font-size:15.5px;max-width:62ch}
+.sect{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.sect h2{font-family:var(--f-display);font-weight:800;font-size:19px;letter-spacing:-.015em}
+.sect span{font-size:13px;color:var(--muted)}
+.sect .r{margin-left:auto}
+.lbl{font-size:12px;font-weight:700;color:var(--ink-2);letter-spacing:.02em}
+.field{display:flex;flex-direction:column;gap:6px;min-width:0}
+.in{width:100%;padding:12px 14px;border-radius:var(--r-sm);border:1px solid var(--edge);background:var(--glass-2);box-shadow:0 1px 2px rgba(110,80,72,.06) inset;outline:none}
+.in:focus{border-color:var(--ink-2)}
+textarea.in{resize:vertical;line-height:1.55;min-height:150px}
+.row2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{all:unset;cursor:pointer;font-size:12.5px;font-weight:600;padding:5px 11px;border-radius:999px;background:var(--glass-2);box-shadow:var(--shadow-sm);color:var(--ink-2)}
+.chip:hover{color:var(--ink)}
+.note{font-size:12.5px;color:var(--muted)}
+.banner{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:12px 16px;border-radius:var(--r-sm);background:color-mix(in srgb,var(--cream) 80%,transparent);font-size:13.5px;color:var(--ink-2)}
+.banner b{color:var(--ink)}
+.banner .sp{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+.err{padding:10px 14px;border-radius:var(--r-sm);background:var(--bad-bg);color:var(--bad);font-size:13.5px;font-weight:600}
+
+/* founders */
+.founders{display:flex;flex-direction:column;gap:8px}
+.fadd{display:flex;gap:8px}
+.fadd .in{flex:1}
+.fcard{display:grid;grid-template-columns:40px minmax(0,1fr) auto;gap:12px;align-items:center;padding:10px 12px;border-radius:var(--r-sm);background:var(--glass-2);box-shadow:var(--shadow-sm);animation:rise .25s ease}
+.av{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:var(--mist);color:var(--ink-2);font-family:var(--f-display);font-weight:900}
+.fcard b{display:block;font-size:14px}
+.fcard span{display:block;font-size:12.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.x{all:unset;cursor:pointer;color:var(--muted);padding:4px 8px;border-radius:999px}
+.x:hover{color:var(--ink);background:var(--glass)}
+
+/* data sources */
+.drop{border-radius:var(--r);border:1.5px dashed color-mix(in srgb,var(--ink-2) 30%,transparent);background:color-mix(in srgb,var(--glass) 60%,transparent);padding:22px;display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center;transition:background .15s ease,border-color .15s ease}
+.drop.over{border-color:var(--ink-2);background:var(--glass-2)}
+.drop .ics{display:flex;gap:10px}
+.drop .ics span{width:42px;height:42px;border-radius:14px;display:grid;place-items:center;box-shadow:var(--shadow-sm)}
+.drop .ics svg{width:20px;height:20px}
+.drop b{font-family:var(--f-display);font-weight:800;font-size:17px}
+.drop .acts{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.paste{display:flex;flex-direction:column;gap:8px;padding:14px;border-radius:var(--r-sm);background:var(--glass-2);box-shadow:var(--shadow-sm);animation:rise .2s ease}
+.paste .rowx{display:flex;gap:8px;flex-wrap:wrap}
+.paste .rowx .in{flex:1;min-width:180px}
+.srcs{display:flex;flex-direction:column;gap:8px}
+.src{display:grid;grid-template-columns:40px minmax(0,1fr) auto auto;gap:12px;align-items:center;padding:10px 12px;border-radius:var(--r-sm);background:var(--glass-2);box-shadow:var(--shadow-sm);animation:rise .25s ease}
+.src .ic{width:40px;height:40px;border-radius:12px;display:grid;place-items:center}
+.src .ic svg{width:19px;height:19px}
+.src b{display:block;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.src span.m{display:block;font-size:12.5px;color:var(--muted)}
+.kind{appearance:none;-webkit-appearance:none;border:0;border-radius:999px;padding:6px 28px 6px 12px;font-size:12.5px;font-weight:700;cursor:pointer;color:var(--ink);background:var(--glass) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%239A918D' stroke-width='1.6'/%3E%3C/svg%3E") no-repeat right 11px center;box-shadow:var(--shadow-sm)}
+.src .pv{grid-column:1/-1;font-size:13px;white-space:pre-wrap;max-height:200px;overflow:auto;padding:10px 12px;border-radius:12px;background:var(--glass);color:var(--ink-2)}
+.k-call{background:var(--sage);color:var(--sage-ink)} .k-crm{background:var(--mist);color:var(--mist-ink)} .k-list{background:var(--cream);color:var(--cream-ink)} .k-doc{background:var(--glass);color:var(--muted)}
+.foot{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.status{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--ink-2)}
+.status div{display:flex;gap:8px;align-items:center;animation:rise .2s ease}
 .status .ok{color:var(--good)}
-.spin{display:inline-block;width:10px;height:10px;border:2px solid var(--line);border-top-color:var(--red);border-radius:50%;animation:sp .7s linear infinite;vertical-align:-1px;margin-right:6px}
+.status .bad{color:var(--bad)}
+.spin{width:12px;height:12px;border-radius:50%;border:2px solid var(--edge);border-top-color:var(--ink-2);animation:sp .7s linear infinite;flex-shrink:0;display:inline-block}
 @keyframes sp{to{transform:rotate(360deg)}}
 
-.learned{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
-.learned > div{background:var(--paper);border:1px solid var(--line);padding:12px 14px;display:flex;flex-direction:column;gap:8px;font-size:13.5px;min-width:0}
-.quote{border-left:2px solid var(--red);padding-left:10px;font-size:13.5px}
-.quote span{display:block;font-size:11.5px;color:var(--muted);margin-top:2px}
+/* ICP view */
+.trio{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.trio > div{padding:16px;border-radius:var(--r-sm);background:var(--glass-2);box-shadow:var(--shadow-sm);display:flex;flex-direction:column;gap:8px;font-size:14px;min-width:0}
+.trio > div:nth-child(1){background:color-mix(in srgb,var(--sage) 70%,var(--glass-2))}
+.trio > div:nth-child(3){background:color-mix(in srgb,var(--mist) 70%,var(--glass-2))}
+.q{font-size:14px;padding-left:12px;border-left:2px solid var(--ink-2)}
+.q span{display:block;font-size:12px;color:var(--muted);margin-top:2px}
 .pats{display:flex;flex-direction:column}
-.pat{display:grid;grid-template-columns:minmax(0,1fr) 120px 40px;gap:12px;align-items:center;padding:9px 0;border-bottom:1px solid var(--line);font-size:14px}
-.pat:last-child{border-bottom:0}
-.pat small{display:block;color:var(--muted);font-size:12px;font-family:var(--f-mono)}
-.meter{height:6px;background:var(--soft)}
-.meter i{display:block;height:100%;background:var(--ink);transition:width .7s ease}
-.pat .c{font-family:var(--f-mono);font-size:12.5px;text-align:right}
-.sigs{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px}
-.sig{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:start;border:1px solid var(--line);padding:10px 12px;background:var(--paper)}
-.sig b{font-size:14px;display:block;outline:none}
-.sig b[contenteditable]:focus{background:var(--soft)}
+.pat{display:grid;grid-template-columns:minmax(0,1fr) 120px 44px;gap:14px;align-items:center;padding:11px 0;border-top:1px solid var(--edge);font-size:14.5px}
+.pat:first-child{border-top:0}
+.pat small{display:block;font-size:12px;color:var(--muted)}
+.bar{height:8px;border-radius:999px;background:var(--glass-2);box-shadow:0 1px 2px rgba(0,0,0,.06) inset;overflow:hidden}
+.bar i{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,var(--sage-ink),var(--ink-2));transition:width .8s ease}
+.pat .c{font-family:var(--f-mono);font-size:12.5px;text-align:right;color:var(--ink-2)}
+.sigs{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px}
+.sig{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;padding:12px 14px;border-radius:var(--r-sm);background:var(--glass-2);box-shadow:var(--shadow-sm)}
+.sig b{display:block;font-size:14px;outline:none;border-radius:6px}
+.sig b:focus{background:var(--glass)}
 .sig span{font-size:12.5px;color:var(--muted)}
-.sig .x{all:unset;cursor:pointer;color:var(--muted);font-size:13px;padding:0 4px}
-.sig .x:hover{color:var(--bad)}
-.addsig{all:unset;cursor:pointer;font-size:13px;font-weight:700;color:var(--muted);align-self:flex-start}
-.addsig:hover{color:var(--ink)}
-.icp{border:1px solid var(--line-strong);background:var(--card)}
-.icp-h{display:flex;gap:10px;align-items:center;padding:10px 14px;border-bottom:1px solid var(--line);flex-wrap:wrap}
-.icp-h b{font-family:var(--f-display);font-weight:400;font-size:15px}
-.tag{display:inline-flex;align-items:center;padding:1px 7px;font-size:11px;font-weight:700;letter-spacing:.03em;border:1px solid var(--line);color:var(--muted);white-space:nowrap}
-.tag.y{background:var(--yellow);color:var(--on-yellow);border-color:var(--yellow)}
-.tag.r{background:var(--bad-bg);color:var(--bad);border-color:transparent}
-.icp-b{padding:12px 14px;display:flex;flex-direction:column;gap:12px}
-.icp-b p{font-size:15.5px}
-.icp-b ul{margin:4px 0 0;padding-left:18px;font-size:13.5px;display:flex;flex-direction:column;gap:2px}
-.changed{background:var(--yellow);color:var(--on-yellow);padding:0 3px;animation:hl 3s ease forwards}
-@keyframes hl{0%,75%{background:var(--yellow);color:var(--on-yellow)}100%{background:transparent;color:inherit}}
+.icp{border-radius:var(--r);background:var(--glass-2);box-shadow:var(--shadow);overflow:hidden}
+.icp-h{display:flex;gap:10px;align-items:center;padding:12px 18px;background:color-mix(in srgb,var(--cream) 70%,transparent);flex-wrap:wrap}
+.icp-h b{font-family:var(--f-display);font-weight:900;font-size:16px}
+.tag{display:inline-flex;align-items:center;padding:2px 9px;border-radius:999px;font-size:11.5px;font-weight:700;background:var(--glass-2);color:var(--ink-2);white-space:nowrap}
+.tag.hi{background:var(--hi);color:var(--on-hi)}
+.tag.bad{background:var(--bad-bg);color:var(--bad)}
+.tag.good{background:var(--good-bg);color:var(--good)}
+.icp-b{padding:16px 18px;display:flex;flex-direction:column;gap:14px}
+.icp-b p.line{font-size:17px;font-family:var(--f-display);font-weight:800;letter-spacing:-.01em;line-height:1.3}
+.icp-b ul{margin:6px 0 0;padding-left:18px;font-size:14px;display:flex;flex-direction:column;gap:3px}
+.changed{background:var(--hi);color:var(--on-hi);border-radius:5px;padding:0 4px;box-decoration-break:clone;-webkit-box-decoration-break:clone;animation:fade 4s ease forwards}
+@keyframes fade{0%,70%{background:var(--hi)}100%{background:transparent;color:inherit}}
 .steer{display:flex;gap:8px}
-.steer input{flex:1;min-width:0}
+.steer .in{flex:1}
 
-.listbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:13px;color:var(--muted)}
-.listbar .sp{margin-left:auto}
-.learn{border:1px solid var(--line-strong);background:var(--yellow);color:var(--on-yellow);padding:12px 14px;display:flex;flex-direction:column;gap:6px;animation:pop .3s ease}
-.learn b{font-family:var(--f-display);font-weight:400;font-size:15px}
-.learn ul{margin:0;padding-left:18px;font-size:13.5px}
-.targets{display:flex;flex-direction:column;border-top:1px solid var(--line)}
-.t{border-bottom:1px solid var(--line);padding:14px 0;display:grid;grid-template-columns:44px minmax(0,1fr) auto;gap:14px;align-items:start}
-.t.new{animation:newrow 2.8s ease}
-@keyframes newrow{0%{background:var(--yellow);opacity:0;transform:translateX(-6px)}15%{opacity:1;transform:none}70%{background:var(--yellow)}100%{background:transparent}}
-.t.gone{opacity:.4}
+/* targets */
+.learn{padding:16px 18px;border-radius:var(--r);background:color-mix(in srgb,var(--hi) 85%,transparent);color:var(--on-hi);box-shadow:var(--shadow);display:flex;flex-direction:column;gap:6px;animation:rise .35s ease}
+.learn b{font-family:var(--f-display);font-weight:900;font-size:16px}
+.learn ul{margin:0;padding-left:18px;font-size:14px}
+.tlist{display:flex;flex-direction:column;gap:10px}
+.t{display:grid;grid-template-columns:52px minmax(0,1fr) auto;gap:14px;align-items:start;padding:16px;border-radius:var(--r);background:var(--glass-2);box-shadow:var(--shadow-sm);transition:opacity .4s ease}
+.t.new{animation:newin 2.8s ease}
+@keyframes newin{0%{opacity:0;transform:translateY(-6px);background:var(--hi)}15%{opacity:1;transform:none}70%{background:var(--hi)}}
+.t.gone{opacity:.42}
 .t.gone .nm > span:first-child{text-decoration:line-through}
-.score{width:44px;height:44px;display:grid;place-items:center;font-family:var(--f-mono);font-weight:500;font-size:15px;border:1px solid var(--line)}
-.score.hi{background:var(--ink);color:var(--paper);border-color:var(--ink)}
-.t .nm{font-weight:700;font-size:15.5px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-.t .meta{font-size:12.5px;color:var(--muted)}
-.t .why{font-size:14px;margin-top:4px;max-width:62ch}
-.t .acts{display:flex;gap:6px}
-.fb{all:unset;cursor:pointer;width:34px;height:34px;display:grid;place-items:center;border:1px solid var(--line);font-size:15px;line-height:1}
-.fb:hover{border-color:var(--line-strong)}
-.fb.up.on{background:var(--good-bg);border-color:var(--good)}
-.fb.down.on{background:var(--bad-bg);border-color:var(--bad)}
-.more{all:unset;cursor:pointer;font-size:13px;font-weight:700;margin-top:8px;display:inline-flex;gap:6px;align-items:center}
-.more:hover{text-decoration:underline}
-.reasons{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;align-items:center}
-.reasons span{font-size:12px;color:var(--muted)}
-.reasons button{all:unset;cursor:pointer;font-size:12px;padding:3px 9px;border:1px solid var(--line);background:var(--paper)}
-.reasons button:hover,.reasons button.on{border-color:var(--bad);color:var(--bad)}
-.deep{margin-top:10px;border:1px solid var(--line);background:var(--paper);display:flex;flex-direction:column}
-.deep .bh{display:flex;align-items:center;gap:8px;padding:7px 10px;border-bottom:1px solid var(--line);font-family:var(--f-mono);font-size:11.5px;color:var(--muted)}
-.deep .bh .url{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;background:var(--card);border:1px solid var(--line);padding:2px 8px;color:var(--ink)}
-.deep .bl{padding:10px 12px;font-family:var(--f-mono);font-size:12px;display:flex;flex-direction:column;gap:4px}
-.deep .bl div{animation:pop .2s ease}
-.deep .res{padding:12px;border-top:1px solid var(--line);font-size:14px;display:flex;flex-direction:column;gap:6px;background:var(--card)}
-
-.end{border:1px solid var(--line-strong);background:var(--end-bg);color:var(--end-ink);padding:22px;display:flex;flex-direction:column;gap:12px;animation:pop .4s ease}
-.end h2{font-family:var(--f-display);font-weight:400;font-size:24px;letter-spacing:-.025em;line-height:1.1}
-.end p{color:var(--end-dim);font-size:14.5px;max-width:64ch}
-.nums{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
-.nums div{border:1px solid var(--end-line);padding:10px 12px}
-.nums b{font-family:var(--f-display);font-weight:400;font-size:24px;display:block;line-height:1.1}
-.nums span{font-size:12px;color:var(--end-dim)}
-.note{font-size:12px;color:var(--muted)}
-.caption{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:40;background:var(--ink);color:var(--paper);padding:10px 16px;font-weight:600;font-size:14.5px;max-width:min(640px,calc(100vw - 32px));text-align:center;box-shadow:4px 4px 0 var(--red)}
+.score{width:52px;height:52px;border-radius:16px;display:grid;place-items:center;font-family:var(--f-display);font-weight:900;font-size:19px;background:var(--glass);box-shadow:var(--shadow-sm);color:var(--ink-2)}
+.score.top{background:linear-gradient(180deg,var(--pill),var(--pill-2));color:var(--on-pill)}
+.nm{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-weight:700;font-size:15.5px}
+.meta{font-size:12.5px;color:var(--muted)}
+.why{font-size:14px;margin-top:6px;max-width:64ch}
+.acts2{display:flex;gap:6px}
+.fb{all:unset;cursor:pointer;width:38px;height:38px;border-radius:12px;display:grid;place-items:center;background:var(--glass);box-shadow:var(--shadow-sm);font-size:16px}
+.fb:hover{background:var(--glass-2)}
+.fb.up.on{background:var(--good-bg);box-shadow:0 0 0 1.5px var(--good) inset}
+.fb.down.on{background:var(--bad-bg);box-shadow:0 0 0 1.5px var(--bad) inset}
+.reasons{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:10px}
+.reasons span{font-size:12.5px;color:var(--muted)}
+.reasons button{all:unset;cursor:pointer;font-size:12.5px;font-weight:600;padding:4px 11px;border-radius:999px;background:var(--glass);box-shadow:var(--shadow-sm)}
+.reasons button.on,.reasons button:hover{background:var(--bad-bg);color:var(--bad)}
+.reasons input{border:0;border-radius:999px;padding:4px 11px;font-size:12.5px;background:var(--glass);box-shadow:var(--shadow-sm);min-width:0;width:160px;outline:none}
+.more{all:unset;cursor:pointer;margin-top:10px;font-size:13px;font-weight:700;color:var(--ink-2);display:inline-flex;gap:8px;align-items:center}
+.more:hover{color:var(--ink)}
+.deep{margin-top:10px;border-radius:var(--r-sm);background:var(--glass);box-shadow:var(--shadow-sm);overflow:hidden}
+.deep .bh{display:flex;align-items:center;gap:8px;padding:8px 12px;font-size:12px;color:var(--muted);border-bottom:1px solid var(--edge)}
+.deep .bh .dots{display:flex;gap:4px}
+.deep .bh .dots i{width:8px;height:8px;border-radius:50%;background:var(--edge)}
+.deep .bh .url{flex:1;min-width:0;padding:3px 10px;border-radius:999px;background:var(--glass-2);font-family:var(--f-mono);font-size:11.5px;color:var(--ink-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.deep .bl{padding:10px 14px;display:flex;flex-direction:column;gap:5px;font-size:13px}
+.deep .bl div{animation:rise .2s ease}
+.deep .bl small{color:var(--muted);font-family:var(--f-mono);font-size:11px;margin-right:6px}
+.deep .res{padding:12px 14px;border-top:1px solid var(--edge);display:flex;flex-direction:column;gap:6px;font-size:14px;background:var(--glass-2)}
+.empty{padding:28px;text-align:center;color:var(--muted)}
+.caption{position:fixed;left:50%;bottom:calc(22px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:50;padding:11px 20px;border-radius:999px;background:linear-gradient(180deg,var(--pill),var(--pill-2));color:var(--on-pill);font-weight:600;font-size:14.5px;max-width:min(680px,calc(100vw - 32px));text-align:center;box-shadow:0 18px 40px -14px rgba(60,40,35,.6)}
 .ping{animation:ping 1s ease 2}
-@keyframes ping{50%{box-shadow:0 0 0 5px var(--yellow)}}
+@keyframes ping{50%{box-shadow:0 0 0 6px var(--hi)}}
 
-@media (max-width:720px){
-  .cols2,.learned,.sigs{grid-template-columns:minmax(0,1fr)}
-  .nums{grid-template-columns:1fr 1fr}
-  .pat{grid-template-columns:minmax(0,1fr) 40px}
-  .pat .meter{display:none}
-  .t{grid-template-columns:40px minmax(0,1fr)}
-  .t .acts{grid-column:2}
-  .step-h,.step-b{padding-left:16px;padding-right:16px}
-  .top .note{display:none}
+@media (max-width:760px){
+  .row2,.trio,.sigs{grid-template-columns:minmax(0,1fr)}
+  .seg button{padding:6px 10px}
+  .mode span{display:none}
+  .pat{grid-template-columns:minmax(0,1fr) 44px}
+  .pat .bar{display:none}
+  .t{grid-template-columns:44px minmax(0,1fr)}
+  .score{width:44px;height:44px;font-size:16px}
+  .t .acts2{grid-column:2}
+  .src{grid-template-columns:40px minmax(0,1fr) auto}
+  .src .kind{grid-column:2;justify-self:start}
+  .card{padding:16px}
 }
+@media (max-width:480px){.mark{display:none}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
 <body>
 
-<header class="top"><div class="in">
-  <a class="brand" href="/">Cracked GTM <span>Engine</span></a>
-  <span class="note">Demo client: Kalpa Labs</span>
-  <button class="btn quiet sm" id="resetBtn" type="button">Reset</button>
-  <button class="btn sm" id="playBtn" type="button">▶ Play demo</button>
-</div></header>
+<nav class="nav"><div class="navin">
+  <button class="mark" type="button" id="homeBtn">Cracked GTM</button>
+  <div class="seg" role="tablist" id="seg">
+    <button type="button" data-view="intake">Intake</button>
+    <button type="button" data-view="icp" disabled>ICP</button>
+    <button type="button" data-view="targets" disabled>Targets</button>
+  </div>
+  <div class="mode" id="mode"><i></i><span>Checking…</span></div>
+</div></nav>
 
 <main>
-  <section class="hero">
-    <span class="ey">Client onboarding, start to finish</span>
-    <h1>Calls in. A target list that gets smarter every time you review it.</h1>
-    <p>Drop in a client's sales calls, their customers and their website. The engine works out who they should sell to, why, and which companies are showing the signs right now.</p>
-    <div class="stepper" id="stepper"></div>
-  </section>
-
-  <section class="step active" id="s1">
-    <div class="step-h"><span class="n">01</span><h2>Tell us about the company</h2><span class="sub">Calls, customers, website. That's the whole intake.</span><span class="sum" id="s1sum"></span></div>
-    <div class="step-b">
-      <div class="group">
-        <label class="label" for="site">Website</label>
-        <input class="text" id="site" value="kalpalabs.ai" autocomplete="off">
-      </div>
-      <div class="group">
-        <span class="label">Call recordings <span class="opt">Granola notes or transcripts</span></span>
-        <div class="drop" id="callDrop">
-          <div class="files" id="callFiles"></div>
-          <div class="hint">Drag Granola exports here, or <label for="callInput">choose files</label><span>· .txt, .md or .vtt</span>
-            <input type="file" id="callInput" accept=".txt,.md,.vtt,.text" multiple hidden></div>
-        </div>
-      </div>
-      <div class="group">
-        <span class="label">Customers <span class="opt">optional · a CSV with company and website</span></span>
-        <div class="drop" id="csvDrop">
-          <div id="csvOut"></div>
-          <div class="hint">Drag a CSV here, or <label for="csvInput">upload one</label><span>· any columns, we find the company and domain</span>
-            <input type="file" id="csvInput" accept=".csv,text/csv" hidden></div>
-        </div>
-      </div>
-      <div class="foot-row">
-        <button class="btn primary" id="build" type="button">Build the ICP →</button>
-        <div class="status" id="s1status"></div>
-      </div>
+  <!-- HOME -->
+  <section class="view home" id="v-home">
+    <div class="stage" aria-hidden="true">
+      <div class="tile t1"><svg viewBox="0 0 24 24" fill="none" stroke="var(--sage-ink)" stroke-width="2.6" stroke-linecap="round"><path d="M7 16l4-8M12 16l4-8M17 16l3-6"/></svg></div>
+      <div class="tile t2"><svg viewBox="0 0 24 24" fill="none" stroke="var(--cream-ink)" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="2.6"/><circle cx="5" cy="6" r="1.8"/><circle cx="19" cy="7" r="1.8"/><circle cx="7" cy="19" r="1.8"/><path d="M6.4 7.3l3.7 3M17.4 7.9l-3.4 2.6M8.2 17.6l2.3-3.4"/></svg></div>
+      <div class="tile t3"><svg viewBox="0 0 24 24" fill="none" stroke="var(--cream-ink)" stroke-width="1.8" stroke-linejoin="round"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M3.5 7l8.5 6 8.5-6"/></svg></div>
+      <div class="tile t4"><svg viewBox="0 0 24 24" fill="var(--mist-ink)" opacity=".75"><path d="M7 18a4 4 0 0 1-.7-7.9A5.5 5.5 0 0 1 17 8.7 4.2 4.2 0 0 1 17.5 18z"/></svg></div>
+      <h1 class="word">Cracked<br>GTM</h1>
+    </div>
+    <p class="sub">Drop in a client's calls, CRM and customers. Get the ICP, the buying signals, and a target list that learns from every review.</p>
+    <div class="acts">
+      <button class="pill" type="button" id="startBtn">Get started <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+      <button class="link" type="button" id="uploadBtn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V4M7 9l5-5 5 5M5 15v4h14v-4"/></svg>Upload information</button>
+      <button class="link" type="button" id="playBtn" style="font-size:13px;color:var(--muted)">▶ Watch the Kalpa Labs demo</button>
     </div>
   </section>
 
-  <section class="step locked" id="s2">
-    <div class="step-h"><span class="n">02</span><h2>Who to sell to, and the signals to watch</h2><span class="sub">From what Kalpa does, what their customers say, and where the voice AI market is going. Edit anything.</span></div>
-    <div class="step-b" id="s2body"><p class="note">Builds after step 1.</p></div>
-  </section>
+  <!-- INTAKE -->
+  <section class="view" id="v-intake" hidden>
+    <div class="vh"><h1>Tell us about the company</h1><p>Everything you know goes in here. Label each file so the engine knows what it's reading.</p></div>
+    <div id="modeBanner"></div>
 
-  <section class="step locked" id="s3">
-    <div class="step-h"><span class="n">03</span><h2>Target list</h2><span class="sub">Each company comes with the reason to reach out now. Review two or three and the list rebuilds itself.</span></div>
-    <div class="step-b" id="s3body"><p class="note">Builds after step 2.</p></div>
-  </section>
+    <div class="card">
+      <div class="sect"><h2>Company</h2></div>
+      <div class="row2">
+        <div class="field"><label class="lbl" for="coName">Company name</label><input class="in" id="coName" placeholder="Kalpa Labs" autocomplete="off"></div>
+        <div class="field"><label class="lbl" for="coSite">Website</label><input class="in" id="coSite" placeholder="kalpalabs.ai" autocomplete="off"></div>
+      </div>
+      <div class="field">
+        <label class="lbl" for="fUrl">Founders on LinkedIn</label>
+        <div class="founders" id="founders"></div>
+        <div class="fadd"><input class="in" id="fUrl" placeholder="linkedin.com/in/founder-name" autocomplete="off"><button class="ghost" id="fAdd" type="button">Add</button></div>
+        <span class="note" id="fNote">We pull their background, past roles and how they describe the company.</span>
+      </div>
+    </div>
 
-  <section class="end" id="end" hidden>
-    <h2>One afternoon, and the list keeps getting better.</h2>
-    <p>Every thumbs up or down is saved to the client's profile and used in the next build, so the second list is sharper than the first and the tenth sharper still. That loop is how one operator runs ten clients.</p>
-    <div class="nums">
-      <div><b>3</b><span>calls read</span></div>
-      <div><b>5</b><span>signals tracked</span></div>
-      <div><b id="nTargets">0</b><span>target companies</span></div>
-      <div><b id="nLearn">0</b><span>reviews learned from</span></div>
+    <div class="card">
+      <div class="sect"><h2>Calls and data</h2><span>Granola notes, transcripts, CRM exports, customer lists</span></div>
+      <div class="drop" id="drop">
+        <div class="ics" aria-hidden="true">
+          <span class="k-call"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M4 12h2M8 8v8M12 5v14M16 9v6M20 11v2"/></svg></span>
+          <span class="k-crm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="2.6"/><circle cx="5" cy="6" r="1.8"/><circle cx="19" cy="7" r="1.8"/><circle cx="7" cy="19" r="1.8"/><path d="M6.4 7.3l3.7 3M17.4 7.9l-3.4 2.6M8.2 17.6l2.3-3.4"/></svg></span>
+          <span class="k-list"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 7h12M8 12h12M8 17h12M4 7h.01M4 12h.01M4 17h.01"/></svg></span>
+        </div>
+        <b>Drop files here</b>
+        <span class="note">.txt, .md, .vtt, .srt, .csv or .json · we guess the type, you can change it</span>
+        <div class="acts">
+          <label class="ghost" for="fileIn" style="cursor:pointer">Choose files</label>
+          <button class="ghost" type="button" id="pasteBtn">Paste a transcript</button>
+          <button class="ghost" type="button" id="linkBtn">Add from a link</button>
+          <input type="file" id="fileIn" multiple accept=".txt,.md,.vtt,.srt,.csv,.json,.text" hidden>
+        </div>
+      </div>
+      <div id="pasteBox"></div>
+      <div class="srcs" id="srcs"></div>
+    </div>
+
+    <div class="card">
+      <div class="sect"><h2>Everything else you know</h2><span>Freeform. The more context, the sharper the ICP.</span></div>
+      <div class="chips" id="ctxChips"></div>
+      <textarea class="in" id="ctx" rows="7" placeholder="What they sell and why it's better. Who their best customers are and why. Deals in flight. Who to avoid. Pricing. Competitors. What the founder said they want."></textarea>
+    </div>
+
+    <div class="foot">
+      <button class="pill" type="button" id="buildBtn">Build the ICP <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+      <div class="status" id="buildStatus"></div>
     </div>
   </section>
 
-  <p class="note">Sample call notes, customers and target companies are illustrative. Kalpa Labs product details come from public sources.</p>
+  <!-- ICP -->
+  <section class="view" id="v-icp" hidden></section>
+
+  <!-- TARGETS -->
+  <section class="view" id="v-targets" hidden></section>
 </main>
 
 <div class="caption" id="caption" hidden></div>
 
 <script>
-/* ============ sample data ============ */
-const CALLS = [
-  {name: "Kickoff · Prashant & Gautam (Kalpa Labs)", meta: "Granola · 46 min · Oct 28", text:
-`Kalpa Labs: TTS API. #2 on AudioRealismBench, ahead of ElevenLabs and Cartesia. ~300ms to first audio. English, Hindi and code-switching (Hinglish) in one model.
+/* ================= sample (demo mode) ================= */
+const SAMPLE = {
+  name: "Kalpa Labs", site: "kalpalabs.ai",
+  context: "Speech API for voice agents. #2 on AudioRealismBench, ahead of ElevenLabs and Cartesia. Around 300ms to first audio. English, Hindi and code-switched Hinglish in one model. Integrated with voice agent platforms like Bolna.\n\nPipeline today is mostly enterprise and it's slow. The founders want to work with startups and shorten the sales cycle. Brand awareness is low.",
+  sources: [
+    {kind: "call_internal", name: "Kickoff with the Kalpa founders", meta: "Granola · 46 min", text: "Mostly enterprise in pipeline right now. Long cycles, procurement, security reviews.\n\"We'd rather close ten startups in a month than one bank in six months.\"\nBest fits so far are small teams building voice agents who hear the quality difference right away.\nProspects find them through agent platforms they integrate with. Brand awareness is low."},
+    {kind: "call_customer", name: "Customer call: Vaani Health", meta: "Granola · 31 min", text: "Voice agent that calls patients for appointment reminders, India.\nSwitched from another provider: \"Hinglish sounded robotic, patients hung up.\"\nLatency mattered more than price. Found Kalpa through their agent platform's TTS dropdown. 9 people, seed. Founder signed in under two weeks."},
+    {kind: "call_lost", name: "Lost deal: contact center", meta: "Granola · 24 min", text: "Lost a 4,000-seat contact center deal. Loved the voices, stalled in procurement for 5 months, went with an incumbent bundle.\n\"We keep spending founder time on deals that were never going to close.\""},
+    {kind: "crm", name: "hubspot_deals_export.csv", meta: "CSV · 23 rows", csv: [["Deal", "Stage", "Amount", "Days open"], ["Telecom pilot", "Negotiation", "$180,000", "142"], ["Ringo", "Closed won", "$14,400", "11"], ["Konnect", "Closed won", "$21,000", "16"], ["Bank IVR", "Stalled", "$240,000", "201"]]},
+    {kind: "customers", name: "kalpa_customers.csv", meta: "CSV · 5 rows", csv: [["Company", "Website", "Use case", "Team"], ["Vaani Health", "vaanihealth.in", "Patient reminder calls", "9"], ["Ringo", "ringo.ai", "AI receptionist", "14"], ["Speakeasy Support", "speakeasy.so", "Support agents", "6"], ["Konnect", "konnect.money", "Hindi collections", "21"], ["HelloTutor", "hellotutor.app", "Spoken English", "38"]]},
+  ],
+  analysis: {
+    sells: "Speech API for voice agents. About 300ms to first audio, English, Hindi and Hinglish in one model, #2 on AudioRealismBench.",
+    quotes: [{quote: "Hinglish sounded robotic, patients hung up.", source: "Customer call · Vaani Health"}, {quote: "Rather close ten startups in a month than one bank in six.", source: "Kickoff call"}],
+    market: "Voice agent startups are multiplying on platforms like Vapi, Bolna and Retell. Teams pick speech from a dropdown, so quality and latency win deals, not long sales cycles.",
+    patterns: [
+      {finding: "Startups building voice agents, under 40 people", count: 5, of: 5, examples: "Vaani Health, Ringo, Speakeasy, Konnect, HelloTutor"},
+      {finding: "Won deals closed in under 3 weeks; enterprise deals stall 140+ days", count: 4, of: 4, examples: "From the CRM export"},
+      {finding: "Plug in speech through an agent platform", count: 4, of: 5, examples: "Vaani Health, Ringo, Speakeasy, Konnect"},
+      {finding: "Calls go to Indian or bilingual users", count: 3, of: 5, examples: "Vaani Health, Konnect, HelloTutor"},
+    ],
+    signals: [
+      {signal: "Hiring a voice AI or speech engineer", why: "Teams hiring for voice are rebuilding their stack this quarter."},
+      {signal: "Launching Hindi or Indic language support", why: "Kalpa's code-switching is the sharpest edge here."},
+      {signal: "Just raised a seed or joined an accelerator", why: "Fresh money, small team, signs in weeks. Like 4 of 5 customers."},
+      {signal: "Complaining publicly about latency or robotic voices", why: "The exact pain that made Vaani Health switch."},
+      {signal: "Listed on an agent platform's integrations page", why: "Where Kalpa's customers actually found them."},
+    ],
+    icp: {line: "Companies running voice agents or contact centers that need realistic, low-latency speech in English and Hindi.", confidence: 72,
+      go_after: ["Voice agent startups and contact centers", "English and Hindi call volume", "Uses or is evaluating a third-party TTS"], skip: ["No voice product", "Text-only chatbots"]},
+  },
+  steered: {line: "Seed to Series A startups under 50 people building voice agents, especially for bilingual English and Hindi calls, who can sign in weeks.", confidence: 84,
+    go_after: ["Voice agent startups, 5 to 50 people", "Founder or CTO picks the vendor", "English and Hindi or code-switched calls", "Plugs into Vapi, Bolna, Retell or similar"],
+    skip: ["Contact centers and enterprises with long procurement", "No voice product", "Text-only chatbots"]},
+  targets: [
+    {id: "sahayak", name: "Sahayak AI", site: "sahayak.ai", what: "Hinglish support agents for Indian lenders", meta: "18 people · Bengaluru · Seed", sig: "Launching Hindi support", score: 94, kind: "fit",
+      why: "Building what Vaani Health built, for lenders. Their demo voice audibly struggles with Hinglish, which is Kalpa's sharpest edge.",
+      deep: [["sahayak.ai", "Voice agents for loan servicing, Hindi and English"], ["sahayak.ai/careers", "Hiring a speech ML engineer, posted 6 days ago"], ["sahayak.ai/demo", "Demo voice flattens on code-switched phrases"], ["sahayak.ai/docs", "Built on an agent platform Kalpa already supports"]],
+      opener: "Your demo switches into Hindi mid-sentence and the voice flattens right there. That's the moment our model was built for. Worth a 15 minute A/B on one of your real calls?"},
+    {id: "dialwise", name: "Dialwise", site: "dialwise.com", what: "AI receptionist for dental and vet clinics", meta: "12 people · Austin · Seed", sig: "Hiring voice AI engineer", score: 89, kind: "fit",
+      why: "Same shape as Ringo, a current customer. Hiring for voice means they're rethinking their stack this quarter.",
+      deep: [["dialwise.com/careers", "Founding voice AI engineer, latency target under 400ms"], ["dialwise.com/changelog", "Added Spanish last month, more languages planned"]],
+      opener: "Saw the founding voice engineer role and the 400ms target. We're around 300ms to first audio and just placed ahead of ElevenLabs on AudioRealismBench. Want a key to test?"},
+    {id: "callcraft", name: "Callcraft", site: "callcraft.dev", what: "Open source voice agent builder", meta: "9 people · SF · YC", sig: "Listed on integrations page", score: 86, kind: "fit",
+      why: "One integration puts Kalpa in front of every team building on Callcraft. It's how Vaani Health found Kalpa.",
+      deep: [["callcraft.dev/docs/tts", "Supports 4 speech providers, none Indic-first"], ["github.com/callcraft", "11 open issues asking for Hindi voices"]],
+      opener: "There are 11 open GitHub issues asking for Hindi voices in Callcraft. We'd love to be the provider that closes them, and we'll write the integration PR ourselves."},
+    {id: "telenova", name: "Telenova Contact Centers", site: "telenova.com", what: "Outsourced contact center, 4,000 seats", meta: "4,000 people · Mumbai · Public", sig: "Hiring voice AI engineer", score: 81, kind: "enterprise", why: "Huge Hindi call volume and hiring for voice AI. Big deal, long cycle."},
+    {id: "rentro", name: "Rentro", site: "rentro.co", what: "AI leasing agent that calls renters", meta: "7 people · Miami · a16z speedrun", sig: "Joined an accelerator", score: 79, kind: "fit", why: "Tiny team, fresh accelerator money, every call is outbound voice. Can test and sign in days."},
+    {id: "pitchpal", name: "PitchPal", site: "pitchpal.io", what: "AI roleplay buyer for sales training", meta: "15 people · NYC · Seed", sig: "Complaining about robotic voices", score: 77, kind: "fit", why: "Realism is the product. A roleplay buyer that sounds fake breaks the exercise. They posted about it last week."},
+    {id: "carenet", name: "CareNet Global BPO", site: "carenetbpo.com", what: "Healthcare BPO, voice and chat", meta: "11,000 people · Pune · Private", sig: "Launching Hindi support", score: 74, kind: "enterprise", why: "Large Hindi patient support operation piloting AI agents. Procurement-heavy."},
+    {id: "loopback", name: "Loopback Games", site: "loopback.games", what: "AI voices for game characters", meta: "22 people · Seattle · Series A", sig: "Raised Series A", score: 72, kind: "notagent", why: "Needs lots of realistic voices, but for pre-recorded game dialogue rather than live calls."},
+  ],
+  more: [
+    {id: "bharatdial", name: "BharatDial", site: "bharatdial.ai", what: "Hindi and Tamil collections voice agents", meta: "10 people · Delhi · a16z speedrun", sig: "Launching Hindi support", score: 95, kind: "fit",
+      why: "Looks like Konnect, a current customer, six months earlier. Founder-led, bilingual calls, just joined speedrun.",
+      deep: [["bharatdial.ai/pricing", "Per-minute pricing, built on a third-party TTS"], ["x.com/bharatdial", "Founder: 'our Hindi voice is good, our Hinglish is not'"], ["bharatdial.ai/careers", "Hiring a first ML engineer"]],
+      opener: "Saw your post that your Hindi is good but your Hinglish isn't. We do both in one model at around 300ms. Want to try it on a real collections script this week?"},
+    {id: "agentline", name: "Agentline", site: "agentline.dev", what: "Voice agents for logistics dispatch", meta: "8 people · SF · YC", sig: "Complaining about latency", score: 91, kind: "fit", why: "Posted a latency breakdown showing speech as their slowest step. Small team, the CTO picks vendors."},
+    {id: "kiranavoice", name: "Kirana Voice", site: "kiranavoice.in", what: "Voice ordering for neighborhood stores", meta: "6 people · Bengaluru · Pre-seed", sig: "Just raised", score: 88, kind: "fit", why: "Every order is a Hinglish voice call. Pre-seed and founder-led, the same profile as Vaani Health."},
+  ],
+};
+const KINDS = [["call_customer", "Customer call", "call"], ["call_sales", "Sales call", "call"], ["call_lost", "Lost deal", "call"], ["call_internal", "Kickoff / internal", "call"], ["crm", "CRM export", "crm"], ["customers", "Customer list", "list"], ["notes", "Notes / doc", "doc"]];
+const KIND = Object.fromEntries(KINDS.map(k => [k[0], k]));
+const CTX_CHIPS = ["Best customers and why", "Deals in flight", "Who to avoid", "Competitors", "Pricing", "What the founder wants"];
+const REASONS = ["Too big", "Wrong use case", "Wrong region", "Too early", "Already a customer"];
+const ICONS = {
+  call: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M4 12h2M8 8v8M12 5v14M16 9v6M20 11v2"/></svg>',
+  crm: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="2.6"/><circle cx="5" cy="6" r="1.8"/><circle cx="19" cy="7" r="1.8"/><circle cx="7" cy="19" r="1.8"/><path d="M6.4 7.3l3.7 3M17.4 7.9l-3.4 2.6M8.2 17.6l2.3-3.4"/></svg>',
+  list: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 7h12M8 12h12M8 17h12M4 7h.01M4 12h.01M4 17h.01"/></svg>',
+  doc: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4M9 12h6M9 16h6"/></svg>',
+};
 
-Where deals are:
-- Mostly enterprise in pipeline right now. Long cycles, procurement, security reviews.
-- "We'd rather close ten startups in a month than one bank in six months."
-- Best fits so far are small teams building voice agents who hear the quality difference right away.
-
-Notes:
-- Prospects find them through agent platforms they integrate with.
-- Brand awareness is low. The benchmark launch didn't travel far.`},
-  {name: "Customer call · Vaani Health", meta: "Granola · 31 min · Oct 30", text:
-`Vaani Health: voice agent that calls patients for appointment reminders, India.
-- Switched to Kalpa from another provider: "Hinglish sounded robotic, patients hung up."
-- Latency mattered more than price. Over half a second and the call feels broken.
-- Found Kalpa through their agent platform's TTS dropdown.
-- 9 people, seed stage. Founder signed in under two weeks.`},
-  {name: "Lost deal review · Contact center", meta: "Granola · 24 min · Oct 31", text:
-`Lost a 4,000-seat contact center deal.
-- Loved the voices. Stalled in procurement for 5 months, then went with an incumbent bundle.
-- Takeaway: big contact centers buy bundles, not best-in-class voice.
-- "We keep spending founder time on deals that were never going to close."`},
-];
-const CUSTOMERS = [
-  ["Vaani Health", "vaanihealth.in", "Patient reminder calls", "Seed", "9"],
-  ["Ringo", "ringo.ai", "AI receptionist for clinics", "Seed", "14"],
-  ["Speakeasy Support", "speakeasy.so", "Support voice agents", "Pre-seed", "6"],
-  ["Konnect", "konnect.money", "Hindi collections calls", "Seed", "21"],
-  ["HelloTutor", "hellotutor.app", "Spoken English practice", "Series A", "38"],
-];
-const PATTERNS = [
-  ["Startups building voice agents, under 40 people", "vaanihealth · ringo · speakeasy · konnect · hellotutor", 5],
-  ["Plug in speech through an agent platform", "vaanihealth · ringo · speakeasy · konnect", 4],
-  ["Calls go to Indian or bilingual users", "vaanihealth · konnect · hellotutor", 3],
-  ["Switched from another provider over voice quality", "vaanihealth · ringo · konnect", 3],
-];
-const SIGNALS = [
-  ["Hiring a voice AI or speech engineer", "Teams hiring for voice are rebuilding their stack this quarter."],
-  ["Launching Hindi or Indic language support", "Kalpa's code-switching is the sharpest edge here."],
-  ["Just raised a seed or joined an accelerator", "Fresh money, small team, signs in weeks. Like 4 of 5 customers."],
-  ["Complaining publicly about latency or robotic voices", "The exact pain that made Vaani Health switch."],
-  ["Listed on an agent platform's integrations page", "Where Kalpa's customers actually found them."],
-];
-const ICP1 = {v: 1, conf: 72,
-  line: "Companies running voice agents or contact centers that need realistic, low-latency speech in English and Hindi.",
-  inc: ["Voice agent startups and contact centers", "English and Hindi call volume", "Uses or is evaluating a third-party TTS"],
-  exc: ["No voice product", "Text-only chatbots"]};
-const ICP2 = {v: 2, conf: 84,
-  line: "<span class='changed'>Seed to Series A startups under 50 people</span> building voice agents, <span class='changed'>especially for bilingual English and Hindi calls</span>, who can sign in weeks.",
-  inc: ["Voice agent startups, 5 to 50 people", "<span class='changed'>Founder or CTO picks the vendor</span>", "English and Hindi or code-switched calls", "Plugs into Vapi, Bolna, Retell or similar"],
-  exc: ["<span class='changed'>Contact centers and enterprises with long procurement</span>", "No voice product", "Text-only chatbots"]};
-const TARGETS = [
-  {id: "sahayak", name: "Sahayak AI", site: "sahayak.ai", what: "Hinglish support agents for Indian lenders", meta: "18 people · Bengaluru · Seed", sig: "Launching Hindi support", score: 94, kind: "fit",
-    why: "Building what Vaani Health built, for lenders. Their demo voice audibly struggles with Hinglish, which is Kalpa's sharpest edge.",
-    deep: [["sahayak.ai", "Read homepage: voice agents for loan servicing, Hindi and English"], ["sahayak.ai/careers", "Hiring 'Speech ML engineer', posted 6 days ago"], ["sahayak.ai/demo", "Demo call: voice flattens on code-switched phrases"], ["sahayak.ai/docs", "Built on an agent platform Kalpa already supports"]],
-    opener: "Your demo switches into Hindi mid-sentence and the voice flattens right there. That's the moment our model was built for. Worth a 15 minute A/B on one of your real calls?"},
-  {id: "dialwise", name: "Dialwise", site: "dialwise.com", what: "AI receptionist for dental and vet clinics", meta: "12 people · Austin · Seed", sig: "Hiring voice AI engineer", score: 89, kind: "fit",
-    why: "Same shape as Ringo, a current customer. Hiring for voice means they're rethinking their stack this quarter.",
-    deep: [["dialwise.com/careers", "'Founding Voice AI Engineer', latency target under 400ms"], ["dialwise.com/changelog", "Added Spanish last month, more languages planned"], ["x.com/dialwise", "Founder post: voices 'sound like a call center from 2015'"]],
-    opener: "Saw the founding voice engineer role and the 400ms target. We're around 300ms to first audio and just placed ahead of ElevenLabs on AudioRealismBench. Want a key to test?"},
-  {id: "callcraft", name: "Callcraft", site: "callcraft.dev", what: "Open source voice agent builder", meta: "9 people · SF · YC", sig: "Listed on integrations page", score: 86, kind: "fit",
-    why: "A platform play: one integration puts Kalpa in front of every team building on Callcraft. It's how Vaani Health found Kalpa.",
-    deep: [["callcraft.dev/docs/tts", "Supports 4 speech providers, none Indic-first"], ["github.com/callcraft", "11 open issues asking for Hindi voices"], ["callcraft.dev/about", "Founders ex-Twilio, small team, ships weekly"]],
-    opener: "There are 11 open GitHub issues asking for Hindi voices in Callcraft. We'd love to be the provider that closes them, and we'll write the integration PR ourselves."},
-  {id: "telenova", name: "Telenova Contact Centers", site: "telenova.com", what: "Outsourced contact center, 4,000 seats", meta: "4,000 people · Mumbai · Public", sig: "Hiring voice AI engineer", score: 81, kind: "enterprise",
-    why: "Huge Hindi call volume and hiring for voice AI. Big deal, long cycle."},
-  {id: "rentro", name: "Rentro", site: "rentro.co", what: "AI leasing agent that calls renters", meta: "7 people · Miami · a16z speedrun", sig: "Joined an accelerator", score: 79, kind: "fit",
-    why: "Tiny team, fresh accelerator money, every call is outbound voice. Can test and sign in days."},
-  {id: "pitchpal", name: "PitchPal", site: "pitchpal.io", what: "AI roleplay buyer for sales training", meta: "15 people · NYC · Seed", sig: "Complaining about robotic voices", score: 77, kind: "fit",
-    why: "Realism is the product: a roleplay buyer that sounds fake breaks the exercise. They posted about it last week."},
-  {id: "carenet", name: "CareNet Global BPO", site: "carenetbpo.com", what: "Healthcare BPO, voice and chat", meta: "11,000 people · Pune · Private", sig: "Launching Hindi support", score: 74, kind: "enterprise",
-    why: "Large Hindi patient support operation piloting AI agents. Procurement-heavy."},
-  {id: "loopback", name: "Loopback Games", site: "loopback.games", what: "AI voices for game characters", meta: "22 people · Seattle · Series A", sig: "Raised Series A", score: 72, kind: "notagent",
-    why: "Needs lots of realistic voices, but for pre-recorded game dialogue rather than live calls."},
-];
-const NEW_TARGETS = [
-  {id: "bharatdial", name: "BharatDial", site: "bharatdial.ai", what: "Hindi and Tamil collections voice agents", meta: "10 people · Delhi · a16z speedrun", sig: "Launching Hindi support", score: 95, kind: "fit",
-    why: "Looks like Konnect, a current customer, six months earlier. Founder-led, bilingual calls, just joined speedrun.",
-    deep: [["bharatdial.ai/pricing", "Per-minute pricing, built on a third-party TTS"], ["x.com/bharatdial", "Founder: 'our Hindi voice is good, our Hinglish is not'"], ["bharatdial.ai/careers", "Hiring a first ML engineer"]],
-    opener: "Saw your post that your Hindi is good but your Hinglish isn't. We do both in one model at around 300ms. Want to try it on a real collections script this week?"},
-  {id: "agentline", name: "Agentline", site: "agentline.dev", what: "Voice agents for logistics dispatch", meta: "8 people · SF · YC", sig: "Complaining about latency", score: 91, kind: "fit",
-    why: "Posted a latency breakdown showing speech as their slowest step. Small team, the CTO picks vendors."},
-  {id: "kiranavoice", name: "Kirana Voice", site: "kiranavoice.in", what: "Voice ordering for neighborhood stores", meta: "6 people · Bengaluru · Pre-seed", sig: "Just raised", score: 88, kind: "fit",
-    why: "Every order is a Hinglish voice call. Pre-seed and founder-led, the same profile as Vaani Health."},
-];
-const REASONS = {enterprise: ["Too big", "Long procurement", "Not a startup"], notagent: ["Not live calls", "Wrong use case", "Too big"], fit: ["Not a fit yet", "Wrong region", "Too early"]};
-
-/* ============ helpers ============ */
+/* ================= state + helpers ================= */
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-let gen = 0, playing = false, learnTimer = null;
-// Every wait checks the run generation, so Reset or Stop cancels anything mid-flight
+const arr = x => Array.isArray(x) ? x : [];
+const domainOf = u => { try { return new URL(/^https?:/.test(u) ? u : "https://" + String(u).trim()).hostname.replace(/^www\./, ""); } catch { return ""; } };
+let gen = 0, playing = false, learnTimer = null, live = false, status = {};
 const wait = ms => { const g = gen; return new Promise((ok, no) => setTimeout(() => g === gen ? ok() : no("cancelled"), ms)); };
 addEventListener("unhandledrejection", e => { if (e.reason === "cancelled") e.preventDefault(); });
-const fresh = () => ({step: 1, calls: [], customers: null, icp: ICP1, signals: SIGNALS.map(s => s.slice()), list: [], fb: {}, why: {}, learned: false, rules: []});
-let state = fresh();
+const fresh = () => ({view: "home", unlocked: 1, founders: [], sources: [], analysis: null, icp: null, prevIcp: null, signals: [], list: [], fb: {}, why: {}, learned: false, rules: [], clientId: null});
+let S = fresh();
+let uid = 0; const nid = () => "s" + (++uid) + Date.now().toString(36);
 
-/* ============ stepper ============ */
-function renderStepper(){
-  const names = ["Inputs", "ICP + signals", "Target list"];
-  $("#stepper").innerHTML = names.map((n, i) => `${i ? '<span class="sep"></span>' : ""}<button type="button" data-go="${i + 1}" class="${state.step === i + 1 ? "on" : ""} ${state.step > i + 1 ? "done" : ""}"><span class="n">${state.step > i + 1 ? "✓" : i + 1}</span>${n}</button>`).join("");
-  document.querySelectorAll("[data-go]").forEach(b => b.onclick = () => { if (+b.dataset.go <= state.step) $("#s" + b.dataset.go).scrollIntoView({behavior: "smooth", block: "start"}); });
-  [1, 2, 3].forEach(n => { const s = $("#s" + n); s.classList.toggle("active", n === state.step); s.classList.toggle("locked", n > state.step); });
+async function api(path, body){
+  const r = await fetch(path, {method: body ? "POST" : "GET", headers: {"content-type": "application/json"}, body: body ? JSON.stringify(body) : undefined, credentials: "same-origin"});
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) throw {error: d.error || ("Request failed (" + r.status + ")"), status: r.status};
+  return d;
 }
-function goStep(n){ state.step = Math.max(state.step, n); renderStepper();
-  if (n > 1){ $("#s1").classList.add("collapsed"); $("#s1sum").innerHTML = `<span>✓ ${esc($("#site").value)} · ${state.calls.length} calls · ${state.customers ? state.customers.rows.length + " customers" : "no customer list"}</span><button type="button" id="s1edit">Edit</button>`; $("#s1edit").onclick = () => $("#s1").classList.remove("collapsed"); } setTimeout(() => $("#s" + n).scrollIntoView({behavior: "smooth", block: "start"}), 60); }
-async function status(el, lines){
-  const box = $(el); box.innerHTML = "";
-  for (const [t, ms] of lines){
-    const d = document.createElement("div"); d.innerHTML = `<span class="spin"></span>${esc(t)}`; box.appendChild(d);
-    await wait(ms); d.className = "ok"; d.textContent = "✓ " + t;
-  }
+async function detectMode(){
+  try { status = await api("/api/status"); live = !!status.claude; } catch(e){ live = false; }
+  const m = $("#mode"); m.className = "mode" + (live ? " live" : "");
+  m.innerHTML = `<i></i><span>${live ? "Live" : "Demo"}</span>`;
+  renderBanner();
+}
+function renderBanner(){
+  $("#modeBanner").innerHTML = live ? "" : `<div class="banner"><span><b>Demo mode.</b> Runs on the Kalpa Labs sample. Sign in to run it on your own files.</span><span class="sp"><button class="ghost" type="button" id="sampleBtn">Load Kalpa sample</button><a class="ghost" href="/onboarding/" style="text-decoration:none">Sign in</a></span></div>`;
+  const b = $("#sampleBtn"); if (b) b.onclick = loadSample;
 }
 
-/* ============ step 1: inputs ============ */
-function renderCalls(){
-  $("#callFiles").innerHTML = state.calls.map((c, i) => `<div class="file"><span class="ic g">G</span><div><b>${esc(c.name)}</b><span>${esc(c.meta)} · ${c.text.split(/\s+/).length} words</span></div><span><button type="button" data-prev="${i}">${c.open ? "Hide" : "View"}</button><button type="button" data-rm="${i}" aria-label="Remove ${esc(c.name)}">✕</button></span>${c.open ? `<div class="preview">${esc(c.text)}</div>` : ""}</div>`).join("");
-  document.querySelectorAll("[data-prev]").forEach(b => b.onclick = () => { const c = state.calls[b.dataset.prev]; c.open = !c.open; renderCalls(); });
-  document.querySelectorAll("[data-rm]").forEach(b => b.onclick = () => { state.calls.splice(+b.dataset.rm, 1); renderCalls(); });
+/* ================= navigation ================= */
+function show(view){
+  S.view = view;
+  ["home", "intake", "icp", "targets"].forEach(v => $("#v-" + v).hidden = v !== view);
+  document.querySelectorAll("#seg button").forEach((b, i) => { b.classList.toggle("on", b.dataset.view === view); b.disabled = i + 1 > S.unlocked; });
+  window.scrollTo({top: 0, behavior: "smooth"});
 }
-function renderCsv(){
-  const c = state.customers;
-  $("#csvOut").innerHTML = c ? `<div class="file"><span class="ic">CSV</span><div><b>${esc(c.name)}</b><span>${c.rows.length} customers</span></div><span><button type="button" id="csvRm" aria-label="Remove CSV">✕</button></span>
-    <div class="preview scroll" style="white-space:normal"><table class="mini"><thead><tr>${c.head.map(h => `<th>${esc(h)}</th>`).join("")}</tr></thead><tbody>${c.rows.slice(0, 6).map(r => `<tr>${r.map(x => `<td>${esc(x)}</td>`).join("")}</tr>`).join("")}</tbody></table></div></div>` : "";
-  const rm = $("#csvRm"); if (rm) rm.onclick = () => { state.customers = null; renderCsv(); };
+document.querySelectorAll("#seg button").forEach(b => b.onclick = () => show(b.dataset.view));
+$("#homeBtn").onclick = () => show("home");
+$("#startBtn").onclick = () => show("intake");
+$("#uploadBtn").onclick = () => { show("intake"); setTimeout(() => $("#fileIn").click(), 250); };
+
+/* ================= intake: founders ================= */
+function renderFounders(){
+  $("#founders").innerHTML = S.founders.map((f, i) => {
+    const p = f.profile;
+    const nm = p?.name || f.url.replace(/^https?:\/\/(www\.)?linkedin\.com\/in\//i, "").replace(/[\/?].*$/, "").replace(/-/g, " ");
+    const sub = f.loading ? "Pulling profile…" : f.error ? f.error : p ? [p.title, p.history?.filter(h => !h.current).slice(0, 2).map(h => h.title + " at " + h.company).join(" · ")].filter(Boolean).join(" · ") : live ? "" : "Profile pulls when you're signed in";
+    return `<div class="fcard"><span class="av">${esc((nm[0] || "?").toUpperCase())}</span><div style="min-width:0"><b>${esc(nm)}</b><span>${f.loading ? '<span class="spin"></span> ' : ""}${esc(sub)}</span></div><button class="x" type="button" data-fx="${i}" aria-label="Remove founder">✕</button></div>`;
+  }).join("");
+  document.querySelectorAll("[data-fx]").forEach(b => b.onclick = () => { S.founders.splice(+b.dataset.fx, 1); renderFounders(); });
 }
+function profileOf(p){
+  p = p || {}; const hist = arr(p.job_history); const cur = hist.find(h => h.current) || hist[0] || {};
+  return {name: p.full_name || [p.first_name, p.last_name].filter(Boolean).join(" "), title: p.current_job_title || cur.title || "", headline: p.headline || "",
+    history: hist.slice(0, 6).map(h => ({title: h.title || "", company: h.company_name || "", current: !!h.current})), skills: arr(p.skills).slice(0, 10)};
+}
+async function addFounder(){
+  let url = $("#fUrl").value.trim(); if (!url) return;
+  if (!/linkedin\.com\/in\//i.test(url)){ $("#fNote").textContent = "Use a LinkedIn profile link like linkedin.com/in/name."; return; }
+  if (!/^https?:/.test(url)) url = "https://" + url;
+  const f = {url, loading: live}; S.founders.push(f); $("#fUrl").value = ""; renderFounders();
+  if (!live) return;
+  try { const r = await api("/api/enrich-buyer", {linkedin: url}); f.profile = profileOf(r.person); }
+  catch(e){ f.error = e.error; }
+  f.loading = false; renderFounders();
+}
+$("#fAdd").onclick = addFounder;
+$("#fUrl").onkeydown = e => { if (e.key === "Enter"){ e.preventDefault(); addFounder(); } };
+
+/* ================= intake: sources ================= */
 function parseCsv(text){
   const rows = []; let row = [], cell = "", q = false;
   for (let i = 0; i < text.length; i++){
@@ -415,247 +500,397 @@ function parseCsv(text){
   if (cell || row.length){ row.push(cell.trim()); rows.push(row); }
   return rows.filter(r => r.some(Boolean));
 }
-function readFiles(files, kind){
+function guessKind(name, text, csv){
+  const n = name.toLowerCase();
+  if (csv){ const h = csv[0].join(" ").toLowerCase(); if (/stage|deal|pipeline|amount|owner|close/.test(h)) return "crm"; if (/website|domain|url|company/.test(h)) return "customers"; return "crm"; }
+  if (/lost|churn|post.?mortem/.test(n)) return "call_lost";
+  if (/kickoff|kick-off|internal|standup|sync|founder/.test(n)) return "call_internal";
+  if (/customer|check.?in|qbr|onboarding|user interview/.test(n)) return "call_customer";
+  if (/discovery|demo|sales|intro|prospect/.test(n) || /\.(vtt|srt)$/.test(n) || /^\d{1,2}:\d{2}/m.test(text)) return "call_sales";
+  if (/granola|transcript|call/.test(n + " " + text.slice(0, 300).toLowerCase())) return "call_sales";
+  return "notes";
+}
+function addSource(name, text, meta){
+  const isCsv = /\.csv$/i.test(name) || (/^[^\n]*,[^\n]*,/.test(text) && text.split("\n").length > 2 && !/[.!?]\s/.test(text.slice(0, 200)));
+  const csv = isCsv ? parseCsv(text) : null;
+  const words = text.split(/\s+/).filter(Boolean).length;
+  S.sources.push({id: nid(), name, text: text.slice(0, 60000), csv, kind: guessKind(name, text, csv), meta: meta || (csv ? `CSV · ${csv.length - 1} rows` : `${words.toLocaleString()} words`)});
+  renderSources();
+}
+function renderSources(){
+  $("#srcs").innerHTML = S.sources.map(s => {
+    const k = KIND[s.kind] || KIND.notes;
+    return `<div class="src"><span class="ic k-${k[2]}">${ICONS[k[2]]}</span><div style="min-width:0"><b>${esc(s.name)}</b><span class="m">${esc(s.meta)} · <button class="link" style="font-size:12.5px" type="button" data-sv="${s.id}">${s.open ? "Hide" : "View"}</button></span></div>
+      <select class="kind" data-sk="${s.id}" aria-label="What is this?">${KINDS.map(x => `<option value="${x[0]}" ${x[0] === s.kind ? "selected" : ""}>${x[1]}</option>`).join("")}</select>
+      <button class="x" type="button" data-sx="${s.id}" aria-label="Remove ${esc(s.name)}">✕</button>
+      ${s.open ? `<div class="pv">${s.csv ? esc(s.csv.slice(0, 8).map(r => r.join("  ·  ")).join("\n")) : esc(s.text.slice(0, 3000))}</div>` : ""}</div>`;
+  }).join("");
+  document.querySelectorAll("[data-sk]").forEach(el => el.onchange = () => { S.sources.find(s => s.id === el.dataset.sk).kind = el.value; renderSources(); });
+  document.querySelectorAll("[data-sx]").forEach(el => el.onclick = () => { S.sources = S.sources.filter(s => s.id !== el.dataset.sx); renderSources(); });
+  document.querySelectorAll("[data-sv]").forEach(el => el.onclick = () => { const s = S.sources.find(x => x.id === el.dataset.sv); s.open = !s.open; renderSources(); });
+}
+function readFiles(files){
   [...files].forEach(f => {
-    const r = new FileReader();
-    r.onload = () => {
-      const text = String(r.result || "");
-      if (kind === "csv"){ const rows = parseCsv(text); if (rows.length < 2) return; state.customers = {name: f.name, head: rows[0].slice(0, 5), rows: rows.slice(1).map(x => x.slice(0, 5))}; renderCsv(); }
-      else { state.calls.push({name: f.name.replace(/\.(txt|md|vtt|text)$/i, ""), meta: "Uploaded", text: text.slice(0, 20000)}); renderCalls(); }
-    };
-    r.readAsText(f);
+    if (/^(audio|video)\//.test(f.type)){ alertBox(`${f.name} is a recording. Paste its Granola notes or transcript instead; audio upload is coming.`); return; }
+    if (f.size > 3e6){ alertBox(`${f.name} is over 3 MB. Trim it or paste the key parts.`); return; }
+    const r = new FileReader(); r.onload = () => addSource(f.name, String(r.result || "")); r.readAsText(f);
   });
 }
-function wireDrop(zone, input, kind){
-  const z = $(zone);
-  ["dragenter", "dragover"].forEach(e => z.addEventListener(e, ev => { ev.preventDefault(); z.classList.add("over"); }));
-  ["dragleave", "drop"].forEach(e => z.addEventListener(e, ev => { ev.preventDefault(); z.classList.remove("over"); }));
-  z.addEventListener("drop", ev => readFiles(ev.dataTransfer.files, kind));
-  $(input).addEventListener("change", ev => { readFiles(ev.target.files, kind); ev.target.value = ""; });
-}
+function alertBox(msg){ $("#pasteBox").innerHTML = `<div class="err">${esc(msg)}</div>`; setTimeout(() => { if ($("#pasteBox .err")) $("#pasteBox").innerHTML = ""; }, 5000); }
+const drop = $("#drop");
+["dragenter", "dragover"].forEach(e => drop.addEventListener(e, ev => { ev.preventDefault(); drop.classList.add("over"); }));
+["dragleave", "drop"].forEach(e => drop.addEventListener(e, ev => { ev.preventDefault(); drop.classList.remove("over"); }));
+drop.addEventListener("drop", ev => readFiles(ev.dataTransfer.files));
+$("#fileIn").addEventListener("change", ev => { readFiles(ev.target.files); ev.target.value = ""; });
+$("#pasteBtn").onclick = () => {
+  $("#pasteBox").innerHTML = `<div class="paste"><div class="rowx"><input class="in" id="pName" placeholder="Name it, e.g. Discovery call with Acme"><select class="kind" id="pKind">${KINDS.map(x => `<option value="${x[0]}">${x[1]}</option>`).join("")}</select></div>
+    <textarea class="in" id="pText" rows="6" placeholder="Paste Granola notes or a transcript"></textarea><div class="rowx"><button class="pill sm" type="button" id="pSave">Add</button><button class="ghost" type="button" id="pCancel">Cancel</button></div></div>`;
+  $("#pText").focus();
+  $("#pCancel").onclick = () => $("#pasteBox").innerHTML = "";
+  $("#pSave").onclick = () => { const t = $("#pText").value.trim(); if (!t) return; addSource($("#pName").value.trim() || "Pasted notes", t); S.sources[S.sources.length - 1].kind = $("#pKind").value; renderSources(); $("#pasteBox").innerHTML = ""; };
+};
+$("#linkBtn").onclick = () => {
+  $("#pasteBox").innerHTML = `<div class="paste"><div class="rowx"><input class="in" id="lUrl" placeholder="Granola share link, Notion page, Google Doc published to the web…"><select class="kind" id="lKind">${KINDS.map(x => `<option value="${x[0]}" ${x[0] === "call_sales" ? "selected" : ""}>${x[1]}</option>`).join("")}</select></div>
+    <div class="rowx"><button class="pill sm" type="button" id="lSave">Fetch</button><button class="ghost" type="button" id="lCancel">Cancel</button><span class="note" id="lNote">${live ? "The page has to be public." : "Links fetch when you're signed in."}</span></div></div>`;
+  $("#lUrl").focus();
+  $("#lCancel").onclick = () => $("#pasteBox").innerHTML = "";
+  $("#lSave").onclick = async () => {
+    const u = $("#lUrl").value.trim(); if (!u) return;
+    if (!live){ $("#lNote").textContent = "Sign in to fetch links. In demo mode, paste the notes instead."; return; }
+    $("#lSave").disabled = true; $("#lNote").innerHTML = '<span class="spin"></span> Reading…';
+    try { const r = await api("/api/pull-site", {url: u}); addSource(domainOf(u) + " notes", r.text || "", "From link"); S.sources[S.sources.length - 1].kind = $("#lKind").value; renderSources(); $("#pasteBox").innerHTML = ""; }
+    catch(e){ $("#lNote").textContent = e.error + " If it's private, paste the notes instead."; $("#lSave").disabled = false; }
+  };
+};
+$("#ctxChips").innerHTML = CTX_CHIPS.map(c => `<button class="chip" type="button" data-cc="${esc(c)}">+ ${esc(c)}</button>`).join("");
+document.querySelectorAll("[data-cc]").forEach(b => b.onclick = () => { const t = $("#ctx"); t.value = (t.value.trim() ? t.value.trim() + "\n\n" : "") + b.dataset.cc + ": "; t.focus(); t.selectionStart = t.selectionEnd = t.value.length; });
+
 function loadSample(){
-  state.calls = CALLS.map(c => ({...c, open: false}));
-  state.customers = {name: "kalpa_customers.csv", head: ["Company", "Website", "Use case", "Stage", "Team"], rows: CUSTOMERS.map(r => r.slice())};
-  renderCalls(); renderCsv();
-}
-async function build(){
-  if (!state.calls.length){ $("#s1status").innerHTML = "<div>Add at least one call, or press Play demo to load the Kalpa Labs sample.</div>"; return; }
-  $("#build").disabled = true;
-  try {
-    await status("#s1status", [
-      [`Reading ${state.calls.length} call${state.calls.length > 1 ? "s" : ""}`, 900],
-      [`Reading ${$("#site").value || "the website"}: home, docs, pricing`, 800],
-      [state.customers ? `Researching ${state.customers.rows.length} customers` : "No customer list, working from the calls", 900],
-      ["Finding patterns and drafting the ICP", 1100],
-    ]);
-  } catch(e){ return; }
-  goStep(2); renderS2();
+  $("#coName").value = SAMPLE.name; $("#coSite").value = SAMPLE.site; $("#ctx").value = SAMPLE.context;
+  S.sources = SAMPLE.sources.map(s => ({id: nid(), name: s.name, kind: s.kind, meta: s.meta, text: s.text || (s.csv || []).map(r => r.join(",")).join("\n"), csv: s.csv || null}));
+  renderSources();
 }
 
-/* ============ step 2: ICP + signals ============ */
-function icpHTML(icp){
-  return `<div class="icp"><div class="icp-h"><b>ICP v${icp.v}</b><span class="tag">${icp.conf}% confidence</span>${icp.v > 1 ? '<span class="tag y">Updated from your note</span>' : ""}</div>
-    <div class="icp-b"><p>${icp.line}</p>
-      <div class="cols2"><div><span class="label">Go after</span><ul>${icp.inc.map(x => `<li>${x}</li>`).join("")}</ul></div><div><span class="label">Skip</span><ul>${icp.exc.map(x => `<li>${x}</li>`).join("")}</ul></div></div></div></div>`;
+/* ================= build: analysis ================= */
+async function statusLines(el, lines){
+  const box = $(el); box.innerHTML = "";
+  for (const [t, ms] of lines){ const d = document.createElement("div"); d.innerHTML = `<span class="spin"></span>${esc(t)}`; box.appendChild(d); await wait(ms); d.className = "ok"; d.textContent = "✓ " + t; }
 }
-function renderS2(){
-  const n = state.customers ? state.customers.rows.length : 5;
-  $("#s2body").innerHTML = `
-    <div class="learned">
-      <div><span class="label">What they sell</span><p>Speech API for voice agents. About 300ms to first audio, English, Hindi and Hinglish in one model, #2 on AudioRealismBench.</p></div>
-      <div><span class="label">What customers say</span>
-        <div class="quote">"Hinglish sounded robotic, patients hung up."<span>Customer call · Vaani Health</span></div>
-        <div class="quote">"Rather close ten startups in a month than one bank in six."<span>Kickoff call</span></div></div>
-      <div><span class="label">Market</span><p>Voice agent startups are multiplying on platforms like Vapi, Bolna and Retell. Teams pick speech from a dropdown, so quality and latency win, not sales cycles.</p></div>
+function addLine(el, t){ const d = document.createElement("div"); d.innerHTML = `<span class="spin"></span>${esc(t)}`; $(el).appendChild(d); return {done(ok = true, msg){ d.className = ok ? "ok" : "bad"; d.textContent = (ok ? "✓ " : "✕ ") + (msg || t); }}; }
+function customerDomains(){
+  const out = new Set();
+  S.sources.filter(s => s.kind === "customers").forEach(s => {
+    if (s.csv){ const h = s.csv[0].map(x => x.toLowerCase()); let ci = h.findIndex(x => /website|domain|url/.test(x)); s.csv.slice(1).forEach(r => { const d = domainOf(ci >= 0 ? r[ci] : r.find(c => /\.[a-z]{2,}/i.test(c)) || ""); if (d && d.includes(".")) out.add(d); }); }
+    else s.text.split(/\s+/).forEach(w => { if (/\.[a-z]{2,}/i.test(w)){ const d = domainOf(w); if (d && d.includes(".")) out.add(d); } });
+  });
+  return [...out].slice(0, 60);
+}
+function analysisPrompt(siteText){
+  const block = s => `### [${KIND[s.kind][1]}] ${s.name}\n${s.csv ? s.csv.slice(0, 60).map(r => r.join(" | ")).join("\n") : s.text.slice(0, 9000)}`;
+  const founders = S.founders.filter(f => f.profile).map(f => { const p = f.profile; return `- ${p.name}, ${p.title}. ${p.headline}. Past: ${p.history.filter(h => !h.current).slice(0, 4).map(h => h.title + " at " + h.company).join("; ")}`; }).join("\n");
+  return `You are a GTM strategist onboarding a new client. Work out who they should sell to, the buying signals to watch, and what their customers have in common.
+
+CLIENT: ${$("#coName").value.trim() || "(unnamed)"} · ${$("#coSite").value.trim()}
+WEBSITE TEXT:
+${String(siteText || "(not available)").slice(0, 12000)}
+
+FOUNDERS:
+${founders || "(none given)"}
+
+CONTEXT FROM OUR TEAM (treat as strong hints, not facts):
+${$("#ctx").value.trim().slice(0, 6000) || "(none)"}
+
+SOURCES, each labeled with its type. Customer calls show why people buy. Lost deals show who not to target. Kickoff and internal calls show what the founders want. CRM exports show deal speed and size. Customer lists are who already pays.
+${S.sources.map(block).join("\n\n").slice(0, 70000) || "(none)"}
+
+Rules:
+- Ground everything in the sources. Quotes must be real lines or close paraphrases from the sources, with the source name.
+- A pattern needs at least 2 examples. Give it as a count over the number of customers or deals it was checked against.
+- Signals are public, checkable events that mean a company is likely to buy now. For each, write a short web search query that would surface companies showing it (no site: operators).
+- The ICP must reflect what the founders want, not just who bought.
+
+Reply with only one JSON object:
+{"sells":"one or two sentences","quotes":[{"quote":"","source":""}],"market":"two sentences on the industry and how buyers choose",
+"patterns":[{"finding":"","count":0,"of":0,"examples":"names"}],
+"signals":[{"signal":"","why":"","query":""}],
+"icp":{"line":"one sentence","confidence":0,"go_after":[""],"skip":[""]}}`;
+}
+async function build(){
+  $("#buildStatus").innerHTML = "";
+  if (live && !S.sources.length && !$("#ctx").value.trim() && !$("#coSite").value.trim()){ $("#buildStatus").innerHTML = '<div class="bad">Add a website, at least one file, or some context first.</div>'; return; }
+  if (!live && !S.sources.length) loadSample();
+  $("#buildBtn").disabled = true;
+  try {
+    if (!live){
+      const n = S.sources.length;
+      await statusLines("#buildStatus", [[`Reading ${n} sources (${S.sources.filter(s => KIND[s.kind][2] === "call").length} calls, ${S.sources.filter(s => s.kind === "crm").length} CRM export, ${S.sources.filter(s => s.kind === "customers").length} customer list)`, 1000], [`Reading ${$("#coSite").value || "the website"}`, 800], ["Finding patterns across customers and deals", 1000], ["Drafting the ICP and signals", 900]]);
+      S.analysis = JSON.parse(JSON.stringify(SAMPLE.analysis));
+    } else {
+      let siteText = "";
+      if ($("#coSite").value.trim()){ const l = addLine("#buildStatus", "Reading " + $("#coSite").value.trim()); try { siteText = (await api("/api/pull-site", {url: $("#coSite").value.trim()})).text; l.done(); } catch(e){ l.done(false, "Couldn't read the site: " + e.error); } }
+      const l2 = addLine("#buildStatus", `Reading ${S.sources.length} sources and finding patterns`);
+      const r = await api("/api/claude", {prompt: analysisPrompt(siteText), maxTokens: 12000});
+      S.analysis = r.data; l2.done();
+      saveClient(siteText).catch(() => {});
+    }
+    S.icp = S.analysis.icp; S.prevIcp = null; S.signals = arr(S.analysis.signals).map(x => ({...x}));
+    S.unlocked = Math.max(S.unlocked, 2); renderIcp(); show("icp");
+  } catch(e){
+    if (e !== "cancelled") $("#buildStatus").insertAdjacentHTML("beforeend", `<div class="bad">✕ ${esc(e.error || "Something went wrong")}</div>`);
+  }
+  $("#buildBtn").disabled = false;
+}
+$("#buildBtn").onclick = build;
+async function saveClient(siteText){
+  const company = $("#coName").value.trim() || domainOf($("#coSite").value) || "Client";
+  const id = S.clientId || (company.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40) || "client") + "-" + Date.now().toString(36);
+  S.clientId = id;
+  const by = k => S.sources.filter(s => s.kind === k).map(s => `## ${s.name}\n${s.text}`).join("\n\n");
+  const founder = S.founders.find(f => f.profile)?.profile;
+  const rec = {id, company, first: founder?.name?.split(" ")[0] || "", email: "", website: domainOf($("#coSite").value), createdAt: new Date().toISOString(),
+    inputs: {site: siteText || "", customers: customerDomains().join("\n"), won: [by("call_customer"), by("call_sales")].filter(Boolean).join("\n\n"), lost: by("call_lost"), founder: by("call_internal"), context: [$("#ctx").value.trim(), by("crm") && "CRM export:\n" + by("crm").slice(0, 8000), by("notes")].filter(Boolean).join("\n\n")},
+    checks: {}, checkedAt: {}, icp: null, history: [], draft: null, autoSharpen: true, intake: {founders: S.founders.map(f => ({url: f.url, profile: f.profile || null})), analysis: S.analysis}};
+  for (const k of Object.keys(rec.inputs)) rec.inputs[k] = String(rec.inputs[k] || "").slice(0, 120000);
+  await fetch("/api/clients/" + id, {method: "PUT", headers: {"content-type": "application/json"}, body: JSON.stringify(rec), credentials: "same-origin"});
+}
+
+/* ================= ICP view ================= */
+function diffItem(x, prev){ return prev && !prev.includes(x) ? `<span class="changed">${esc(x)}</span>` : esc(x); }
+function icpHTML(){
+  const i = S.icp, p = S.prevIcp; const v = p ? 2 : 1;
+  return `<div class="icp"><div class="icp-h"><b>Ideal customer · v${v}</b><span class="tag">${esc(i.confidence ?? "?")}% confidence</span>${p ? '<span class="tag hi">Updated from your note</span>' : ""}</div>
+    <div class="icp-b"><p class="line">${p && p.line !== i.line ? `<span class="changed">${esc(i.line)}</span>` : esc(i.line)}</p>
+      <div class="row2"><div><span class="lbl">Go after</span><ul>${arr(i.go_after).map(x => `<li>${diffItem(x, p && p.go_after)}</li>`).join("")}</ul></div><div><span class="lbl">Skip</span><ul>${arr(i.skip).map(x => `<li>${diffItem(x, p && p.skip)}</li>`).join("")}</ul></div></div></div></div>`;
+}
+function renderIcp(){
+  const a = S.analysis;
+  $("#v-icp").innerHTML = `
+    <div class="vh"><h1>Who ${esc($("#coName").value.trim() || "they")} should sell to</h1><p>Built from what they do, what their customers say, and where the market is going. Edit anything, or steer it in plain English.</p></div>
+    <div class="trio">
+      <div><span class="lbl">What they sell</span><p>${esc(a.sells)}</p></div>
+      <div><span class="lbl">What customers say</span>${arr(a.quotes).slice(0, 3).map(q => `<div class="q">"${esc(q.quote)}"<span>${esc(q.source)}</span></div>`).join("")}</div>
+      <div><span class="lbl">Market</span><p>${esc(a.market)}</p></div>
     </div>
-    <div class="group"><span class="label">Patterns across ${n} customers</span>
-      <div class="pats">${PATTERNS.map(([f, d, k]) => `<div class="pat"><div>${esc(f)}<small>${esc(d)}</small></div><div class="meter"><i style="width:0" data-w="${k / 5 * 100}"></i></div><div class="c">${k}/5</div></div>`).join("")}</div></div>
-    <div class="group"><span class="label">Signals to watch <span class="opt">click any to edit</span></span><div class="sigs" id="sigs"></div><button class="addsig" id="addSig" type="button">+ Add a signal</button></div>
-    <div class="group"><span class="label">Ideal customer</span><div id="icpWrap">${icpHTML(state.icp)}</div></div>
-    <div class="group"><label class="label" for="steerIn">Steer it <span class="opt">say who to go after, in plain English</span></label>
-      <div class="steer"><input class="text" id="steerIn" placeholder="e.g. focus on startups that can sign fast, skip big enterprise" autocomplete="off"><button class="btn" id="steerBtn" type="button">Update</button></div>
-      <div class="status" id="s2status"></div></div>
-    <div class="foot-row"><button class="btn primary" id="genList" type="button">Find target companies →</button></div>`;
-  requestAnimationFrame(() => requestAnimationFrame(() => document.querySelectorAll("[data-w]").forEach(b => b.style.width = b.dataset.w + "%")));
+    <div class="card"><div class="sect"><h2>Patterns</h2><span>what their customers and won deals have in common</span></div>
+      <div class="pats">${arr(a.patterns).map(p => `<div class="pat"><div>${esc(p.finding)}<small>${esc(p.examples)}</small></div><div class="bar"><i style="width:0" data-w="${Math.round((p.count || 0) / Math.max(1, p.of || 1) * 100)}"></i></div><div class="c">${p.count}/${p.of}</div></div>`).join("")}</div></div>
+    <div class="card"><div class="sect"><h2>Signals to watch</h2><span>click any to edit</span><button class="link r" type="button" id="addSig" style="font-size:13px">+ Add a signal</button></div><div class="sigs" id="sigs"></div></div>
+    <div id="icpWrap">${icpHTML()}</div>
+    <div class="card"><div class="sect"><h2>Steer it</h2><span>who should we go after? tell it like you'd tell a teammate</span></div>
+      <div class="steer"><input class="in" id="steerIn" placeholder="e.g. focus on startups that can sign fast, skip big enterprise" autocomplete="off"><button class="ghost" id="steerBtn" type="button">Update</button></div>
+      <div class="status" id="steerStatus"></div></div>
+    <div class="foot"><button class="pill" type="button" id="findBtn">Find target companies <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button><div class="status" id="findStatus"></div></div>`;
+  requestAnimationFrame(() => requestAnimationFrame(() => document.querySelectorAll("#v-icp [data-w]").forEach(b => b.style.width = b.dataset.w + "%")));
   renderSigs();
-  $("#addSig").onclick = () => { state.signals.push(["New signal", "What should we look for?"]); renderSigs(); const all = document.querySelectorAll(".sig b"); all[all.length - 1].focus(); };
-  $("#steerBtn").onclick = steer;
-  $("#steerIn").onkeydown = e => { if (e.key === "Enter") steer(); };
-  $("#genList").onclick = genList;
+  $("#addSig").onclick = () => { S.signals.push({signal: "New signal", why: "What should we look for?", query: ""}); renderSigs(); const all = document.querySelectorAll(".sig b"); all[all.length - 1].focus(); };
+  $("#steerBtn").onclick = () => steer().catch(() => {});
+  $("#steerIn").onkeydown = e => { if (e.key === "Enter") steer().catch(() => {}); };
+  $("#findBtn").onclick = () => findTargets().catch(() => {});
 }
 function renderSigs(){
-  $("#sigs").innerHTML = state.signals.map(([t, w], i) => `<div class="sig"><div><b contenteditable="true" spellcheck="false" data-sig="${i}">${esc(t)}</b><span>${esc(w)}</span></div><button class="x" type="button" data-sx="${i}" aria-label="Remove signal">✕</button></div>`).join("");
-  document.querySelectorAll("[data-sig]").forEach(b => b.oninput = () => { state.signals[b.dataset.sig][0] = b.textContent; });
-  document.querySelectorAll("[data-sx]").forEach(b => b.onclick = () => { state.signals.splice(+b.dataset.sx, 1); renderSigs(); });
+  $("#sigs").innerHTML = S.signals.map((s, i) => `<div class="sig"><div><b contenteditable="true" spellcheck="false" data-sig="${i}">${esc(s.signal)}</b><span>${esc(s.why)}</span></div><button class="x" type="button" data-sgx="${i}" aria-label="Remove signal">✕</button></div>`).join("");
+  document.querySelectorAll("[data-sig]").forEach(b => b.oninput = () => { const s = S.signals[b.dataset.sig]; s.signal = b.textContent; s.query = ""; });
+  document.querySelectorAll("[data-sgx]").forEach(b => b.onclick = () => { S.signals.splice(+b.dataset.sgx, 1); renderSigs(); });
 }
 async function steer(){
-  const inp = $("#steerIn"); const note = inp.value.trim() || "focus on startups that can sign fast, skip big enterprise";
-  inp.value = note; $("#steerBtn").disabled = true;
-  try { await status("#s2status", [["Re-reading the calls with your note", 700], ["Rewriting the ICP", 900]]); } catch(e){ return; }
-  state.icp = ICP2;
-  $("#icpWrap").innerHTML = icpHTML(ICP2);
-  $("#s2status").innerHTML = `<div class="ok">✓ Updated. This lines up with what the founders said on the kickoff call.</div>`;
+  const inp = $("#steerIn"); const note = inp.value.trim(); if (!note && live) return;
+  if (!note) inp.value = "focus on startups that can sign fast, skip big enterprise";
+  $("#steerBtn").disabled = true; $("#steerStatus").innerHTML = "";
+  try {
+    if (!live){ await statusLines("#steerStatus", [["Re-reading the calls with your note", 700], ["Rewriting the ICP", 900]]); S.prevIcp = S.icp; S.icp = SAMPLE.steered; }
+    else {
+      const l = addLine("#steerStatus", "Rewriting the ICP with your note");
+      const r = await api("/api/claude", {maxTokens: 4000, prompt: `Current ICP for ${$("#coName").value.trim()}:\n${JSON.stringify(S.icp)}\n\nEvidence summary: ${S.analysis.sells}\nPatterns: ${arr(S.analysis.patterns).map(p => p.finding + " (" + p.count + "/" + p.of + ")").join("; ")}\nQuotes: ${arr(S.analysis.quotes).map(q => q.quote).join(" | ")}\n\nThe team says: "${inp.value.trim()}"\n\nRewrite the ICP to follow the team's direction while staying true to the evidence. Keep items that still hold word for word. Reply with only {"line":"","confidence":0,"go_after":[""],"skip":[""],"note":"one sentence on how the evidence supports or pushes back on the team's direction"}`});
+      S.prevIcp = S.icp; S.icp = r.data; l.done(true, "Updated. " + (r.data.note || ""));
+    }
+    $("#icpWrap").innerHTML = icpHTML();
+    if (!live) $("#steerStatus").insertAdjacentHTML("beforeend", '<div class="ok">✓ This lines up with what the founders said on the kickoff call.</div>');
+  } catch(e){ if (e !== "cancelled") $("#steerStatus").insertAdjacentHTML("beforeend", `<div class="bad">✕ ${esc(e.error)}</div>`); }
   $("#steerBtn").disabled = false;
 }
 
-/* ============ step 3: target list + learning loop ============ */
-async function genList(){
-  $("#genList").disabled = true; goStep(3);
-  $("#s3body").innerHTML = `<div class="status" id="s3status"></div>`;
-  try {
-    await status("#s3status", [
-      [`Searching for companies showing ${state.signals.length} signals`, 1000],
-      ["Checking each one against the ICP", 800],
-      ["Writing why to reach out now", 800],
-    ]);
-  } catch(e){ return; }
-  // With the steering note applied, enterprise accounts drop down the list instead of vanishing
-  state.list = TARGETS.map(t => ({...t, score: state.icp.v > 1 && t.kind === "enterprise" ? t.score - 16 : t.score}));
-  renderS3();
+/* ================= targets ================= */
+function brief(){
+  return [`Client: ${$("#coName").value.trim()} (${$("#coSite").value.trim()}). ${S.analysis.sells}`, `ICP: ${S.icp.line}`, `Go after: ${arr(S.icp.go_after).join("; ")}`, `Skip: ${arr(S.icp.skip).join("; ")}`, S.rules.length ? "Learned from the team's reviews:\n- " + S.rules.join("\n- ") : ""].filter(Boolean).join("\n");
 }
-const rank = () => state.list.slice().sort((a, b) => (a.gone ? 1 : 0) - (b.gone ? 1 : 0) || b.score - a.score);
-function renderS3(){
-  const n = Object.keys(state.fb).length;
-  const live = state.list.filter(t => !t.gone).length;
-  $("#s3body").innerHTML = `
-    <div class="listbar"><b style="color:var(--ink)">${live} companies</b><span>· ranked by fit</span><span class="sp" id="lbHint">${state.learned ? "List v2 · rebuilt from your reviews" : n ? `${n} of 3 reviews · rebuilds after 3` : "Thumbs up or down two or three to teach it"}</span></div>
-    <div id="learnBox">${state.learned ? learnHTML() : ""}</div>
-    <div class="targets">${rank().map(rowHTML).join("")}</div>
-    <div class="foot-row"><button class="btn" id="deepAll" type="button">Research the top 3 with the browser agent</button><span class="note">Reads each site, docs, careers page and recent posts.</span></div>`;
+async function searchSignals(sigs, limit){
+  const exclude = [...customerDomains(), domainOf($("#coSite").value)].filter(Boolean);
+  const found = [];
+  const one = async s => {
+    try {
+      const r = await api("/api/research-source", {source: {name: s.signal, query: s.query || s.signal + " startup", signal: s.signal, extract: "company name, website, and dated evidence of the signal"}, brief: brief(), exclude, limit, mode: "fast"});
+      arr(r.companies).forEach(c => found.push({id: (domainOf(c.website) || c.company).toLowerCase().replace(/[^a-z0-9]+/g, "-"), name: c.company, site: domainOf(c.website), what: c.what_they_do || "", meta: c.evidence_url ? domainOf(c.evidence_url) : "", sig: s.signal, score: Math.round(Number(c.fit) || 0), why: [c.why, c.evidence].filter(Boolean).join(" "), kind: "fit", live: true}));
+    } catch(e){}
+  };
+  for (let i = 0; i < sigs.length; i += 2) await Promise.all(sigs.slice(i, i + 2).map(one));
+  const seen = new Set(exclude); return found.filter(t => t.name && !seen.has(t.site) && !seen.has(t.id) && (seen.add(t.site || t.id), true));
+}
+async function findTargets(){
+  $("#findBtn").disabled = true; $("#findStatus").innerHTML = "";
+  try {
+    if (!live){
+      await statusLines("#findStatus", [[`Searching for companies showing ${S.signals.length} signals`, 1000], ["Checking each against the ICP", 800], ["Writing why to reach out now", 800]]);
+      S.list = SAMPLE.targets.map(t => ({...t, score: S.prevIcp && t.kind === "enterprise" ? t.score - 16 : t.score}));
+    } else {
+      const l = addLine("#findStatus", `Searching the web for ${Math.min(5, S.signals.length)} signals`);
+      S.list = (await searchSignals(S.signals.slice(0, 5), 10)).sort((a, b) => b.score - a.score).slice(0, 18);
+      l.done(true, `Found ${S.list.length} companies`);
+      if (!S.list.length) throw {error: "No companies came back. Make the signals more specific and try again."};
+    }
+    S.fb = {}; S.why = {}; S.learned = false; S.rules = [];
+    S.unlocked = 3; renderTargets(); show("targets");
+  } catch(e){ if (e !== "cancelled") $("#findStatus").insertAdjacentHTML("beforeend", `<div class="bad">✕ ${esc(e.error)}</div>`); }
+  $("#findBtn").disabled = false;
+}
+const rank = () => S.list.slice().sort((a, b) => (a.gone ? 1 : 0) - (b.gone ? 1 : 0) || b.score - a.score);
+function renderTargets(){
+  const n = Object.keys(S.fb).length; const liveN = S.list.filter(t => !t.gone).length;
+  $("#v-targets").innerHTML = `
+    <div class="vh"><h1>Target list</h1><p>Each company comes with the reason to reach out now. Thumbs up or down any three and the list rebuilds itself from your taste.</p></div>
+    <div class="sect"><h2>${liveN} companies</h2><span id="lbHint">${S.learned ? "v2 · rebuilt from your reviews" : n ? `${n} of 3 reviews` : "ranked by fit"}</span><button class="ghost r" type="button" id="deepAll">Research the top 3</button></div>
+    <div id="learnBox">${S.learned ? learnHTML() : ""}</div>
+    <div class="tlist">${rank().map(rowHTML).join("")}</div>`;
   document.querySelectorAll("[data-fb]").forEach(b => b.onclick = () => feedback(b.dataset.fb, b.dataset.v));
-  document.querySelectorAll("[data-why]").forEach(b => b.onclick = () => { state.why[b.dataset.why] = b.textContent; renderS3(); maybeLearn(); });
+  document.querySelectorAll("[data-why]").forEach(b => b.onclick = () => { S.why[b.dataset.why] = b.dataset.r; renderTargets(); maybeLearn(); });
+  document.querySelectorAll("[data-whyin]").forEach(i => i.onkeydown = e => { if (e.key === "Enter" && i.value.trim()){ S.why[i.dataset.whyin] = i.value.trim(); renderTargets(); maybeLearn(); } });
   document.querySelectorAll("[data-deep]").forEach(b => b.onclick = () => deepResearch(b.dataset.deep).catch(() => {}));
-  $("#deepAll").onclick = async () => { $("#deepAll").disabled = true; try { for (const t of rank().filter(t => t.deep && !t.gone && !t.deepDone).slice(0, 3)) await deepResearch(t.id); } catch(e){} };
+  $("#deepAll").onclick = async () => { $("#deepAll").disabled = true; try { for (const t of rank().filter(t => (t.deep || t.live) && !t.gone && !t.deepDone).slice(0, 3)) await deepResearch(t.id); } catch(e){} };
 }
 function rowHTML(t){
-  const f = state.fb[t.id];
-  return `<div class="t ${t.isNew ? "new" : ""} ${t.gone ? "gone" : ""}" id="t-${t.id}">
-    <div class="score ${t.score >= 85 ? "hi" : ""}">${t.score}</div>
+  const f = S.fb[t.id]; const canDeep = (t.deep || t.live) && !t.gone;
+  return `<div class="t ${t.isNew ? "new" : ""} ${t.gone ? "gone" : ""}" id="t-${esc(t.id)}">
+    <div class="score ${t.score >= 85 ? "top" : ""}">${t.score}</div>
     <div style="min-width:0">
-      <div class="nm"><span>${esc(t.name)}</span><span class="tag">${esc(t.sig)}</span>${t.isNew ? '<span class="tag y">New from your feedback</span>' : ""}${t.gone ? `<span class="tag r">${state.fb[t.id] === "down" ? "You passed" : "Removed: like one you passed on"}</span>` : ""}</div>
-      <div class="meta">${esc(t.what)} · ${esc(t.meta)} · ${esc(t.site)}</div>
+      <div class="nm"><span>${esc(t.name)}</span><span class="tag">${esc(t.sig)}</span>${t.isNew ? '<span class="tag hi">New from your feedback</span>' : ""}${t.gone ? `<span class="tag bad">${f === "down" ? "You passed" : "Removed: like one you passed on"}</span>` : ""}</div>
+      <div class="meta">${esc([t.what, t.meta, t.site].filter(Boolean).join(" · "))}</div>
       <p class="why">${esc(t.why)}</p>
-      ${f === "down" && !t.gone ? `<div class="reasons"><span>Why?</span>${REASONS[t.kind].map(r => `<button type="button" data-why="${t.id}" class="${state.why[t.id] === r ? "on" : ""}">${esc(r)}</button>`).join("")}</div>` : ""}
-      ${t.deep && !t.gone ? `<button class="more" type="button" data-deep="${t.id}">${t.deepDone ? "Researched ✓" : t.deepRunning ? '<span class="spin"></span>Browsing…' : "Research with the browser agent →"}</button><div id="deep-${t.id}">${t.deepDone ? deepHTML(t, t.deep.length, true) : ""}</div>` : ""}
+      ${f === "down" && !t.gone ? `<div class="reasons"><span>Why not?</span>${REASONS.map(r => `<button type="button" data-why="${esc(t.id)}" data-r="${esc(r)}" class="${S.why[t.id] === r ? "on" : ""}">${esc(r)}</button>`).join("")}<input data-whyin="${esc(t.id)}" placeholder="or type a reason ↵" aria-label="Your reason"></div>` : ""}
+      ${canDeep ? `<button class="more" type="button" data-deep="${esc(t.id)}">${t.deepDone ? "Researched ✓" : t.deepRunning ? '<span class="spin"></span> Browsing…' : "Research with the browser agent →"}</button><div id="deep-${esc(t.id)}">${t.deepDone ? deepHTML(t, t.deep.length, true) : ""}</div>` : ""}
     </div>
-    ${t.gone ? "<div></div>" : `<div class="acts"><button class="fb up ${f === "up" ? "on" : ""}" type="button" data-fb="${t.id}" data-v="up" aria-label="Good fit" aria-pressed="${f === "up"}">👍</button><button class="fb down ${f === "down" ? "on" : ""}" type="button" data-fb="${t.id}" data-v="down" aria-label="Not a fit" aria-pressed="${f === "down"}">👎</button></div>`}
+    ${t.gone ? "<div></div>" : `<div class="acts2"><button class="fb up ${f === "up" ? "on" : ""}" type="button" data-fb="${esc(t.id)}" data-v="up" aria-label="Good fit" aria-pressed="${f === "up"}">👍</button><button class="fb down ${f === "down" ? "on" : ""}" type="button" data-fb="${esc(t.id)}" data-v="down" aria-label="Not a fit" aria-pressed="${f === "down"}">👎</button></div>`}
   </div>`;
 }
 function feedback(id, v){
-  if (state.fb[id] === v) delete state.fb[id]; else state.fb[id] = v;
-  if (state.fb[id] !== "down") delete state.why[id];
-  renderS3(); if (state.fb[id] !== "down") maybeLearn();
+  if (S.fb[id] === v) delete S.fb[id]; else S.fb[id] = v;
+  if (S.fb[id] !== "down") delete S.why[id];
+  renderTargets(); if (S.fb[id] !== "down") maybeLearn();
 }
 function maybeLearn(){
-  const ids = Object.keys(state.fb);
-  const reasoned = ids.filter(id => state.fb[id] === "down").every(id => state.why[id]);
-  if (ids.length >= 3 && reasoned && !state.learned){ clearTimeout(learnTimer); learnTimer = setTimeout(() => learn().catch(() => {}), 500); }
+  const ids = Object.keys(S.fb);
+  if (ids.length >= 3 && ids.filter(id => S.fb[id] === "down").every(id => S.why[id]) && !S.learned){ clearTimeout(learnTimer); learnTimer = setTimeout(() => learn().catch(() => {}), 500); }
 }
-function buildRules(){
-  const out = []; const by = id => state.list.find(t => t.id === id);
-  const ups = Object.keys(state.fb).filter(id => state.fb[id] === "up").map(by);
-  const downs = Object.keys(state.fb).filter(id => state.fb[id] === "down").map(by);
-  downs.forEach(t => {
-    const w = state.why[t.id];
+function demoRules(){
+  const out = []; const by = id => S.list.find(t => t.id === id);
+  Object.keys(S.fb).filter(id => S.fb[id] === "down").map(by).forEach(t => {
+    const w = S.why[t.id];
     if (t.kind === "enterprise") out.push(`Skip large contact centers and BPOs. You passed on ${t.name}: "${w}".`);
     else if (t.kind === "notagent") out.push(`Live call agents only, not pre-recorded voice. You passed on ${t.name}: "${w}".`);
     else out.push(`Rank companies like ${t.name} lower: "${w}".`);
   });
+  const ups = Object.keys(S.fb).filter(id => S.fb[id] === "up").map(by);
   const bi = ups.filter(t => /Hindi|Hinglish|Bengaluru|Delhi|India/i.test(t.why + t.meta + t.sig));
   if (bi.length) out.push(`Boost bilingual English and Hindi voice products. You liked ${bi.map(t => t.name).join(" and ")}.`);
-  const rest = ups.filter(t => !bi.includes(t));
-  if (rest.length) out.push(`Boost founder-led teams under 20 people. You liked ${rest.map(t => t.name).join(" and ")}.`);
+  const rest = ups.filter(t => !bi.includes(t)); if (rest.length) out.push(`Boost founder-led teams under 20 people. You liked ${rest.map(t => t.name).join(" and ")}.`);
   return out;
 }
-function learnHTML(){
-  return `<div class="learn"><b>Learned from your ${Object.keys(state.fb).length} reviews</b><ul>${state.rules.map(r => `<li>${esc(r)}</li>`).join("")}</ul><span style="font-size:12.5px">Saved to Kalpa Labs' profile. Every future list uses these rules.</span></div>`;
-}
+function learnHTML(){ return `<div class="learn"><b>Learned from your ${Object.keys(S.fb).length} reviews</b><ul>${S.rules.map(r => `<li>${esc(r)}</li>`).join("")}</ul><span style="font-size:12.5px">Saved to ${esc($("#coName").value.trim() || "this client")}'s profile. Every future list uses these rules.</span></div>`; }
 async function learn(){
-  state.learned = true; state.rules = buildRules();
-  const hint = $("#lbHint"); if (hint) hint.innerHTML = '<span class="spin"></span>Rebuilding the list from your feedback…';
-  await wait(1400);
-  const passedKinds = new Set(Object.keys(state.fb).filter(id => state.fb[id] === "down").map(id => state.list.find(t => t.id === id).kind));
-  state.list.forEach(t => {
-    if (state.fb[t.id] === "down") t.gone = true;
-    else if (state.fb[t.id] !== "up" && t.kind !== "fit" && passedKinds.has(t.kind)) t.gone = true;
-    else if (!t.gone && /Hindi|Hinglish|Bengaluru/i.test(t.why + t.sig + t.meta)) t.score = Math.min(97, t.score + 2);
-  });
-  state.list.push(...NEW_TARGETS.map(t => ({...t, isNew: true})));
-  renderS3();
-  $("#nTargets").textContent = state.list.filter(t => !t.gone).length;
-  $("#nLearn").textContent = Object.keys(state.fb).length;
-  $("#end").hidden = false;
-  setTimeout(() => state.list.forEach(t => delete t.isNew), 3000);
+  S.learned = true;
+  const hint = $("#lbHint"); if (hint) hint.innerHTML = '<span class="spin"></span> Rebuilding the list from your feedback…';
+  if (!live){
+    S.rules = demoRules(); await wait(1400);
+    const kinds = new Set(Object.keys(S.fb).filter(id => S.fb[id] === "down").map(id => S.list.find(t => t.id === id).kind));
+    S.list.forEach(t => { if (S.fb[t.id] === "down") t.gone = true; else if (S.fb[t.id] !== "up" && t.kind !== "fit" && kinds.has(t.kind)) t.gone = true; else if (/Hindi|Hinglish|Bengaluru/i.test(t.why + t.sig + t.meta)) t.score = Math.min(97, t.score + 2); });
+    S.list.push(...SAMPLE.more.map(t => ({...t, isNew: true})));
+  } else {
+    try {
+      const reviewed = Object.keys(S.fb).map(id => { const t = S.list.find(x => x.id === id); return `${S.fb[id] === "up" ? "KEEP" : "PASS"}: ${t.name} (${t.what}; signal: ${t.sig})${S.why[id] ? " because: " + S.why[id] : ""}`; }).join("\n");
+      const rest = S.list.filter(t => !S.fb[t.id]).map(t => `${t.id} | ${t.name} | ${t.what} | ${t.sig}`).join("\n");
+      const r = await api("/api/claude", {maxTokens: 5000, prompt: `${brief()}\n\nThe team just reviewed these target companies:\n${reviewed}\n\nUnreviewed companies (id | name | what | signal):\n${rest}\n\nLearn the team's taste. Write 2-4 short rules that generalize (about the kind of company, not just the names). Then re-score every unreviewed company 0-100 under those rules and drop the ones the rules exclude. Then write 2 web search queries that would find more companies like the ones they kept.\nReply with only {"rules":[""],"scores":[{"id":"","fit":0,"drop":false}],"queries":[{"signal":"","query":""}]}`});
+      S.rules = arr(r.data.rules);
+      const sc = new Map(arr(r.data.scores).map(x => [x.id, x]));
+      S.list.forEach(t => { if (S.fb[t.id] === "down") t.gone = true; const s = sc.get(t.id); if (s && !S.fb[t.id]){ t.score = Math.round(Number(s.fit) || t.score); if (s.drop) t.gone = true; } });
+      const more = await searchSignals(arr(r.data.queries).slice(0, 2), 6);
+      const have = new Set(S.list.map(t => t.site || t.id));
+      S.list.push(...more.filter(t => !have.has(t.site || t.id)).sort((a, b) => b.score - a.score).slice(0, 5).map(t => ({...t, isNew: true})));
+    } catch(e){ S.rules = ["Couldn't rebuild just now: " + (e.error || "try again")]; }
+  }
+  renderTargets();
+  setTimeout(() => S.list.forEach(t => delete t.isNew), 3000);
 }
 function deepHTML(t, k, finished){
-  const cur = t.deep[Math.max(0, k - 1)][0];
-  return `<div class="deep"><div class="bh"><span aria-hidden="true">◐</span><span class="url">${esc(cur)}</span><span>browser agent</span></div>
-    <div class="bl">${t.deep.slice(0, k).map((s, i) => `<div>${i < k - 1 || finished ? "✓" : "…"} ${esc(s[1])}</div>`).join("")}</div>
-    ${finished ? `<div class="res"><span class="label">Suggested opener</span><p>${esc(t.opener)}</p></div>` : ""}</div>`;
+  const steps = arr(t.deep); const cur = steps[Math.max(0, k - 1)]?.[0] || t.site;
+  return `<div class="deep"><div class="bh"><span class="dots"><i></i><i></i><i></i></span><span class="url">${esc(cur)}</span><span>agent</span></div>
+    <div class="bl">${steps.slice(0, k).map((s, i) => `<div>${i < k - 1 || finished ? "✓" : '<span class="spin"></span>'} <small>${esc(s[0])}</small>${esc(s[1])}</div>`).join("") || '<div><span class="spin"></span> Opening the site…</div>'}</div>
+    ${finished && t.opener ? `<div class="res"><span class="lbl">Suggested opener</span><p>${esc(t.opener)}</p></div>` : ""}</div>`;
 }
 async function deepResearch(id){
-  const t = state.list.find(x => x.id === id); if (!t || t.deepRunning || t.deepDone) return;
+  const t = S.list.find(x => x.id === id); if (!t || t.deepRunning || t.deepDone) return;
   t.deepRunning = true;
-  const btn = document.querySelector(`[data-deep="${id}"]`); if (btn) btn.innerHTML = '<span class="spin"></span>Browsing…';
-  for (let k = 1; k <= t.deep.length; k++){ const b = $("#deep-" + id); if (b) b.innerHTML = deepHTML(t, k, false); await wait(700); }
+  const btn = document.querySelector(`[data-deep="${CSS.escape(id)}"]`); if (btn) btn.innerHTML = '<span class="spin"></span> Browsing…';
+  const box = () => document.getElementById("deep-" + id);
+  if (live){
+    t.deep = []; if (box()) box().innerHTML = deepHTML(t, 0, false);
+    try {
+      const r = await api("/api/deep-company", {company: t.name, website: t.site, brief: brief(), client: $("#coName").value.trim()});
+      t.deep = arr(r.findings).map(f => [f.where || t.site, f.what]);
+      t.opener = r.opener || ""; if (r.why_now) t.why = r.why_now;
+      for (let k = 1; k <= t.deep.length; k++){ if (box()) box().innerHTML = deepHTML(t, k, false); await wait(350); }
+    } catch(e){ t.deep = [[t.site, "Research failed: " + (e.error || "try again")]]; }
+  } else {
+    for (let k = 1; k <= t.deep.length; k++){ if (box()) box().innerHTML = deepHTML(t, k, false); await wait(700); }
+  }
   t.deepDone = true; t.deepRunning = false;
-  const b = $("#deep-" + id); if (b) b.innerHTML = deepHTML(t, t.deep.length, true);
-  const bt = document.querySelector(`[data-deep="${id}"]`); if (bt) bt.textContent = "Researched ✓";
+  if (box()) box().innerHTML = deepHTML(t, t.deep.length, true);
+  const b2 = document.querySelector(`[data-deep="${CSS.escape(id)}"]`); if (b2) b2.textContent = "Researched ✓";
 }
 
-/* ============ play / reset ============ */
+/* ================= demo playback ================= */
 function caption(t){ const c = $("#caption"); c.hidden = !t; c.textContent = t || ""; }
-async function typeInto(el, text){ el.value = ""; el.focus({preventScroll: true}); for (const ch of text){ el.value += ch; await wait(28); } }
+async function typeInto(el, text){ el.value = ""; el.focus({preventScroll: true}); for (const ch of text){ el.value += ch; await wait(26); } }
 async function ping(sel){ const el = $(sel); if (!el) return; el.scrollIntoView({behavior: "smooth", block: "center"}); el.classList.add("ping"); await wait(1000); el.classList.remove("ping"); }
 async function play(){
-  if (playing){ reset(true); return; }
-  reset(false); playing = true; $("#playBtn").textContent = "■ Stop";
+  if (playing){ reset(); return; }
+  reset(); playing = true; const wasLive = live; live = false; renderBanner();
   try {
-    caption("Three Granola calls, the customer list and the website. That's all we need.");
-    await wait(700); loadSample(); await wait(2400);
-    await ping("#build"); build();
-    await wait(4000);
-    caption("It reads everything and finds what Kalpa's customers have in common.");
-    await wait(4200);
+    caption("Everything we know about a new client goes in one place.");
+    show("intake"); await wait(1200);
+    $("#coName").value = SAMPLE.name; $("#coSite").value = SAMPLE.site; await wait(500);
+    caption("Granola calls, a CRM export and the customer list. Each one labeled so the engine knows what it's reading.");
+    for (const s of SAMPLE.sources){ S.sources.push({id: nid(), name: s.name, kind: s.kind, meta: s.meta, text: s.text || (s.csv || []).map(r => r.join(",")).join("\n"), csv: s.csv || null}); renderSources(); await wait(520); }
+    caption("Plus whatever context we have, in plain words.");
+    await ping("#ctx"); await typeInto($("#ctx"), SAMPLE.context.split("\n\n")[1]);
+    await wait(500); await ping("#buildBtn"); caption("");
+    await build(); await wait(1400);
+    caption("It finds what their customers and won deals have in common, and the signals to watch.");
+    await wait(3600); document.querySelector("#v-icp .card")?.scrollIntoView({behavior: "smooth", block: "start"}); await wait(2600);
     caption("Now steer it. The founders said they want startups that sign fast.");
     await ping("#steerIn"); await typeInto($("#steerIn"), "focus on startups that can sign fast, skip big enterprise");
-    await wait(400); steer(); await wait(2800);
-    await ping("#genList");
+    await wait(300); await steer(); await wait(2600);
     caption("A target list, each with the reason to reach out right now.");
-    genList(); await wait(4200);
+    await ping("#findBtn"); await findTargets(); await wait(2200);
     caption("Review a few. Thumbs up the fits, thumbs down the misses.");
-    $("#t-sahayak")?.scrollIntoView({behavior: "smooth", block: "center"});
-    await wait(1400); feedback("sahayak", "up");
-    await wait(1300); $("#t-telenova")?.scrollIntoView({behavior: "smooth", block: "center"}); await wait(500); feedback("telenova", "down");
+    await wait(1200); feedback("sahayak", "up");
+    await wait(1200); $("#t-telenova")?.scrollIntoView({behavior: "smooth", block: "center"}); await wait(500); feedback("telenova", "down");
     await wait(1000); document.querySelector('[data-why="telenova"]')?.click();
-    await wait(1300); feedback("dialwise", "up");
-    caption("Three reviews in, the list rebuilds itself. Similar misses drop out, new lookalikes come in.");
-    await wait(1900); $("#learnBox")?.scrollIntoView({behavior: "smooth", block: "start"});
-    await wait(3600);
-    caption("Then the browser agent digs into the best new fit and writes the opener.");
-    $("#t-bharatdial")?.scrollIntoView({behavior: "smooth", block: "center"});
-    await wait(900); await deepResearch("bharatdial"); await wait(2400);
-    caption(""); $("#end").scrollIntoView({behavior: "smooth", block: "center"});
+    await wait(1200); feedback("dialwise", "up");
+    caption("Three reviews in, the list rebuilds itself. Similar misses drop out, lookalikes come in.");
+    await wait(1900); $("#learnBox")?.scrollIntoView({behavior: "smooth", block: "start"}); await wait(3600);
+    caption("And the browser agent digs into the best new fit and writes the opener.");
+    $("#t-bharatdial")?.scrollIntoView({behavior: "smooth", block: "center"}); await wait(900);
+    await deepResearch("bharatdial"); await wait(2600); caption("");
   } catch(e){ /* stopped */ }
-  playing = false; $("#playBtn").textContent = "▶ Play demo";
+  playing = false; live = wasLive; renderBanner(); caption("");
 }
-function reset(withSample){
-  gen++; playing = false; clearTimeout(learnTimer);
-  state = fresh();
-  $("#playBtn").textContent = "▶ Play demo"; caption("");
-  if (withSample) loadSample(); else { renderCalls(); renderCsv(); }
-  $("#s1status").innerHTML = ""; $("#build").disabled = false;
-  $("#s2body").innerHTML = '<p class="note">Builds after step 1.</p>';
-  $("#s3body").innerHTML = '<p class="note">Builds after step 2.</p>';
-  $("#end").hidden = true; $("#s1").classList.remove("collapsed"); renderStepper(); window.scrollTo({top: 0});
+function reset(){
+  gen++; playing = false; clearTimeout(learnTimer); S = fresh();
+  ["#coName", "#coSite", "#ctx", "#fUrl"].forEach(s => $(s).value = "");
+  renderSources(); renderFounders(); $("#buildStatus").innerHTML = ""; $("#pasteBox").innerHTML = ""; $("#buildBtn").disabled = false;
+  $("#v-icp").innerHTML = ""; $("#v-targets").innerHTML = ""; caption(""); show("home");
 }
-wireDrop("#callDrop", "#callInput", "calls");
-wireDrop("#csvDrop", "#csvInput", "csv");
-$("#build").onclick = build;
-$("#playBtn").onclick = play;
-$("#resetBtn").onclick = () => reset(true);
-loadSample(); renderStepper();
-if (/[?&]autoplay/.test(location.search)) setTimeout(play, 800);
+$("#playBtn").onclick = () => play();
+detectMode();
+show("home");
+if (/[?&]autoplay/.test(location.search)) setTimeout(play, 900);
 </script>
 </body>
 </html>

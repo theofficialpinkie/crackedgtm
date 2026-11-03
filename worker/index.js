@@ -612,6 +612,39 @@ Reply with only: {"companies":[{"company":"","website":"","signal":"","evidence"
         if (!parsed || !Array.isArray(parsed.companies)) return fail(502, "Deep research didn't return a company list.", { cost });
         return json({ companies: parsed.companies, notes: parsed.notes || "", mode, searches, fetches, cost, read: !!pageText });
       }
+      if (path === "/api/deep-company" && req.method === "POST") {
+        // One target company, researched like a person with a browser: their site, careers, docs and recent posts.
+        // Capped agent (3 searches, 4 fetches) so one company costs a few cents.
+        if (!env.ANTHROPIC_API_KEY) return fail(503, "ANTHROPIC_API_KEY is not set on the Worker.");
+        const { company = "", website = "", brief = "", client = "" } = await req.json();
+        if (!company && !website) return fail(400, "Send a company name or website.");
+        const tools = [{ type: "web_search_20250305", name: "web_search", max_uses: 3 }, { type: "web_fetch_20250910", name: "web_fetch", max_uses: 4, max_content_tokens: 10000 }];
+        const ask = `You research one target company for ${String(client).slice(0, 80) || "our client"}, who sells:
+${String(brief).slice(0, 2500)}
+
+TARGET: ${String(company).slice(0, 120)} ${String(website).slice(0, 200)}
+Open their website first, then their careers page, docs or changelog, and one or two recent posts or news items. Look for evidence that they need what our client sells right now (hiring, launches, complaints, stack choices, funding).
+Rules: only report what you actually saw, with where you saw it. Never invent facts, people or numbers. If something isn't found, leave it out.
+Reply with only: {"findings":[{"where":"page or url","what":"one plain sentence"}],"fit":0,"why_now":"one sentence","opener":"one or two sentences our client could open a cold message with, grounded in a finding, friendly and specific, no hype"}`;
+        let messages = [{ role: "user", content: ask }], text = "", turns = 0, cost = 0, searches = 0, fetches = 0; const visited = [];
+        const model = modelFor(env, "fast");
+        while (turns++ < 4) {
+          const r = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "x-api-key": env.ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01", "content-type": "application/json" }, body: JSON.stringify({ model, max_tokens: 6000, tools, messages }) });
+          const body = await r.json().catch(() => ({}));
+          if (!r.ok) return fail(502, "Claude API error: " + (body?.error?.message || r.status));
+          cost += costOf(model, body.usage);
+          for (const b of body.content || []) {
+            if (b.type === "server_tool_use") { b.name === "web_search" ? searches++ : fetches++; visited.push(b.name === "web_fetch" ? (b.input?.url || "") : "search: " + (b.input?.query || "")); }
+            if (b.type === "text") text += b.text;
+          }
+          if (body.stop_reason === "pause_turn") { messages = [...messages, { role: "assistant", content: body.content }]; continue; }
+          break;
+        }
+        const tail = text.slice(text.lastIndexOf('{"findings"') >= 0 ? text.lastIndexOf('{"findings"') : 0);
+        const parsed = extractJSON(tail) || repairTruncatedJSON(tail);
+        if (!parsed) return fail(502, "The research agent didn't return findings. Try again.", { cost });
+        return json({ ...parsed, visited: visited.filter(Boolean).slice(0, 8), searches, fetches, cost });
+      }
       if (path === "/api/prospeo/people-at" && req.method === "POST") {
         // Buyers at specific companies (from signals): websites include + buyer-pattern titles/seniority
         if (!env.PROSPEO_API_KEY) return fail(503, "PROSPEO_API_KEY is not set on the Worker.");

@@ -288,7 +288,7 @@ textarea.in{resize:vertical;line-height:1.55;min-height:150px}
     <div id="modeBanner"></div>
 
     <div class="card">
-      <div class="sect"><h2>Company</h2></div>
+      <div class="sect"><h2>Company</h2><button class="link r" type="button" id="sampleTop" style="font-size:13px">Use the Kalpa Labs sample</button></div>
       <div class="row2">
         <div class="field"><label class="lbl" for="coName">Company name</label><input class="in" id="coName" placeholder="Kalpa Labs" autocomplete="off"></div>
         <div class="field"><label class="lbl" for="coSite">Website</label><input class="in" id="coSite" placeholder="kalpalabs.ai" autocomplete="off"></div>
@@ -576,7 +576,13 @@ async function statusLines(el, lines){
   const box = $(el); box.innerHTML = "";
   for (const [t, ms] of lines){ const d = document.createElement("div"); d.innerHTML = `<span class="spin"></span>${esc(t)}`; box.appendChild(d); await wait(ms); d.className = "ok"; d.textContent = "✓ " + t; }
 }
-function addLine(el, t){ const d = document.createElement("div"); d.innerHTML = `<span class="spin"></span>${esc(t)}`; $(el).appendChild(d); return {done(ok = true, msg){ d.className = ok ? "ok" : "bad"; d.textContent = (ok ? "✓ " : "✕ ") + (msg || t); }}; }
+function addLine(el, t, subs){
+  const d = document.createElement("div"); $(el).appendChild(d);
+  const t0 = Date.now(); let k = 0;
+  const paint = () => { const sec = Math.round((Date.now() - t0) / 1000); const sub = subs && subs.length ? " · " + subs[Math.floor(sec / 3) % subs.length] : ""; d.innerHTML = `<span class="spin"></span>${esc(t + sub)}${sec >= 3 ? ` <span style="color:var(--muted)">${sec}s</span>` : ""}`; };
+  paint(); const iv = setInterval(paint, 1000);
+  return {done(ok = true, msg){ clearInterval(iv); d.className = ok ? "ok" : "bad"; d.textContent = (ok ? "✓ " : "✕ ") + (msg || t); }};
+}
 function customerDomains(){
   const out = new Set();
   S.sources.filter(s => s.kind === "customers").forEach(s => {
@@ -617,6 +623,7 @@ Reply with only one JSON object:
 }
 async function build(){
   $("#buildStatus").innerHTML = "";
+  if (!$("#coName").value.trim() && $("#coSite").value.trim()){ const d = domainOf($("#coSite").value).split(".")[0] || ""; $("#coName").value = d.charAt(0).toUpperCase() + d.slice(1); }
   if (live && !S.sources.length && !$("#ctx").value.trim() && !$("#coSite").value.trim()){ $("#buildStatus").innerHTML = '<div class="bad">Add a website, at least one file, or some context first.</div>'; return; }
   if (!live && !S.sources.length) loadSample();
   $("#buildBtn").disabled = true;
@@ -628,9 +635,14 @@ async function build(){
     } else {
       let siteText = "";
       if ($("#coSite").value.trim()){ const l = addLine("#buildStatus", "Reading " + $("#coSite").value.trim()); try { siteText = (await api("/api/pull-site", {url: $("#coSite").value.trim()})).text; l.done(); } catch(e){ l.done(false, "Couldn't read the site: " + e.error); } }
-      const l2 = addLine("#buildStatus", `Reading ${S.sources.length} sources and finding patterns`);
-      const r = await api("/api/claude", {prompt: analysisPrompt(siteText), maxTokens: 12000});
-      S.analysis = r.data; l2.done();
+      const l2 = addLine("#buildStatus", S.sources.length ? `Reading ${S.sources.length} source${S.sources.length > 1 ? "s" : ""}` : "Reading everything you gave us", ["comparing won and lost deals", "pulling customer quotes", "finding patterns", "choosing buying signals", "drafting the ICP"]);
+      let r;
+      try { r = await api("/api/claude", {prompt: analysisPrompt(siteText), maxTokens: 12000}); }
+      catch(e){ l2.done(false, "First try failed, retrying"); r = await api("/api/claude", {prompt: analysisPrompt(siteText), maxTokens: 12000}); }
+      S.analysis = r.data;
+      if (!S.analysis || !S.analysis.icp) throw {error: "The analysis came back incomplete. Press Build again."};
+      S.analysis.signals = arr(S.analysis.signals).filter(x => x && x.signal); S.analysis.patterns = arr(S.analysis.patterns); S.analysis.quotes = arr(S.analysis.quotes);
+      l2.done(true, `Found ${S.analysis.patterns.length} patterns and ${S.analysis.signals.length} signals`);
       saveClient(siteText).catch(() => {});
     }
     S.icp = S.analysis.icp; S.prevIcp = null; S.signals = arr(S.analysis.signals).map(x => ({...x}));
@@ -641,6 +653,7 @@ async function build(){
   $("#buildBtn").disabled = false;
 }
 $("#buildBtn").onclick = build;
+$("#coSite").addEventListener("blur", () => { if (!$("#coName").value.trim() && $("#coSite").value.trim()){ const d = domainOf($("#coSite").value).split(".")[0] || ""; $("#coName").value = d.charAt(0).toUpperCase() + d.slice(1); } });
 async function saveClient(siteText){
   const company = $("#coName").value.trim() || domainOf($("#coSite").value) || "Client";
   const id = S.clientId || (company.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40) || "client") + "-" + Date.now().toString(36);
@@ -731,9 +744,20 @@ async function findTargets(){
       await statusLines("#findStatus", [[`Searching for companies showing ${S.signals.length} signals`, 1000], ["Checking each against the ICP", 800], ["Writing why to reach out now", 800]]);
       S.list = SAMPLE.targets.map(t => ({...t, score: S.prevIcp && t.kind === "enterprise" ? t.score - 16 : t.score}));
     } else {
-      const l = addLine("#findStatus", `Searching the web for ${Math.min(5, S.signals.length)} signals`);
-      S.list = (await searchSignals(S.signals.slice(0, 5), 10)).sort((a, b) => b.score - a.score).slice(0, 18);
-      l.done(true, `Found ${S.list.length} companies`);
+      const sigs = S.signals.filter(x => String(x.signal || "").trim()).slice(0, 6);
+      const l = addLine("#findStatus", `Searching the web for ${sigs.length} signals`, sigs.map(x => x.signal.toLowerCase()));
+      let found = await searchSignals(sigs, 12);
+      l.done(true, `Found ${found.length} companies`);
+      if (found.length < 8){
+        const l3 = addLine("#findStatus", "Widening the search", ["writing broader searches", "looking for lookalikes of their customers"]);
+        try {
+          const q = await api("/api/claude", {maxTokens: 2000, tier: "fast", prompt: `${brief()}\nCurrent customers: ${customerDomains().join(", ") || "unknown"}\nWrite 4 web search queries that would surface lists of companies matching this ICP (directories, funding news, accelerator batches, job posts). Plain queries, no site: operators.\nReply with only {"queries":[{"signal":"short label","query":""}]}`});
+          const more = await searchSignals(arr(q.data?.queries).slice(0, 4), 12);
+          const have = new Set(found.map(t => t.site || t.id)); found = found.concat(more.filter(t => !have.has(t.site || t.id)));
+          l3.done(true, `Now ${found.length} companies`);
+        } catch(e){ l3.done(false, "Couldn't widen the search"); }
+      }
+      S.list = found.sort((a, b) => b.score - a.score).slice(0, 20);
       if (!S.list.length) throw {error: "No companies came back. Make the signals more specific and try again."};
     }
     S.fb = {}; S.why = {}; S.learned = false; S.rules = [];
@@ -746,14 +770,23 @@ function renderTargets(){
   const n = Object.keys(S.fb).length; const liveN = S.list.filter(t => !t.gone).length;
   $("#v-targets").innerHTML = `
     <div class="vh"><h1>Target list</h1><p>Each company comes with the reason to reach out now. Thumbs up or down any three and the list rebuilds itself from your taste.</p></div>
-    <div class="sect"><h2>${liveN} companies</h2><span id="lbHint">${S.learned ? "v2 · rebuilt from your reviews" : n ? `${n} of 3 reviews` : "ranked by fit"}</span><button class="ghost r" type="button" id="deepAll">Research the top 3</button></div>
+    <div class="sect"><h2>${liveN} companies</h2><span id="lbHint">${S.learned ? "v2 · rebuilt from your reviews" : n ? `${n} of 3 reviews` : "ranked by fit"}</span><span class="r" style="display:flex;gap:8px;flex-wrap:wrap"><button class="ghost" type="button" id="csvBtn">Download CSV</button><button class="ghost" type="button" id="deepAll">Research the top 3</button></span></div>
     <div id="learnBox">${S.learned ? learnHTML() : ""}</div>
     <div class="tlist">${rank().map(rowHTML).join("")}</div>`;
   document.querySelectorAll("[data-fb]").forEach(b => b.onclick = () => feedback(b.dataset.fb, b.dataset.v));
   document.querySelectorAll("[data-why]").forEach(b => b.onclick = () => { S.why[b.dataset.why] = b.dataset.r; renderTargets(); maybeLearn(); });
   document.querySelectorAll("[data-whyin]").forEach(i => i.onkeydown = e => { if (e.key === "Enter" && i.value.trim()){ S.why[i.dataset.whyin] = i.value.trim(); renderTargets(); maybeLearn(); } });
   document.querySelectorAll("[data-deep]").forEach(b => b.onclick = () => deepResearch(b.dataset.deep).catch(() => {}));
+  $("#csvBtn").onclick = downloadCsv;
   $("#deepAll").onclick = async () => { $("#deepAll").disabled = true; try { for (const t of rank().filter(t => (t.deep || t.live) && !t.gone && !t.deepDone).slice(0, 3)) await deepResearch(t.id); } catch(e){} };
+}
+function downloadCsv(){
+  const q = v => '"' + String(v ?? "").replace(/"/g, '""') + '"';
+  const rows = [["Score", "Company", "Website", "What they do", "Signal", "Why reach out", "Opener", "Your review"]].concat(rank().filter(t => !t.gone).map(t => [t.score, t.name, t.site, t.what, t.sig, t.why, t.opener || "", S.fb[t.id] || ""]));
+  const blob = new Blob([rows.map(r => r.map(q).join(",")).join("\n")], {type: "text/csv"});
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
+  a.download = (($("#coName").value.trim() || "client").toLowerCase().replace(/[^a-z0-9]+/g, "-")) + "-targets.csv"; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
 }
 function rowHTML(t){
   const f = S.fb[t.id]; const canDeep = (t.deep || t.live) && !t.gone;
@@ -830,12 +863,17 @@ async function deepResearch(id){
   const box = () => document.getElementById("deep-" + id);
   if (live){
     t.deep = []; if (box()) box().innerHTML = deepHTML(t, 0, false);
+    const msgs = ["Opening " + (t.site || t.name), "Reading the careers page", "Checking docs and changelog", "Looking for recent posts", "Writing the opener"]; let mi = 0;
+    const iv = setInterval(() => { const b = box(); const el = b && b.querySelector(".bl div"); if (el) el.innerHTML = '<span class="spin"></span> ' + esc(msgs[++mi % msgs.length]) + "…"; }, 3000);
+    t._iv = iv;
     try {
       const r = await api("/api/deep-company", {company: t.name, website: t.site, brief: brief(), client: $("#coName").value.trim()});
+      clearInterval(t._iv);
       t.deep = arr(r.findings).map(f => [f.where || t.site, f.what]);
       t.opener = r.opener || ""; if (r.why_now) t.why = r.why_now;
       for (let k = 1; k <= t.deep.length; k++){ if (box()) box().innerHTML = deepHTML(t, k, false); await wait(350); }
     } catch(e){ t.deep = [[t.site, "Research failed: " + (e.error || "try again")]]; }
+    clearInterval(t._iv);
   } else {
     for (let k = 1; k <= t.deep.length; k++){ if (box()) box().innerHTML = deepHTML(t, k, false); await wait(700); }
   }
@@ -888,6 +926,7 @@ function reset(){
   $("#v-icp").innerHTML = ""; $("#v-targets").innerHTML = ""; caption(""); show("home");
 }
 $("#playBtn").onclick = () => play();
+$("#sampleTop").onclick = loadSample;
 detectMode();
 show("home");
 if (/[?&]autoplay/.test(location.search)) setTimeout(play, 900);

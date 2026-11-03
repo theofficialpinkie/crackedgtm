@@ -431,9 +431,64 @@ export default {
       if (!authed) return fail(401, "Signed out. Reload the page and sign in.");
 
       const s = store(env);
+      // Keys saved from inside the tool win over the dashboard secrets, so a rotated key can be fixed without Cloudflare
+      const saved = await s.get("secret", "keys").catch(() => null);
+      if (saved?.anthropic || saved?.heyreach) env = { ...env, ...(saved.anthropic ? { ANTHROPIC_API_KEY: saved.anthropic } : {}), ...(saved.heyreach ? { HEYREACH_API_KEY: saved.heyreach } : {}) };
       const m = path.match(/^\/api\/clients\/([^/]+)$/);
 
-      if (path === "/api/status") return json({ claude: !!env.ANTHROPIC_API_KEY, prospeo: !!env.PROSPEO_API_KEY, model: env.CLAUDE_MODEL || DEFAULT_MODEL });
+      if (path === "/api/status") {
+        const out = { claude: !!env.ANTHROPIC_API_KEY, prospeo: !!env.PROSPEO_API_KEY, heyreach: !!env.HEYREACH_API_KEY, model: env.CLAUDE_MODEL || DEFAULT_MODEL };
+        if (url.searchParams.has("check") && env.ANTHROPIC_API_KEY) {
+          const r = await fetch("https://api.anthropic.com/v1/models?limit=1", { headers: { "x-api-key": env.ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01" } }).catch(() => null);
+          out.claudeOk = !!(r && r.ok); if (r && !r.ok) out.claudeError = r.status === 401 ? "The Claude API key is invalid or was revoked." : "Claude API returned " + r.status;
+        }
+        return json(out);
+      }
+      if (path === "/api/keys") {
+        const cur = (await s.get("secret", "keys")) || {};
+        const mask = k => k ? { set: true, last4: String(k).slice(-4) } : { set: false };
+        if (req.method === "GET") return json({ anthropic: mask(cur.anthropic), heyreach: mask(cur.heyreach), anthropicFromDashboard: !cur.anthropic && !!env.ANTHROPIC_API_KEY, heyreachFromDashboard: !cur.heyreach && !!env.HEYREACH_API_KEY });
+        if (req.method === "POST") {
+          const b = await req.json().catch(() => ({})); const next = { ...cur }; const msg = {};
+          if (typeof b.anthropic === "string" && b.anthropic.trim()) {
+            const k = b.anthropic.trim();
+            const r = await fetch("https://api.anthropic.com/v1/models?limit=1", { headers: { "x-api-key": k, "anthropic-version": "2023-06-01" } }).catch(() => null);
+            if (!r || !r.ok) return fail(400, "That Claude key didn't work (" + (r ? r.status : "no response") + "). Copy it again from console.anthropic.com.");
+            next.anthropic = k; msg.anthropic = "saved";
+          }
+          if (typeof b.heyreach === "string" && b.heyreach.trim()) {
+            const k = b.heyreach.trim();
+            const r = await fetch("https://api.heyreach.io/api/public/auth/CheckApiKey", { headers: { "X-API-KEY": k } }).catch(() => null);
+            if (!r || !r.ok) return fail(400, "That HeyReach key didn't work (" + (r ? r.status : "no response") + "). Copy it from HeyReach > Settings > Integrations > API.");
+            next.heyreach = k; msg.heyreach = "saved";
+          }
+          if (b.clear === "anthropic") delete next.anthropic;
+          if (b.clear === "heyreach") delete next.heyreach;
+          await s.put("secret", "keys", next);
+          return json({ ok: true, ...msg, anthropic: mask(next.anthropic), heyreach: mask(next.heyreach) });
+        }
+      }
+      if (path === "/api/heyreach/push" && req.method === "POST") {
+        // Create a HeyReach lead list and fill it, 100 leads per call
+        if (!env.HEYREACH_API_KEY) return fail(503, "Add your HeyReach API key under Keys first.");
+        const { listName, leads = [] } = await req.json();
+        const H = (p, body) => fetch("https://api.heyreach.io/api/public" + p, { method: "POST", headers: { "X-API-KEY": env.HEYREACH_API_KEY, "content-type": "application/json", accept: "application/json" }, body: JSON.stringify(body) });
+        const cr = await H("/list/CreateEmptyList", { name: String(listName || "Cracked GTM list").slice(0, 100), type: "USER_LIST" });
+        const crText = await cr.text(); let list = {}; try { list = JSON.parse(crText); } catch {}
+        const listId = list.id ?? list.listId ?? list.result?.id;
+        if (!cr.ok || !listId) return fail(502, "HeyReach didn't create the list: " + (crText.slice(0, 200) || cr.status));
+        let added = 0, updated = 0, failed = 0, errors = [];
+        const clean = arr2(leads).filter(l => l && /linkedin\.com\/in\//i.test(l.profileUrl || "")).slice(0, 3000);
+        for (let i = 0; i < clean.length; i += 100) {
+          if (i) await new Promise(r => setTimeout(r, 400));
+          const r = await H("/list/AddLeadsToListV2", { listId, leads: clean.slice(i, i + 100) });
+          const t = await r.text(); let d = {}; try { d = JSON.parse(t); } catch {}
+          if (!r.ok) { errors.push(t.slice(0, 200) || String(r.status)); failed += Math.min(100, clean.length - i); continue; }
+          added += Number(d.addedLeadsCount ?? d.added ?? 0); updated += Number(d.updatedLeadsCount ?? d.updated ?? 0); failed += Number(d.failedLeadsCount ?? d.failed ?? 0);
+          if (!("addedLeadsCount" in d) && !("added" in d)) added += Math.min(100, clean.length - i);
+        }
+        return json({ listId, listName, sent: clean.length, skipped: arr2(leads).length - clean.length, added, updated, failed, errors: errors.slice(0, 3) });
+      }
       if (path === "/api/clients" && req.method === "GET") return json(await s.list("client"));
       if (m) {
         if (!safeId(m[1])) return fail(400, "Bad client id");

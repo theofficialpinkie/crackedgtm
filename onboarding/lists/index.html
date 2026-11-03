@@ -397,9 +397,12 @@ select.in{appearance:auto}
     <button type="button" data-view="contacts" data-need="3" disabled>Contacts</button>
   </div>
   <span class="meter2" id="meter" title="Spend on this client">$0.00 · 0 credits</span>
+  <button class="ghost sm" type="button" id="keysBtn" title="API keys">Keys</button>
 </div></nav>
 
 <main>
+  <div id="keyBanner"></div>
+  <div id="keysWrap"></div>
   <div id="rsWrap"></div>
   <section class="view home" id="v-home">
     <div class="stage" aria-hidden="true" style="aspect-ratio:2.2/1">
@@ -642,7 +645,7 @@ function show(view){
   $("#rsWrap").hidden = !(view === "train" || view === "market");
   document.querySelectorAll("#seg button").forEach(b => { b.classList.toggle("on", b.dataset.view === view); b.disabled = Number(b.dataset.need) > S.unlocked; });
   if (view === "list") renderList();
-  if (view === "market") renderMarket();
+  if (view === "market"){ renderMarket(); maybeAutoBuild(); }
   if (view === "contacts") renderContacts();
   window.scrollTo({top: 0, behavior: "smooth"});
 }
@@ -1271,7 +1274,8 @@ function cls(t){
   if (s.verdict === "keep" && s.fit >= 60) return "fit";
   return "unsure";
 }
-const fitsCount = () => Object.values(S.pool).reduce((a, t) => a + (cls(t) === "fit" ? 1 : 0), 0);
+const fitsCount = () => Object.values(S.pool).reduce((a, t) => a + (cls(t) === "fit" && !t.yc ? 1 : 0), 0);
+const isMarketFit = t => cls(t) === "fit" && !t.yc;
 
 /* ================= market map (TAM) ================= */
 const fmtN = n => n == null ? "–" : Number(n).toLocaleString();
@@ -1346,6 +1350,12 @@ async function pullSegmentAll(seg, local, target){
   }
   seg.pulling = false; renderSegs();
 }
+const autoTried = {};
+function maybeAutoBuild(){
+  if (building || !S.id || autoTried[S.id] || !S.analysis || status.claudeOk === false) return;
+  if (fitsCount() >= (S.market.target || 500) || S.market.exhaustedAt) return;
+  autoTried[S.id] = true; setTimeout(buildFullList, 300);
+}
 async function buildFullList(){
   if (building) return;
   const target = Math.max(25, Number($("#tgtIn")?.value) || S.market.target || 500); S.market.target = target;
@@ -1370,16 +1380,17 @@ async function buildFullList(){
     }
     await Promise.all(scoringJobs);
     const fits = fitsCount();
+    if (!stopBuild && fits < target) S.market.exhaustedAt = Date.now();
     S.market.lastMsg = stopBuild ? `Stopped. ${fmtN(fits)} companies fit the ICP.` : fits >= target ? `Done. ${fmtN(fits)} companies fit the ICP.` :
       `${fmtN(fits)} companies fit the ICP${local ? " in " + S.intake.locs[0] : ""}. That's everything Prospeo and YC have that matches right now.${local ? " Widen the location to get more." : ""}`;
-  } catch(e){ S.market.lastMsg = (e.error || "Something went wrong") + ". What's already on the list is saved."; }
+  } catch(e){ S.market.lastMsg = (e.error || "Something went wrong") + ". What's already on the list is saved."; if (/api.key|x-api-key|401/i.test(e.error || "")){ status.claudeOk = false; status.claudeError = "The Claude API key is invalid or was revoked."; keyBanner(); } }
   building = false; save(); renderMarket();
 }
 function updateProgress(){
   const el = $("#bdProg"); if (!el) return; const fits = fitsCount(); const target = S.market.target || 500;
-  el.innerHTML = `<div class="bignum">${fmtN(fits)} <span style="font-size:18px;color:var(--muted);font-weight:700">of ${fmtN(target)} fit</span></div>
+  el.innerHTML = `<div class="bignum">${fmtN(fits)} <span style="font-size:18px;color:var(--muted);font-weight:700">of ${fmtN(target)} in the target market</span></div>
     <div class="bar" style="height:10px"><i style="width:${Math.min(100, Math.round(fits / target * 100))}%"></i></div>
-    <span class="note">${fmtN(S.market.checked || Object.keys(S.pool).length)} companies checked · ${fmtN(S.spend.credits)} Prospeo credits so far</span>`;
+    <span class="note">${fmtN(S.market.checked || Object.keys(S.pool).length)} companies checked · ${fmtN(Object.values(S.pool).filter(t => t.yc && ycFits(t)).length)} YC companies in their own list · ${fmtN(S.spend.credits)} Prospeo credits so far</span>`;
   const n = $("#mkCount"); if (n) n.textContent = fmtN(fits);
 }
 function renderSegs(){
@@ -1468,7 +1479,7 @@ async function pullYc(statusSel){
 }
 function marketRows(tab){
   const all = Object.values(S.pool);
-  let rows = tab === "yc" ? all.filter(t => t.yc && ycFits(t)) : all.filter(t => cls(t) === (tab === "removed" ? "out" : tab));
+  let rows = tab === "yc" ? all.filter(t => t.yc && ycFits(t)) : tab === "fit" ? all.filter(isMarketFit) : all.filter(t => cls(t) === (tab === "removed" ? "out" : tab));
   const q = (S.mkSearch || "").toLowerCase().trim();
   if (q) rows = rows.filter(t => [t.name, t.site, t.what, t.loc, t.sig].join(" ").toLowerCase().includes(q));
   return rows.sort((a, b) => (b.review === "keep") - (a.review === "keep") || (b.s?.fit || 0) - (a.s?.fit || 0));
@@ -1502,7 +1513,7 @@ function renderMarket(){
   if (S.view !== "market") return;
   const tab = ["fit", "yc", "unsure", "removed"].includes(S.mkTab) ? S.mkTab : "fit";
   const counts = {fit: 0, unsure: 0, removed: 0, yc: 0};
-  Object.values(S.pool).forEach(t => { const c = cls(t); counts[c === "out" ? "removed" : c]++; if (t.yc && ycFits(t)) counts.yc++; });
+  Object.values(S.pool).forEach(t => { const c = cls(t); if (c === "fit"){ if (!t.yc) counts.fit++; } else counts[c === "out" ? "removed" : c]++; if (t.yc && ycFits(t)) counts.yc++; });
   const rows = marketRows(tab); const shown = rows.slice(0, S.mkShow || 100);
   S.sel = S.sel || new Set();
   const loc = S.intake.locOnly && S.intake.locs.length ? S.intake.locs[0] : "";
@@ -1515,11 +1526,11 @@ function renderMarket(){
       <div class="foot">
         <label class="lbl" for="tgtIn" style="gap:8px">Target <input class="in" id="tgtIn" type="number" min="25" step="25" value="${S.market.target || 500}" style="width:110px;padding:8px 10px"></label>
         <label class="check"><input type="checkbox" id="ycInc" ${S.market.includeYc !== false ? "checked" : ""}> Include YC companies</label>
-        ${building ? `<button class="ghost" type="button" id="stopBtn">Stop</button>` : `<button class="pill" type="button" id="buildFull">${counts.fit ? "Keep building" : "Build the full list"}</button>`}
+        ${building ? `<button class="ghost" type="button" id="stopBtn">Stop</button>` : `<button class="pill" type="button" id="buildFull">${counts.fit ? (counts.fit >= (S.market.target || 500) ? "Build more" : "Keep building") : "Build the full list"}</button>`}
         ${loc && !building && counts.fit < (S.market.target || 500) && S.market.lastMsg ? `<button class="ghost" type="button" id="widenBtn">Widen to United States</button>` : ""}
       </div>
       <div id="bdProg"></div>
-      ${S.market.lastMsg && !building ? `<div class="banner"><span>${esc(S.market.lastMsg)}</span></div>` : ""}
+      ${S.market.lastMsg && !building ? `<div class="banner"><span>${esc(S.market.lastMsg)}</span>${/api.key|x-api-key/i.test(S.market.lastMsg) ? '<span class="sp"><button class="ghost sm" type="button" data-keys>Update the Claude key</button></span>' : ""}</div>` : ""}
       <div class="status" id="bdStatus">${keepSt}</div>
       <details ${S.segOpen ? "open" : ""} id="segDet"><summary class="lbl" style="cursor:pointer">Segments searched (${S.market.segments.length})</summary>
         <div class="segs" id="segList" style="margin-top:10px"></div>
@@ -1528,9 +1539,11 @@ function renderMarket(){
     </div>
     <div class="card">
       <div class="toolbar">
-        <div class="tabs">${[["fit", "Fits the ICP"], ["yc", "YC"], ["unsure", "Unsure"], ["removed", "Removed"]].map(([k, l]) => `<button type="button" class="${k === tab ? "on" : ""}" data-mtab="${k}">${l}<i>${fmtN(counts[k])}</i></button>`).join("")}</div>
-        <span class="sp"><button class="pill sm" type="button" id="mkCsv">Download ${tab === "yc" ? "YC " : ""}CSV</button></span>
+        <div class="tabs">${[["fit", "Target market"], ["yc", "YC companies"], ["unsure", "Unsure"], ["removed", "Removed"]].map(([k, l]) => `<button type="button" class="${k === tab ? "on" : ""}" data-mtab="${k}">${l}<i>${fmtN(counts[k])}</i></button>`).join("")}</div>
+        <span class="sp">${tab === "fit" || tab === "yc" ? `<button class="pill sm" type="button" id="mkCt" ${findingContacts || !rows.length ? "disabled" : ""}>${findingContacts ? '<span class="spin"></span> Adding contacts…' : "Add contacts"}</button><button class="ghost" type="button" id="mkHr" ${rows.some(t => arr(t.people).some(p => p.linkedin)) ? "" : "disabled"}>Send to HeyReach</button>` : ""}<button class="ghost" type="button" id="mkCsv">Download ${tab === "yc" ? "YC " : ""}CSV</button></span>
       </div>
+      ${tab === "fit" || tab === "yc" ? `<div class="note">${(() => { const w = rows.filter(t => arr(t.people).length).length; const ppl = rows.reduce((a, t) => a + arr(t.people).length, 0); return w ? `${fmtN(ppl)} contacts at ${fmtN(w)} of ${fmtN(rows.length)} companies` : "No contacts yet"; })()} · finding <b>${esc(ctTitles().slice(0, 4).join(", ") || "titles from the ICP")}</b>, ${ct().per} per company · <button class="link" type="button" id="mkCtEdit" style="font-size:12.5px">change</button></div>
+      <div class="status" id="mkCtStatus"></div><div id="hrBox"></div>` : ""}
       <div class="toolbar">
         <input class="in" id="mkSearch" placeholder="Search the list" value="${esc(S.mkSearch || "")}" style="max-width:260px;padding:9px 12px" autocomplete="off">
         ${tab === "unsure" && counts.unsure ? `<button class="ghost" type="button" id="quickCheck">Check 5 of these</button>` : ""}
@@ -1548,9 +1561,9 @@ function renderMarket(){
     <div class="foot"><button class="pill" type="button" id="toContacts">Next: find contacts <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button></div>`;
   updateProgress(); renderSegs();
   $("#segDet").ontoggle = () => { S.segOpen = $("#segDet").open; };
-  $("#tgtIn").onchange = () => { S.market.target = Math.max(25, Number($("#tgtIn").value) || 500); save(); updateProgress(); };
+  $("#tgtIn").onchange = () => { S.market.target = Math.max(25, Number($("#tgtIn").value) || 500); S.market.exhaustedAt = null; save(); updateProgress(); };
   $("#ycInc").onchange = () => { S.market.includeYc = $("#ycInc").checked; if (S.market.includeYc) S.market.ycDoneAt = null; save(); };
-  const bf = $("#buildFull"); if (bf) bf.onclick = buildFullList;
+  const bf = $("#buildFull"); if (bf) bf.onclick = () => { S.market.exhaustedAt = null; buildFullList(); };
   const sb = $("#stopBtn"); if (sb) sb.onclick = () => { stopBuild = true; sb.disabled = true; sb.textContent = "Stopping…"; };
   const wb = $("#widenBtn"); if (wb) wb.onclick = () => { if (!S.intake.locs.includes("United States")) S.intake.locs.push("United States"); S.market.segments.forEach(g => { g.done = false; g.page = 1; }); S.market.ycDoneAt = null; renderLocs(); save(); buildFullList(); };
   $("#segAdd").onclick = () => { const v = $("#segIn").value.trim(); if (v){ $("#segIn").value = ""; addSegment(v); } };
@@ -1558,6 +1571,11 @@ function renderMarket(){
   document.querySelectorAll("[data-mtab]").forEach(b => b.onclick = () => { S.mkTab = b.dataset.mtab; S.mkShow = 100; S.sel = new Set(); S.rmPreview = null; renderMarket(); });
   $("#mkSearch").oninput = () => { S.mkSearch = $("#mkSearch").value; clearTimeout(S._srch); S._srch = setTimeout(() => { renderMarket(); const i = $("#mkSearch"); i.focus(); i.selectionStart = i.selectionEnd = i.value.length; }, 250); };
   $("#mkCsv").onclick = () => downloadMarketCsv(tab);
+  const mct = $("#mkCt"); if (mct) mct.onclick = () => addContactsFor(tab);
+  const mce = $("#mkCtEdit"); if (mce) mce.onclick = () => { ct().scope = tab === "yc" ? "yc" : "fit"; show("contacts"); };
+  const mhr = $("#mkHr"); if (mhr) mhr.onclick = () => heyReachBox(tab);
+  if (S._hrMsg && $("#hrBox")) $("#hrBox").innerHTML = S._hrMsg;
+  if (S._ctMsg && $("#mkCtStatus")) $("#mkCtStatus").innerHTML = S._ctMsg;
   const qc = $("#quickCheck"); if (qc) qc.onclick = () => { const ids = marketRows("unsure").filter(t => t.s).sort((a, b) => a.s.conf - b.s.conf).slice(0, BATCH).map(t => t.id); newRound(ids); renderTrain(); show("train"); };
   const ya = $("#ycAgain"); if (ya) ya.onclick = () => pullYc("#bdStatus").then(renderMarket);
   const mm = $("#mkMore"); if (mm) mm.onclick = () => { S.mkShow = (S.mkShow || 100) + 100; renderMarket(); };
@@ -1602,6 +1620,33 @@ function confirmRemove(){
   S.rmPreview = null; save(); renderMarket();
   $("#rmStatus").innerHTML = `<div class="ok">✓ Removed ${pv.ids.length}. They're in the Removed tab if you want any back.</div>`;
 }
+function heyReachBox(tab){
+  if (!status.heyreach){ $("#hrBox").innerHTML = `<div class="banner"><span>Add your HeyReach API key first.</span><span class="sp"><button class="ghost sm" type="button" data-keys>Add the key</button></span></div>`; return; }
+  const rows = marketRows(tab); const ppl = rows.reduce((a, t) => a + arr(t.people).filter(p => p.linkedin).length, 0);
+  const d = new Date(); const name = `${S.intake.name} · ${tab === "yc" ? "YC companies" : "Target market"} (${d.toLocaleString("en-US", {month: "short"})} ${d.getDate()})`;
+  $("#hrBox").innerHTML = `<div class="banner" style="flex-direction:column;align-items:stretch;gap:10px">
+    <span><b>Send ${fmtN(ppl)} people to a new HeyReach lead list.</b> Each lead carries the company, why it fits and the signal as custom fields you can use in messages.</span>
+    <div class="addrule"><input class="in" id="hrName" value="${esc(name)}" aria-label="List name"><button class="pill sm" type="button" id="hrGo">Send</button><button class="ghost sm" type="button" id="hrX">Cancel</button></div>
+    <div class="status" id="hrStatus"></div></div>`;
+  $("#hrX").onclick = () => { $("#hrBox").innerHTML = ""; S._hrMsg = ""; };
+  $("#hrGo").onclick = () => sendHeyReach(tab, $("#hrName").value.trim() || name);
+}
+async function sendHeyReach(tab, listName){
+  $("#hrGo").disabled = true;
+  const leads = [];
+  marketRows(tab).forEach(t => arr(t.people).forEach(p => { if (!p.linkedin) return; const [f, l] = splitName(p.name);
+    leads.push({firstName: f, lastName: l, profileUrl: p.linkedin, companyName: t.name, position: p.title || "", location: t.loc || "", ...(p.email ? {emailAddress: p.email} : {}),
+      customUserFields: [{name: "company_website", value: t.site || ""}, {name: "why_reach_out", value: String(t.s?.why || "").slice(0, 300)}, {name: "signal", value: String(t.evidence || t.sig || "").slice(0, 300)}, {name: "yc_batch", value: t.yc || ""}, {name: "employees", value: String(t.li?.employees ?? t.size ?? "")}].filter(x => x.value)}); }));
+  const l = line("#hrStatus", `Creating "${listName}" and adding ${fmtN(leads.length)} leads`);
+  try {
+    const r = await api("/api/heyreach/push", {listName, leads});
+    l.done(true, `Done. "${listName}" is in HeyReach with ${fmtN(r.added || r.sent)} leads${r.failed ? ` (${r.failed} failed)` : ""}.`);
+    S.market.heyreach = [...arr(S.market.heyreach), {listId: r.listId, name: listName, tab, count: r.added || r.sent, at: Date.now()}]; save();
+    $("#hrStatus").insertAdjacentHTML("beforeend", `<div>Next: write the messages and launch the campaign from this list in HeyReach, or ask Claude to set the campaign up for you. List id ${esc(r.listId)}.</div>`);
+    if (r.errors?.length) $("#hrStatus").insertAdjacentHTML("beforeend", `<div class="bad">HeyReach said: ${esc(r.errors[0])}</div>`);
+  } catch(e){ l.done(false, e.error || "HeyReach didn't accept the list"); }
+  S._hrMsg = $("#hrBox").innerHTML;
+}
 function csvDownload(rows, name){
   const q = v => '"' + String(v ?? "").replace(/"/g, '""') + '"';
   const blob = new Blob([rows.map(r => r.map(q).join(",")).join("\n")], {type: "text/csv"});
@@ -1610,15 +1655,20 @@ function csvDownload(rows, name){
 }
 const slug = () => (S.intake.name || "client").toLowerCase().replace(/[^a-z0-9]+/g, "-");
 function downloadMarketCsv(tab){
-  const rows = [["Fit", "Company", "Website", "Company LinkedIn", "Location", "Employees", "Funding", "YC batch", "What they do", "Why it fits", "Signal", "Status", "Contacts"]];
-  marketRows(tab).forEach(t => rows.push([t.s?.fit ?? "", t.name, t.site, t.li?.linkedin || "", t.loc, t.li?.employees ?? t.size ?? "", t.stage || "", t.yc || "", t.what, t.s?.why || "", t.evidence || t.sig || "", t.review === "keep" ? "Kept" : t.removed ? "Removed" : cls(t) === "fit" ? "Fits" : "Unsure", arr(t.people).map(p => p.name + " (" + p.title + ")").join("; ")]));
+  const rows = [["Fit", "Company", "Website", "Company LinkedIn", "Location", "Employees", "Funding", "YC batch", "What they do", "Why it fits", "Signal", "Status", "First name", "Last name", "Title", "LinkedIn", "Email"]];
+  marketRows(tab).forEach(t => {
+    const base = [t.s?.fit ?? "", t.name, t.site, t.li?.linkedin || "", t.loc, t.li?.employees ?? t.size ?? "", t.stage || "", t.yc || "", t.what, t.s?.why || "", t.evidence || t.sig || "", t.review === "keep" ? "Kept" : t.removed ? "Removed" : cls(t) === "fit" ? "Fits" : "Unsure"];
+    const ps = arr(t.people).length ? t.people : [{}];
+    ps.forEach(p => { const [f, ...l] = String(p.name || "").split(" "); rows.push([...base, f || "", l.join(" "), p.title || "", p.linkedin || "", p.email || ""]); });
+  });
   csvDownload(rows, `${slug()}-${tab === "yc" ? "yc-companies" : tab === "fit" ? "target-market" : tab}.csv`);
 }
 
 /* ================= contacts ================= */
 function ct(){ return S.market.contacts || (S.market.contacts = {titles: "", exclude: "Founder in Residence, Advisor, Investor, Board Member", per: 2, scope: "fit"}); }
+const splitName = n => { const [f, ...l] = String(n || "").trim().split(/\s+/); return [f || "", l.join(" ")]; };
 const ctTitles = () => ct().titles.split(/,|\n/).map(x => x.trim()).filter(x => x.length >= 2);
-function ctCompanies(){ const scope = ct().scope; return Object.values(S.pool).filter(t => scope === "yc" ? t.yc && ycFits(t) : cls(t) === "fit").sort((a, b) => (b.s?.fit || 0) - (a.s?.fit || 0)); }
+function ctCompanies(scope){ scope = scope || ct().scope; return Object.values(S.pool).filter(t => scope === "yc" ? t.yc && ycFits(t) : scope === "both" ? isMarketFit(t) || (t.yc && ycFits(t)) : isMarketFit(t)).sort((a, b) => (b.s?.fit || 0) - (a.s?.fit || 0)); }
 let findingContacts = false, stopContacts = false;
 function renderContacts(){
   if (S.view !== "contacts") return;
@@ -1634,7 +1684,7 @@ function renderContacts(){
         <input class="in" id="ctTitles" value="${esc(C.titles)}" placeholder="e.g. Founder, Co-founder, CEO, CTO, Head of Engineering" autocomplete="off"></div>
       <div class="row3">
         <div class="field"><label class="lbl" for="ctPer">People per company</label><select class="in" id="ctPer">${[1, 2, 3].map(n => `<option ${C.per === n ? "selected" : ""}>${n}</option>`).join("")}</select></div>
-        <div class="field"><label class="lbl" for="ctScope">Companies</label><select class="in" id="ctScope"><option value="fit" ${C.scope !== "yc" ? "selected" : ""}>Everyone that fits (${fmtN(Object.values(S.pool).filter(t => cls(t) === "fit").length)})</option><option value="yc" ${C.scope === "yc" ? "selected" : ""}>YC only (${fmtN(Object.values(S.pool).filter(t => t.yc && ycFits(t)).length)})</option></select></div>
+        <div class="field"><label class="lbl" for="ctScope">Companies</label><select class="in" id="ctScope"><option value="fit" ${C.scope === "fit" ? "selected" : ""}>Target market (${fmtN(ctCompanies("fit").length)})</option><option value="yc" ${C.scope === "yc" ? "selected" : ""}>YC companies (${fmtN(ctCompanies("yc").length)})</option><option value="both" ${C.scope === "both" ? "selected" : ""}>Both (${fmtN(ctCompanies("both").length)})</option></select></div>
         <div class="field"><label class="lbl" for="ctEx">Skip titles</label><input class="in" id="ctEx" value="${esc(C.exclude)}" autocomplete="off"></div>
       </div>
       <div class="foot">
@@ -1665,22 +1715,30 @@ function renderContacts(){
   document.querySelectorAll("[data-px]").forEach(b => b.onclick = () => { const t = S.pool[b.dataset.px]; if (!t) return; t.people.splice(+b.dataset.pi, 1); save(); renderContacts(); });
 }
 const ctKey = () => { const C = ct(); return [ctTitles().join("|").toLowerCase(), C.per, C.exclude.toLowerCase()].join("#"); };
-async function suggestTitles(){
-  const b = $("#ctSuggest"); b.disabled = true; b.textContent = "Thinking…";
+async function suggestTitles(quiet){
+  const b = $("#ctSuggest"); if (b){ b.disabled = true; b.textContent = "Thinking…"; }
   try {
     const r = await claude(`${brief()}\nCustomer evidence: ${S.analysis?.quotes?.map(q => q.quote + " (" + q.source + ")").join(" | ") || "none"}\nWho at a target company decides to buy from ${S.intake.name}? Give 4-7 job titles, most likely buyer first, as people write them on LinkedIn (full phrases, no bare acronyms except CEO and CTO).\nReply with only {"titles":[""]}`, {tier: "fast", max: 600});
     ct().titles = arr(r.titles).join(", "); save();
   } catch(e){}
-  renderContacts();
+  if (!quiet) renderContacts();
 }
-async function findContacts(){
+async function addContactsFor(tab){
+  ct().scope = tab === "yc" ? "yc" : "fit";
+  S._ctMsg = "";
+  if (!ctTitles().length){ const el = $("#mkCtStatus"); if (el) el.innerHTML = '<div><span class="spin"></span>Picking titles from the ICP</div>'; await suggestTitles(true); }
+  if (!ctTitles().length) ct().titles = "Founder, Co-founder, CEO, CTO";
+  await findContacts("#mkCtStatus");
+}
+async function findContacts(st){
   if (findingContacts) return;
+  st = st || "#ctStatus";
   const C = ct(); const titles = ctTitles(); if (!titles.length) return;
   const key = ctKey(); const per = C.per || 2;
   const ex = C.exclude.split(",").map(x => x.trim()).filter(x => x.length >= 3);
   const comps = ctCompanies().filter(t => t.site && t.contactsKey !== key);
-  findingContacts = true; stopContacts = false; renderContacts();
-  const st = "#ctStatus"; $(st).innerHTML = "";
+  findingContacts = true; stopContacts = false; renderContacts(); if (S.view === "market") renderMarket();
+  if (!$(st)) return (findingContacts = false); $(st).innerHTML = "";
   const l = line(st, `Finding ${titles.slice(0, 3).join(", ")}${titles.length > 3 ? "…" : ""} at ${fmtN(comps.length)} companies`);
   let done = 0, found = 0, none = 0;
   const rank = p => { const tt = String(p.title || "").toLowerCase(); const i = titles.findIndex(x => tt.includes(x.toLowerCase())); return i < 0 ? 99 : i; };
@@ -1702,12 +1760,14 @@ async function findContacts(){
         t.contactsKey = key; if (list.length) found += list.length; else none++;
       });
       done += ch.length;
-      $(st).querySelector("div").innerHTML = `<span class="spin"></span>Searched ${fmtN(done)} of ${fmtN(comps.length)} companies · ${fmtN(found)} people found`;
+      const pr = $(st)?.querySelector("div"); if (pr) pr.innerHTML = `<span class="spin"></span>Searched ${fmtN(done)} of ${fmtN(comps.length)} companies · ${fmtN(found)} people found`;
       if (done % 50 === 0) save();
     }
     l.done(true, `${stopContacts ? "Stopped. " : ""}Searched ${fmtN(done)} companies · ${fmtN(found)} people found${none ? " · no match at " + fmtN(none) : ""}`);
   } catch(e){ l.done(false, (e.error || "Prospeo error") + `. Found ${fmtN(found)} before it stopped.`); }
-  findingContacts = false; save(); renderContacts();
+  findingContacts = false; save();
+  if ($(st)) S._ctMsg = $(st).innerHTML;
+  renderContacts(); if (S.view === "market") renderMarket();
 }
 async function contactEmails(){
   const b = $("#ctEmails"); b.disabled = true;
@@ -1728,7 +1788,7 @@ async function contactEmails(){
 function downloadContactsCsv(){
   const rows = [["Company", "Website", "Company LinkedIn", "Location", "Employees", "YC batch", "Fit", "Why it fits", "Name", "Title", "LinkedIn", "Email"]];
   ctCompanies().forEach(t => arr(t.people).forEach(p => rows.push([t.name, t.site, t.li?.linkedin || "", t.loc, t.li?.employees ?? t.size ?? "", t.yc || "", t.s?.fit ?? "", t.s?.why || "", p.name, p.title, p.linkedin, p.email || ""])));
-  csvDownload(rows, `${slug()}-${ct().scope === "yc" ? "yc-" : ""}contacts.csv`);
+  csvDownload(rows, `${slug()}-${ct().scope === "yc" ? "yc-" : ct().scope === "both" ? "all-" : ""}contacts.csv`);
 }
 
 /* ================= research you found ================= */
@@ -1959,9 +2019,42 @@ function downloadCsv(){
   setTimeout(() => URL.revokeObjectURL(a.href), 2000);
 }
 
+/* ================= API keys (saved on the Worker, never shown back) ================= */
+function keyBanner(){
+  const el = $("#keyBanner"); if (!el) return;
+  el.innerHTML = status.claudeOk === false ? `<div class="err" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:16px"><span>${esc(status.claudeError || "The Claude API key isn't working.")} Nothing that needs Claude will run until it's replaced.</span><button class="ghost sm" type="button" data-keys style="margin-left:auto">Update the Claude key</button></div>` : "";
+}
+document.addEventListener("click", e => { if (e.target.closest("[data-keys]")) openKeys(); });
+$("#keysBtn").onclick = () => openKeys();
+async function openKeys(){
+  let k = {}; try { k = await api("/api/keys"); } catch(e){}
+  const st = (x, dash) => x?.set ? `saved, ends in ${esc(x.last4)}` : dash ? "using the key set in Cloudflare" : "not set";
+  $("#keysWrap").innerHTML = `<div class="card" style="margin-bottom:20px">
+    <div class="sect"><h2>API keys</h2><span>saved on the server for the whole team, never shown again</span><button class="x r" type="button" id="kClose" aria-label="Close">✕</button></div>
+    <div class="row2">
+      <div class="field"><label class="lbl" for="kAnth">Claude (Anthropic) API key <span class="opt" style="font-weight:500">${st(k.anthropic, k.anthropicFromDashboard)}</span></label><input class="in" id="kAnth" type="password" placeholder="sk-ant-…" autocomplete="off"><span class="help">From console.anthropic.com → API keys.</span></div>
+      <div class="field"><label class="lbl" for="kHr">HeyReach API key <span class="opt" style="font-weight:500">${st(k.heyreach, k.heyreachFromDashboard)}</span></label><input class="in" id="kHr" type="password" placeholder="HeyReach key" autocomplete="off"><span class="help">From HeyReach → Settings → Integrations → API.</span></div>
+    </div>
+    <div class="foot"><button class="pill sm" type="button" id="kSave">Check and save</button><div class="status" id="kStatus"></div></div></div>`;
+  $("#kClose").onclick = () => $("#keysWrap").innerHTML = "";
+  $("#kSave").onclick = async () => {
+    const body = {anthropic: $("#kAnth").value.trim(), heyreach: $("#kHr").value.trim()}; if (!body.anthropic && !body.heyreach) return;
+    $("#kSave").disabled = true; $("#kStatus").innerHTML = ""; const l = line("#kStatus", "Checking the keys");
+    try { await api("/api/keys", body); l.done(true, "Saved. Everything uses the new keys now."); await refreshStatus(); setTimeout(() => $("#keysWrap").innerHTML = "", 1500); }
+    catch(e){ l.done(false, e.error); }
+    $("#kSave").disabled = false;
+  };
+  window.scrollTo({top: 0, behavior: "smooth"});
+}
+async function refreshStatus(){
+  try { status = await api("/api/status?check=1"); } catch(e){ status = status || {}; }
+  $("#statusNote").textContent = status.claude ? (status.prospeo ? "" : "Prospeo isn't connected, so lists come from web search only.") : "Claude isn't connected yet. Add the key under Keys.";
+  keyBanner();
+}
+
 /* ================= boot ================= */
 (async () => {
-  try { status = await api("/api/status"); $("#statusNote").textContent = status.claude ? (status.prospeo ? "" : "Prospeo isn't connected, so lists come from web search only.") : "Claude isn't connected on the Worker yet."; } catch(e){ $("#statusNote").textContent = e.error || ""; }
+  await refreshStatus();
   loadResume(); show("home");
 })();
 </script>

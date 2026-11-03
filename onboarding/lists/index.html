@@ -1301,35 +1301,67 @@ function markYc(){
   const byDom = new Map(ycCache.map(c => [domainOf(c.website || ""), c]).filter(x => x[0]));
   Object.values(S.pool).forEach(t => { const c = t.site && byDom.get(t.site); if (c && !t.yc){ t.yc = c.batch || "YC"; t.ycUrl = c.url || ""; } });
 }
-async function pullYc(){
-  const b = $("#ycBtn"); if (b) b.disabled = true; $("#ycStatus").innerHTML = "";
+const ycYear = b => { const m = /(\d{4})/.exec(b || ""); if (m) return +m[1]; const k = /^[A-Z](\d{2})$/i.exec(String(b || "").trim()); return k ? 2000 + +k[1] : null; };
+function ycCrit(){ return S.market.ycCrit || (S.market.ycCrit = {include: [], exclude: [], maxTeam: null, minYear: null}); }
+function readYcCrit(){
+  const c = ycCrit(); const kw = $("#ycKw"), mt = $("#ycTeam"), my = $("#ycYear");
+  if (kw) c.include = kw.value.split(",").map(x => x.trim().toLowerCase()).filter(x => x.length > 2);
+  if (mt) c.maxTeam = mt.value ? Math.max(1, Number(mt.value)) : null;
+  if (my) c.minYear = my.value ? Number(my.value) : null;
+  return c;
+}
+// ICP fit for a YC company already on the list: the hard criteria, then the engine's judgment
+function ycFits(t){
+  const c = ycCrit();
+  if (t.review === "keep") return true;
+  if (t.review === "pass" || !t.s) return false;
+  if (c.maxTeam && t.ycTeam != null && t.ycTeam > c.maxTeam) return false;
+  if (c.minYear && ycYear(t.yc) && ycYear(t.yc) < c.minYear) return false;
+  if (S.locFilter && S.intake.locOnly && S.intake.locs.length && t.s.inLoc === false) return false;
+  return t.s.category !== "competitor" && t.s.verdict === "keep" && t.s.fit >= 60 && !arr(t.s.checks).includes(false);
+}
+async function pullYc(statusSel){
+  const st = statusSel || "#ycStatus"; const btns = document.querySelectorAll("[data-ycpull]"); btns.forEach(b => b.disabled = true);
+  if ($(st)) $(st).innerHTML = "";
   try {
-    const l1 = line("#ycStatus", "Loading YC's company directory");
+    const l1 = line(st, "Loading YC's company directory");
     const all = await loadYcData(); const active = all.filter(c => !c.status || ["active", "public"].includes(String(c.status).toLowerCase()));
     l1.done(true, `${fmtN(all.length)} YC companies, ${fmtN(active.length)} active`);
-    const l2 = line("#ycStatus", "Choosing what to look for", ["reading the ICP and your rules"]);
-    const kw = await claude(`${brief()}\n\nWe will search YC's company directory text (one-liner, description, tags) for companies that could buy from ${S.intake.name}. Give 12-25 short lowercase keywords or phrases that a matching company would use about itself (e.g. "voice agent", "phone calls", "receptionist"), and a few words that mark a competitor to exclude.\nReply with only {"include":[""],"exclude":[""]}`, {tier: "fast", max: 1200});
-    const inc = arr(kw.include).map(x => String(x).toLowerCase().trim()).filter(x => x.length > 2);
-    const exc = arr(kw.exclude).map(x => String(x).toLowerCase().trim()).filter(x => x.length > 3);
-    l2.done(true, `Looking for: ${inc.slice(0, 8).join(", ")}${inc.length > 8 ? "…" : ""}`);
-    const text = c => [c.one_liner, c.long_description, arr(c.tags).join(" "), arr(c.industries).join(" ")].join(" ").toLowerCase();
-    const hits = active.map(c => { const t = text(c); return {c, n: inc.filter(k => t.includes(k)).length, bad: exc.some(k => t.includes(k))}; })
-      .filter(x => x.n > 0).sort((a, b) => b.n - a.n || String(b.c.batch).localeCompare(String(a.c.batch))).slice(0, 400);
+    const c = readYcCrit();
+    if (!c.include.length){
+      const l2 = line(st, "Turning the ICP into YC filters", ["reading the ICP", "reading your rules"]);
+      const kw = await claude(`${brief()}\n\nWe will filter YC's company directory (one-liner, description, tags, team size, batch) down to companies that could buy from ${S.intake.name}.\nGive: 12-25 short lowercase keywords or phrases a matching company would use about itself; a few phrases that mark a competitor; the largest team size that still fits the ICP (null if size doesn't matter); the earliest batch year that fits (null if any).\nReply with only {"include":[""],"exclude":[""],"max_team":null,"min_year":null}`, {tier: "fast", max: 1200});
+      c.include = arr(kw.include).map(x => String(x).toLowerCase().trim()).filter(x => x.length > 2);
+      c.exclude = arr(kw.exclude).map(x => String(x).toLowerCase().trim()).filter(x => x.length > 3);
+      c.maxTeam = Number(kw.max_team) || null; c.minYear = Number(kw.min_year) || null;
+      l2.done(true, "Filters set from the ICP. Edit them above and pull again any time.");
+      const kwEl = $("#ycKw"); if (kwEl){ kwEl.value = c.include.join(", "); $("#ycTeam").value = c.maxTeam || ""; $("#ycYear").value = c.minYear || ""; }
+    }
+    const text = x => [x.one_liner, x.long_description, arr(x.tags).join(" "), arr(x.industries).join(" ")].join(" ").toLowerCase();
+    const hits = active.map(x => { const t = text(x); return {c: x, n: c.include.filter(k => t.includes(k)).length, bad: c.exclude.some(k => t.includes(k))}; })
+      .filter(h => h.n > 0 && !h.bad)
+      .filter(h => !(c.maxTeam && h.c.team_size != null && h.c.team_size > c.maxTeam))
+      .filter(h => !(c.minYear && ycYear(h.c.batch) && ycYear(h.c.batch) < c.minYear))
+      .filter(h => !(S.intake.locOnly && S.intake.locs.length && inFocus(String(h.c.all_locations || "")) === false))
+      .sort((a, b) => b.n - a.n || (ycYear(b.c.batch) || 0) - (ycYear(a.c.batch) || 0)).slice(0, 400);
+    const l3 = line(st, `${hits.length} match the filters${S.intake.locOnly && S.intake.locs.length ? " in " + (S.intake.locs[0] || "") : ""}`); l3.done(true);
     const ids = []; let added = 0;
-    hits.forEach(({c}) => {
-      const site = domainOf(c.website || ""); const loc = String(c.all_locations || "").split(";")[0].trim();
-      const cand = {name: c.name, site, what: c.one_liner || String(c.long_description || "").slice(0, 200), loc, size: c.team_size != null ? String(c.team_size) : "", stage: "YC " + (c.batch || ""), sig: "YC " + (c.batch || ""), evidence: [c.isHiring ? "Hiring now" : "", arr(c.tags).slice(0, 4).join(", ")].filter(Boolean).join(" · "), src: "YC"};
+    hits.forEach(({c: x}) => {
+      const site = domainOf(x.website || ""); const loc = String(x.all_locations || "").split(";")[0].trim();
+      const cand = {name: x.name, site, what: x.one_liner || String(x.long_description || "").slice(0, 200), loc, size: x.team_size != null ? String(x.team_size) : "", stage: "YC " + (x.batch || ""), sig: "YC " + (x.batch || ""), evidence: [x.isHiring ? "Hiring now" : "", arr(x.tags).slice(0, 4).join(", ")].filter(Boolean).join(" · "), src: "YC"};
       if (addCandidate(cand)) added++;
-      const t = S.pool[keyOf(c.name, site)]; if (t){ t.yc = c.batch || "YC"; t.ycUrl = c.url || ""; ids.push(t.id); }
+      const t = S.pool[keyOf(x.name, site)]; if (t){ t.yc = x.batch || "YC"; t.ycUrl = x.url || ""; t.ycTeam = x.team_size ?? null; ids.push(t.id); }
     });
     markYc();
     const todo = ids.filter(id => !S.pool[id].s && !S.pool[id].review);
-    if (todo.length){ const l3 = line("#ycStatus", `Judging ${todo.length} YC companies against your rules`); await scoreAll(todo); todo.forEach(id => { const t = S.pool[id]; if (t?.s && t.loc){ const f = inFocus(t.loc); if (f !== null) t.s.inLoc = f; } }); l3.done(); }
-    S.market.yc = {matched: hits.length, added, at: Date.now()}; S.unlocked = Math.max(S.unlocked, 3); save();
-    $("#ycStatus").insertAdjacentHTML("beforeend", `<div class="ok">✓ ${hits.length} YC companies match, ${added} new to your list. They're in the YC tab on the list.</div>`);
+    if (todo.length){ const l4 = line(st, `Checking ${todo.length} against the ICP and your rules`); await scoreAll(todo); todo.forEach(id => { const t = S.pool[id]; if (t?.s && t.loc){ const f = inFocus(t.loc); if (f !== null) t.s.inLoc = f; } }); l4.done(); }
+    const fits = ids.filter(id => ycFits(S.pool[id])).length;
+    S.market.yc = {matched: hits.length, added, fits, at: Date.now()}; S.unlocked = Math.max(S.unlocked, 3); save();
+    if (S.view === "list"){ S.tab = "yc"; renderList(); }
+    if ($(st)) $(st).insertAdjacentHTML("beforeend", `<div class="ok">✓ ${fits} YC compan${fits === 1 ? "y fits" : "ies fit"} the ICP (of ${hits.length} that matched the filters).</div>`);
     renderMarketStats();
-  } catch(e){ $("#ycStatus").insertAdjacentHTML("beforeend", `<div class="bad">✕ ${esc(e.error || "Couldn't pull YC companies")}</div>`); }
-  const b2 = $("#ycBtn"); if (b2) b2.disabled = false;
+  } catch(e){ if ($(st)) $(st).insertAdjacentHTML("beforeend", `<div class="bad">✕ ${esc(e.error || "Couldn't pull YC companies")}</div>`); }
+  document.querySelectorAll("[data-ycpull]").forEach(b => b.disabled = false);
 }
 function marketStatsHTML(){
   const segs = S.market.segments; const world = segs.reduce((a, x) => a + (x.world || 0), 0); const local = segs.reduce((a, x) => a + (x.local || 0), 0);
@@ -1367,7 +1399,7 @@ function renderMarket(){
     </div>
     <div class="card">
       <div class="sect"><h2>YC companies</h2><span>every active YC company that fits, from YC's public directory (updated daily)</span></div>
-      <div class="foot"><button class="pill sm" type="button" id="ycBtn">${S.market.yc ? "Pull YC companies again" : "Pull YC companies"}</button>${S.market.yc ? `<span class="note">Last pull: ${fmtN(S.market.yc.matched)} matched. They're in the YC tab on the list.</span>` : ""}<button class="link" type="button" id="goYc" style="font-size:13px">Open the YC list →</button></div>
+      <div class="foot"><button class="pill sm" type="button" id="ycBtn" data-ycpull>Pull YC companies that fit</button>${S.market.yc ? `<span class="note">Last pull: ${fmtN(S.market.yc.matched)} matched. They're in the YC tab on the list.</span>` : ""}<button class="link" type="button" id="goYc" style="font-size:13px">Open the YC list →</button></div>
       <div class="status" id="ycStatus"></div>
     </div>`;
   $("#mapBtn").onclick = () => mapMarket();
@@ -1375,7 +1407,7 @@ function renderMarket(){
   $("#segIn").onkeydown = e => { if (e.key === "Enter") $("#segAdd").click(); };
   document.querySelectorAll("[data-pull]").forEach(b => b.onclick = () => pullSegment(b.dataset.pull, Number(b.dataset.pages)));
   document.querySelectorAll("[data-segx]").forEach(b => b.onclick = () => { S.market.segments = S.market.segments.filter(x => x.id !== b.dataset.segx); save(); renderMarket(); });
-  $("#ycBtn").onclick = pullYc;
+  $("#ycBtn").onclick = () => pullYc("#ycStatus");
   $("#goYc").onclick = () => { S.unlocked = Math.max(S.unlocked, 3); S.tab = "yc"; show("list"); };
 }
 
@@ -1449,13 +1481,14 @@ function buckets(){
   const ready = scored.filter(t => t.s.verdict === "keep" && t.s.conf >= 70 && t.s.fit >= 65 && t.s.category !== "competitor" && locOk(t)).sort((a, b) => b.s.fit - a.s.fit);
   const out = scored.filter(t => !ready.includes(t) && (t.s.category === "competitor" || (t.s.verdict === "pass" && t.s.conf >= 65) || !locOk(t)));
   const needs = scored.filter(t => !ready.includes(t) && !out.includes(t)).sort((a, b) => b.s.fit - a.s.fit);
-  const yc = all.filter(t => t.yc && t.review !== "pass" && !(t.s && (t.s.category === "competitor" || (t.s.verdict === "pass" && t.s.conf >= 65))) && locOk(t))
-    .sort((a, b) => (b.review === "keep") - (a.review === "keep") || (b.s?.fit || 0) - (a.s?.fit || 0));
-  return {kept: kept.sort((a, b) => (b.s?.fit || 0) - (a.s?.fit || 0)), ready, needs, out: [...out, ...passed], yc};
+  const ycAll = all.filter(t => t.yc).sort((a, b) => (b.review === "keep") - (a.review === "keep") || (b.s?.fit || 0) - (a.s?.fit || 0));
+  const yc = S.ycAll ? ycAll : ycAll.filter(ycFits);
+  return {kept: kept.sort((a, b) => (b.s?.fit || 0) - (a.s?.fit || 0)), ready, needs, out: [...out, ...passed], yc, ycAll};
 }
 function renderList(){
   if (!S.analysis) return;
   const keepMsg = $("#listStatus") ? $("#listStatus").innerHTML.replace(/<span class="spin"><\/span>/g, "") : "";
+  const keepYc = $("#ycListStatus") ? $("#ycListStatus").innerHTML : "";
   const B = buckets(); const tab = S.tab in B ? S.tab : "ready";
   const rows = B[tab];
   const labels = {kept: "You kept", ready: "Ready", needs: "Needs you", out: "Filtered out", yc: "YC"};
@@ -1468,6 +1501,7 @@ function renderList(){
       </span>
     </div>
     <div class="toolbar">
+      ${tab === "yc" ? "" : `<button class="ghost" type="button" id="ycJump" data-ycpull>Pull YC companies that fit</button>`}
       <button class="pill sm" type="button" id="trainMore">${B.needs.length ? `Train on the next ${Math.min(BATCH, B.needs.length)}` : "Train another round"}</button>
       <button class="ghost" type="button" data-rs>+ Add research</button>
       <button class="ghost" type="button" id="findMore">Find 50 more</button>
@@ -1476,22 +1510,42 @@ function renderList(){
       <button class="ghost" type="button" id="csvBtn">${tab === "yc" ? "Download YC CSV" : "Download CSV"}</button>
     </div>
     <div class="status" id="listStatus">${keepMsg}</div>
-    ${tab === "yc" ? `<p class="note">YC companies that fit, kept first. Not on here: ones you passed, competitors and clear misses.${S.market.yc ? "" : ' <button class="link" type="button" id="ycFromList" style="font-size:12.5px">Pull YC companies →</button>'}</p>` : ""}
+    ${tab === "yc" ? ycPanelHTML(B) : ""}
     <div class="tlist">${rows.map(rowHTML).join("") || `<div class="empty">${tab === "yc" ? "No YC companies yet. Pull them from the Market tab." : tab === "ready" ? "Nothing ready yet. Train a round or two and the engine starts sorting companies here." : "Nothing here."}</div>`}</div>`;
   document.querySelectorAll("[data-tab]").forEach(b => b.onclick = () => { S.tab = b.dataset.tab; renderList(); });
   const lf = $("#locFilter"); if (lf) lf.onchange = () => { S.locFilter = lf.checked; renderList(); };
   $("#trainMore").onclick = () => { const ids = buckets().needs.slice(0, BATCH).map(t => t.id); newRound(ids.length ? ids : undefined); renderTrain(); show("train"); };
-  const yf = $("#ycFromList"); if (yf) yf.onclick = () => show("market");
+  if (tab === "yc"){ wireYcPanel(); if (keepYc) $("#ycListStatus").innerHTML = keepYc; }
+  const yj = $("#ycJump"); if (yj) yj.onclick = () => { S.tab = "yc"; renderList(); pullYc("#ycListStatus"); };
   $("#findMore").onclick = findMore; $("#peopleBtn").onclick = findPeople; $("#emailBtn").onclick = getEmails; $("#csvBtn").onclick = downloadCsv;
   document.querySelectorAll("[data-lfb]").forEach(b => b.onclick = () => listReview(b.dataset.lfb, b.dataset.v));
   document.querySelectorAll("[data-deep]").forEach(b => b.onclick = () => deepResearch(b.dataset.deep));
+}
+function ycPanelHTML(B){
+  const c = ycCrit(); const loc = S.intake.locOnly && S.intake.locs.length ? S.intake.locs[0] : "";
+  return `<div class="card">
+    <div class="sect"><h2>YC companies that fit</h2><span>from YC's public directory, filtered by the ICP</span></div>
+    <div class="row3">
+      <div class="field"><label class="lbl" for="ycKw">Keywords</label><input class="in" id="ycKw" value="${esc(c.include.join(", "))}" placeholder="filled from the ICP on first pull" autocomplete="off"></div>
+      <div class="field"><label class="lbl" for="ycTeam">Team size up to</label><input class="in" id="ycTeam" type="number" min="1" value="${c.maxTeam || ""}" placeholder="any"></div>
+      <div class="field"><label class="lbl" for="ycYear">Batch from year</label><input class="in" id="ycYear" type="number" min="2005" max="2030" value="${c.minYear || ""}" placeholder="any"></div>
+    </div>
+    <p class="help">Also applied: your rules and checks${loc ? ", and only " + esc(loc) + " (toggle above)" : ""}. Competitors and companies you passed never show here.</p>
+    <div class="foot"><button class="pill sm" type="button" id="ycListBtn" data-ycpull>${S.market.yc ? "Pull again with these filters" : "Pull YC companies that fit"}</button>
+      ${B.ycAll.length ? `<span class="note">${B.yc.length} ${S.ycAll ? "shown" : "fit"} of ${B.ycAll.length} YC companies on your list</span><button class="link" type="button" id="ycAllBtn" style="font-size:13px">${S.ycAll ? "Show only ones that fit" : "Show all " + B.ycAll.length}</button>` : ""}</div>
+    <div class="status" id="ycListStatus"></div></div>`;
+}
+function wireYcPanel(){
+  $("#ycListBtn").onclick = () => pullYc("#ycListStatus");
+  ["#ycKw", "#ycTeam", "#ycYear"].forEach(sel => $(sel).addEventListener("change", () => { readYcCrit(); save(); renderList(); }));
+  const all = $("#ycAllBtn"); if (all) all.onclick = () => { S.ycAll = !S.ycAll; renderList(); };
 }
 function rowHTML(t){
   const s = t.s || {}; const sc = s.fit ?? "–";
   return `<div class="lrow" id="r-${esc(t.id)}">
     <div class="score ${s.fit >= 80 ? "top" : ""}">${sc}</div>
     <div style="min-width:0">
-      <div class="nm"><b>${esc(t.name)}</b>${s.category ? `<span class="cat ${s.category}">${esc(s.category)}</span>` : ""}${t.review === "keep" ? '<span class="tag good">You kept</span>' : t.review === "pass" ? `<span class="tag bad">You passed${t.reason ? ": " + esc(t.reason) : ""}</span>` : ""}${t.yc && !/^YC /.test(t.sig || "") ? `<span class="tag hi">YC ${esc(t.yc)}</span>` : ""}${t.sig ? `<span class="tag">${esc(t.sig)}</span>` : ""}</div>
+      <div class="nm"><b>${esc(t.name)}</b>${s.category ? `<span class="cat ${s.category}">${esc(s.category)}</span>` : ""}${t.review === "keep" ? '<span class="tag good">You kept</span>' : t.review === "pass" ? `<span class="tag bad">You passed${t.reason ? ": " + esc(t.reason) : ""}</span>` : ""}${t.yc && !/^YC /.test(t.sig || "") ? `<span class="tag hi">YC ${esc(t.yc)}</span>` : ""}${t.yc && t.ycUrl ? `<a class="tag" href="${esc(t.ycUrl)}" target="_blank" rel="noopener" style="text-decoration:none">YC page ↗</a>` : ""}${t.sig ? `<span class="tag">${esc(t.sig)}</span>` : ""}</div>
       <div class="meta">${esc([t.site, t.loc, t.size && (/^\d+$/.test(t.size) ? t.size + " employees" : t.size + " people"), t.stage].filter(Boolean).join(" · "))}</div>
       <p class="why">${esc(s.why || t.what)}</p>
       <details><summary>Details${t.people?.length ? " · " + t.people.length + (t.people.length === 1 ? " person" : " people") : ""}${t.opener ? " · opener" : ""}</summary><div class="detail">

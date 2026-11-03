@@ -1,0 +1,847 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<link rel="icon" href="/favicon.svg">
+<title>Cracked GTM Engine Demo</title>
+<meta name="description" content="How the Cracked GTM engine onboards a client, researches their customers, generates custom signals, reviews leads and enriches them in Prospeo.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;600;700&family=Bangers&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+/* Same tokens as the live engine (crackedgtm.ai/onboarding) */
+:root{
+  --ink:#111111; --paper:#FDFCF7; --band:#F4F2EA; --card:#FFFFFF; --muted:#5A5852;
+  --red:#D7191F; --yellow:#FFD60A; --on-yellow:#111111; --on-red:#FFFFFF;
+  --good:#1F8A4C; --warn:#B86E00; --line:#111111; --shadow:#111111; --code-bg:#F4F2EA;
+  --term:#111111; --term-ink:#EDEAE0; --term-dim:#8C887D; --term-key:#FFD60A; --term-ok:#5BD08D; --term-err:#FF6B6F; --term-acc:#7FB8FF;
+  --f-display:'Archivo Black','Arial Black',Impact,sans-serif;
+  --f-body:'Archivo',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --f-comic:'Bangers','Impact',cursive;
+  --f-mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --ink:#F3F0E6; --paper:#151513; --band:#1E1E1B; --card:#1B1B19; --muted:#A8A498;
+  --red:#F0373D; --good:#4CC57F; --warn:#F2A93B; --line:#F3F0E6; --shadow:#000000; --code-bg:#22221F;
+  --term:#0B0B0A; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --ink:#F3F0E6; --paper:#151513; --band:#1E1E1B; --card:#1B1B19; --muted:#A8A498;
+  --red:#F0373D; --good:#4CC57F; --warn:#F2A93B; --line:#F3F0E6; --shadow:#000000; --code-bg:#22221F;
+  --term:#0B0B0A; color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+button,input,textarea{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--red);outline-offset:2px}
+h1,h2,h3{margin:0;text-wrap:balance}
+p{margin:0}
+a{color:inherit}
+
+/* top bar */
+.top{position:sticky;top:0;z-index:30;background:var(--paper);border-bottom:2px solid var(--line);padding:10px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.brand{display:flex;align-items:baseline;gap:8px;margin-right:auto;text-decoration:none}
+.brand b{font-family:var(--f-display);font-size:18px;letter-spacing:-.02em}
+.brand span{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+.meter{display:flex;gap:14px;font-family:var(--f-mono);font-size:12px;font-variant-numeric:tabular-nums}
+.meter span{display:flex;flex-direction:column;line-height:1.15}
+.meter i{font-style:normal;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-family:var(--f-body);font-weight:700}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:40px;padding:0 16px;font-family:var(--f-display);font-size:14px;border:2px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer;box-shadow:3px 3px 0 var(--shadow);transition:transform .1s ease,box-shadow .1s ease;white-space:nowrap;text-decoration:none}
+.btn:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--shadow)}
+.btn:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--shadow)}
+.btn:disabled{opacity:.45;cursor:not-allowed;transform:none}
+.btn.red{background:var(--red);color:var(--on-red)}
+.btn.dark{background:var(--ink);color:var(--paper)}
+.btn.yellow{background:var(--yellow);color:var(--on-yellow)}
+.btn.sm{min-height:32px;padding:0 12px;font-size:12px}
+.btn.ghost{box-shadow:none}
+.btn kbd{font-family:var(--f-mono);font-size:11px;padding:0 5px;border:1.5px solid currentColor;opacity:.75}
+
+/* hero */
+.hero{max-width:1240px;margin:0 auto;padding:36px 16px 8px;display:flex;flex-direction:column;gap:18px}
+.eyebrow{font-family:var(--f-comic);font-size:18px;letter-spacing:1.5px;color:var(--red)}
+.hero h1{font-family:var(--f-display);font-size:clamp(32px,5vw,58px);line-height:.98;letter-spacing:-.035em;max-width:18ch}
+.hero p.lede{font-size:18px;max-width:64ch}
+.hl{background:var(--yellow);color:var(--on-yellow);padding:0 6px;box-decoration-break:clone;-webkit-box-decoration-break:clone}
+.hero .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.note{font-size:12px;color:var(--muted)}
+
+/* architecture strip */
+.arch{max-width:1240px;margin:8px auto 0;padding:0 16px}
+.archgrid{display:grid;grid-template-columns:1fr auto 1.4fr auto 1fr;align-items:stretch;gap:10px;border:3px solid var(--line);background:var(--card);box-shadow:6px 6px 0 var(--red);padding:14px}
+.archcol{display:flex;flex-direction:column;gap:8px}
+.archcol h3{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-family:var(--f-body);font-weight:700}
+.node{border:2px solid var(--line);padding:8px 10px;background:var(--paper);font-size:13px;line-height:1.3}
+.node b{display:block;font-family:var(--f-display);font-size:13px;letter-spacing:-.01em}
+.node span{color:var(--muted);font-size:12px}
+.node.core{background:var(--ink);color:var(--paper)}
+.node.core span{color:var(--term-dim)}
+.node.lit{background:var(--yellow);color:var(--on-yellow);border-color:var(--line)}
+.node.lit span{color:#4a4637}
+.archmid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.archmid .node.core{grid-column:1/-1}
+.arrow{display:grid;place-items:center;font-family:var(--f-display);font-size:22px}
+
+/* stage nav */
+.stagenav{position:sticky;top:61px;z-index:25;background:var(--paper);border-bottom:3px solid var(--line);margin-top:28px}
+.stagenav .in{max-width:1240px;margin:0 auto;padding:0 16px;display:flex;overflow-x:auto;gap:0}
+.snav{all:unset;cursor:pointer;padding:12px 14px;font-family:var(--f-display);font-size:13px;white-space:nowrap;display:flex;gap:8px;align-items:center;border:3px solid transparent;border-bottom:0;margin-bottom:-3px}
+.snav .n{width:22px;height:22px;display:grid;place-items:center;border:2px solid var(--line);font-size:11px}
+.snav.on{background:var(--card);border-color:var(--line);border-bottom:3px solid var(--card)}
+.snav.done .n{background:var(--good);border-color:var(--good);color:#fff}
+.snav:focus-visible{outline:3px solid var(--red)}
+
+/* stage */
+.stage{max-width:1240px;margin:0 auto;padding:26px 16px 40px;display:flex;flex-direction:column;gap:18px;scroll-margin-top:110px}
+.stage-h{display:flex;gap:18px;align-items:flex-end;justify-content:space-between;flex-wrap:wrap}
+.stage-h .t{display:flex;flex-direction:column;gap:6px;max-width:760px}
+.stage-h .k{font-family:var(--f-comic);font-size:18px;letter-spacing:1.5px;color:var(--red)}
+.stage-h h2{font-family:var(--f-display);font-size:clamp(24px,3vw,36px);letter-spacing:-.03em;line-height:1.02}
+.stage-h p{font-size:16px;color:var(--ink)}
+.vs{display:flex;gap:8px;flex-wrap:wrap}
+.vs div{border:2px solid var(--line);padding:6px 10px;font-size:12px;line-height:1.3;background:var(--card);min-width:150px}
+.vs div b{display:block;font-family:var(--f-display);font-size:16px}
+.vs .old{border-style:dashed;color:var(--muted)}
+.vs .old b{text-decoration:line-through;text-decoration-thickness:2px}
+.split{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);gap:18px;align-items:start}
+.pane-h{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+.pane-h .dot{width:8px;height:8px;background:var(--red)}
+.ui{display:flex;flex-direction:column;gap:14px;min-width:0}
+
+/* operator UI pieces */
+.card{border:2px solid var(--line);background:var(--card);padding:14px 16px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.card.hot{border-width:3px;box-shadow:5px 5px 0 var(--red)}
+.card h3{font-family:var(--f-display);font-size:16px;letter-spacing:-.02em;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.card h3 .sp{margin-left:auto}
+.field{display:flex;flex-direction:column;gap:4px}
+.field label{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.field input,.field textarea{padding:9px 10px;border:2px solid var(--line);background:var(--card);width:100%}
+.field textarea{min-height:120px;resize:vertical;font-family:var(--f-mono);font-size:12.5px;line-height:1.55}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:2px 8px;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;border:2px solid var(--line);white-space:nowrap}
+.chip.ok{background:var(--good);color:#fff;border-color:var(--good)}
+.chip.y{background:var(--yellow);color:var(--on-yellow)}
+.chip.r{background:var(--red);color:var(--on-red);border-color:var(--red)}
+.chip.dim{color:var(--muted);border-color:var(--muted);border-style:dashed}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.hint{font-size:12px;color:var(--muted)}
+.tablewrap{overflow-x:auto;border:2px solid var(--line)}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th{background:var(--ink);color:var(--paper);text-align:left;padding:7px 10px;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
+td{padding:7px 10px;border-top:1px solid var(--line);vertical-align:top}
+td.num{font-family:var(--f-mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+tr.new{animation:flash 1.2s ease}
+@keyframes flash{from{background:var(--yellow)}to{background:transparent}}
+.bar{height:10px;border:2px solid var(--line);background:var(--card);min-width:70px}
+.bar i{display:block;height:100%;background:var(--good);transition:width .6s ease}
+.bar.mod i{background:var(--warn)}
+.status{font-family:var(--f-mono);font-size:11.5px;white-space:nowrap}
+.status.run{color:var(--warn)}
+.status.ok{color:var(--good)}
+.buyers{display:flex;flex-direction:column;gap:4px;margin-top:6px}
+.buyer{display:flex;gap:8px;align-items:flex-start;font-size:13px;line-height:1.3}
+.buyer .who{display:flex;flex-direction:column}
+#custRows td:first-child{min-width:200px}
+.tick{width:16px;height:16px;border:2px solid var(--line);display:grid;place-items:center;font-size:11px;flex-shrink:0;line-height:1}
+.tick.on{background:var(--good);border-color:var(--good);color:#fff}
+.email{border:2px solid var(--line);background:var(--paper);padding:12px 14px;font-size:13.5px;white-space:pre-wrap;line-height:1.55}
+.email .sub{font-weight:700;margin-bottom:6px;display:block}
+.check{display:flex;gap:8px;align-items:center;font-size:13.5px}
+.pattern{display:grid;grid-template-columns:minmax(0,1fr) 90px 52px;gap:10px;align-items:center;padding:7px 0;border-top:1px dashed var(--muted)}
+.pattern:first-child{border-top:0}
+.pattern .f b{font-size:13.5px}
+.pattern .f span{display:block;font-size:11.5px;color:var(--muted);font-family:var(--f-mono)}
+.pattern .c{font-family:var(--f-mono);font-size:12px;text-align:right}
+.icp{border:3px solid var(--line);background:var(--card);box-shadow:5px 5px 0 var(--shadow)}
+.icp .ih{padding:12px 16px;border-bottom:2px solid var(--line);background:var(--yellow);color:var(--on-yellow);display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.icp .ih b{font-family:var(--f-display);font-size:16px}
+.icp .ib{padding:12px 16px;display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.icp ul{margin:4px 0 0;padding-left:18px;font-size:13px;display:flex;flex-direction:column;gap:3px}
+.icp h4{margin:0;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.w{font-family:var(--f-mono);font-size:11px;padding:0 4px;border:1.5px solid var(--line);margin-right:4px}
+.fit{display:inline-block;min-width:34px;text-align:center;padding:1px 6px;font-family:var(--f-mono);font-size:12px;font-weight:600;border:2px solid var(--line)}
+.fit.hi{background:var(--good);color:#fff;border-color:var(--good)}
+.fit.mid{background:var(--yellow);color:var(--on-yellow)}
+.fit.lo{color:var(--muted);border-style:dashed}
+
+/* review card */
+.review{border:3px solid var(--line);background:var(--card);box-shadow:5px 5px 0 var(--red)}
+.campbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:10px 14px;border-bottom:2px solid var(--line);background:var(--band)}
+.cprog{width:140px;height:10px;border:2px solid var(--line);background:var(--card)}
+.cprog i{display:block;height:100%;background:var(--good);transition:width .4s ease}
+.rv-card{padding:16px 18px;display:flex;flex-direction:column;gap:8px}
+.rv-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.rv-flags{display:flex;gap:6px;flex-wrap:wrap;flex:1}
+.pill{font-family:var(--f-mono);font-weight:600;font-size:13px;padding:2px 8px;border:2px solid var(--line)}
+.pill.pass{background:var(--good);color:#fff;border-color:var(--good)}
+.pill.no{background:var(--red);color:#fff;border-color:var(--red)}
+.rv-name{font-family:var(--f-display);font-size:24px;letter-spacing:-.02em}
+.rv-acts{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px}
+.rv-card.out{animation:out .28s ease forwards}
+@keyframes out{to{opacity:0;transform:translateX(30px)}}
+.hits{display:flex;gap:4px;flex-wrap:wrap}
+.hit{font-family:var(--f-mono);font-size:11px;padding:1px 6px;border:1.5px solid var(--line)}
+.hit.on{background:var(--good);border-color:var(--good);color:#fff}
+.decisions{display:flex;flex-direction:column;gap:4px;font-size:13px}
+.decisions div{display:flex;gap:8px;align-items:center}
+
+/* prospeo flow */
+.touch{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+.touch div{border:2px solid var(--line);padding:10px;background:var(--card);display:flex;flex-direction:column;gap:4px;font-size:12.5px;line-height:1.35}
+.touch div b{font-family:var(--f-display);font-size:13px}
+.touch div .chip{align-self:flex-start}
+.touch div.lit{background:var(--yellow);color:var(--on-yellow)}
+.json{border:2px solid var(--line);background:var(--code-bg);padding:12px;font-family:var(--f-mono);font-size:12px;line-height:1.55;white-space:pre;overflow:auto;max-height:340px}
+.ladder{display:flex;flex-direction:column;gap:6px}
+.ladder div{display:grid;grid-template-columns:44px minmax(0,1fr) auto;gap:10px;align-items:center;border:2px solid var(--line);padding:8px 10px;background:var(--card);font-size:13px}
+.ladder div .num{font-family:var(--f-mono)}
+
+/* console */
+.console{position:sticky;top:122px;background:var(--term);color:var(--term-ink);border:3px solid var(--line);box-shadow:6px 6px 0 var(--red);display:flex;flex-direction:column;max-height:calc(100vh - 140px);min-height:420px}
+.console .ch{display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:2px solid #2b2b28;font-family:var(--f-mono);font-size:11px;color:var(--term-dim)}
+.console .ch b{color:var(--term-ink);font-weight:600}
+.console .ch .lights{display:flex;gap:5px;margin-right:6px}
+.console .ch .lights i{width:9px;height:9px;border-radius:50%;background:#3a3a36}
+.console .ch .lights i:first-child{background:var(--red)}
+.console .ch .sp{margin-left:auto}
+.log{flex:1;overflow:auto;padding:12px 14px 16px;font-family:var(--f-mono);font-size:12px;line-height:1.6}
+.log .l{white-space:pre-wrap;word-break:break-word;animation:in .18s ease}
+@keyframes in{from{opacity:0;transform:translateY(3px)}}
+.log .req{color:var(--term-acc)}
+.log .req b{color:var(--term-ink);font-weight:600}
+.log .ok{color:var(--term-ok)}
+.log .err{color:var(--term-err)}
+.log .dim{color:var(--term-dim)}
+.log .key{color:var(--term-key)}
+.log .h{color:var(--term-ink);font-weight:600;margin-top:10px;padding-top:8px;border-top:1px dashed #33332f}
+.log .h:first-child{margin-top:0;border-top:0;padding-top:0}
+.log details{margin:2px 0 4px;border-left:2px solid #3a3a36;padding-left:10px}
+.log summary{cursor:pointer;color:var(--term-dim);list-style:none}
+.log summary::before{content:"▸ ";}
+.log details[open] summary::before{content:"▾ ";}
+.log details pre{margin:4px 0 0;white-space:pre-wrap;color:#cfcbbf;font-size:11.5px}
+.log .empty{color:var(--term-dim)}
+.cursor{display:inline-block;width:7px;height:13px;background:var(--term-ink);vertical-align:-2px;animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+
+/* finale */
+.finale{max-width:1240px;margin:0 auto;padding:10px 16px 60px}
+.fin{border:3px solid var(--line);background:var(--ink);color:var(--paper);box-shadow:8px 8px 0 var(--red);padding:24px;display:flex;flex-direction:column;gap:16px}
+.fin h2{font-family:var(--f-display);font-size:clamp(24px,3vw,36px);letter-spacing:-.03em}
+.stats{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
+.stats div{border:2px solid var(--paper);padding:12px;display:flex;flex-direction:column;gap:2px}
+.stats b{font-family:var(--f-display);font-size:28px;letter-spacing:-.02em;line-height:1}
+.stats span{font-size:12px;color:#c9c5b8}
+.stats div.y{background:var(--yellow);color:var(--on-yellow);border-color:var(--yellow)}
+.stats div.y span{color:#4a4637}
+.foot{max-width:1240px;margin:0 auto;padding:0 16px 40px;font-size:12px;color:var(--muted)}
+
+/* autoplay overlay caption */
+.caption{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:50;background:var(--ink);color:var(--paper);padding:10px 18px;border:2px solid var(--line);box-shadow:5px 5px 0 var(--red);font-weight:700;font-size:15px;max-width:min(720px,calc(100vw - 32px));text-align:center}
+.caption .k{font-family:var(--f-comic);letter-spacing:1.5px;color:var(--yellow);margin-right:8px;font-weight:400}
+.pulse{animation:pulse 1.1s ease 2}
+@keyframes pulse{50%{box-shadow:0 0 0 5px var(--yellow)}}
+
+@media (max-width:980px){
+  .split{grid-template-columns:minmax(0,1fr)}
+  .split > div{min-width:0}
+  .console{position:relative;top:0;max-height:440px}
+  .archgrid{grid-template-columns:1fr}
+  .arrow{transform:rotate(90deg);height:18px}
+  .touch{grid-template-columns:1fr 1fr}
+  .stats{grid-template-columns:1fr 1fr}
+  .icp .ib{grid-template-columns:1fr}
+  .meter{display:none}
+}
+@media (max-width:560px){
+  .grid2{grid-template-columns:1fr}
+  .pattern{grid-template-columns:minmax(0,1fr) 44px}
+  .pattern .bar{display:none}
+  .stagenav{top:57px}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <a class="brand" href="/"><b>Cracked GTM</b><span>Engine · live demo</span></a>
+  <div class="meter" aria-live="polite">
+    <span><i>Claude</i><b id="mUsd">$0.000</b></span>
+    <span><i>Prospeo</i><b id="mCred">0 credits</b></span>
+    <span><i>Operator time</i><b id="mTime">0 min</b></span>
+  </div>
+  <button class="btn sm" id="speedBtn" type="button" aria-label="Playback speed">1x</button>
+  <button class="btn sm" id="resetBtn" type="button">Reset</button>
+  <button class="btn sm red" id="playBtn" type="button">▶ Autoplay</button>
+</header>
+
+<section class="hero">
+  <span class="eyebrow">The Cracked GTM engine</span>
+  <h1>From a client's website to <span class="hl">scored, verified leads</span> in one afternoon.</h1>
+  <p class="lede">We run zero-to-one GTM for founder-led startups. This is the engine behind it: it onboards a client, learns their ICP from the customers they already have, invents custom buying signals, and pulls verified buyers from Prospeo. Click through the five stages, or hit Autoplay. The right side of every stage shows what the backend is actually doing.</p>
+  <div class="row">
+    <button class="btn red" type="button" data-jump="onboard">Start the walkthrough →</button>
+    <span class="note">Example client and companies are fictional. Prompts, API calls, models and pricing mirror the production engine.</span>
+  </div>
+</section>
+
+<section class="arch" aria-label="System architecture">
+  <div class="archgrid">
+    <div class="archcol"><h3>Inputs (all the client gives us)</h3>
+      <div class="node" data-a="onboard"><b>Website</b><span>attestly.ai</span></div>
+      <div class="node" data-a="onboard"><b>Customers</b><span>URLs, or a read-only Stripe key</span></div>
+      <div class="node" data-a="review"><b>Team judgment</b><span>context notes + review decisions</span></div>
+    </div>
+    <div class="arrow" aria-hidden="true">→</div>
+    <div class="archcol"><h3>Engine (Cloudflare Worker)</h3>
+      <div class="archmid">
+        <div class="node core"><b>Orchestrator + client brain</b><span>Worker routes · Durable Object (SQLite) per client: research, ICP, memory of every decision</span></div>
+        <div class="node" data-a="research"><b>Claude Sonnet</b><span>judgment: patterns, ICP, source planning</span></div>
+        <div class="node" data-a="signals"><b>Claude Haiku</b><span>volume: reading sources, scoring leads</span></div>
+        <div class="node" data-a="prospeo"><b>Prospeo</b><span>people search, enrichment, verified email</span></div>
+        <div class="node" data-a="signals"><b>Page reader</b><span>renders JS sites, follows pagination</span></div>
+      </div>
+    </div>
+    <div class="arrow" aria-hidden="true">→</div>
+    <div class="archcol"><h3>Outputs</h3>
+      <div class="node" data-a="research"><b>Living ICP</b><span>weighted criteria + disqualifiers</span></div>
+      <div class="node" data-a="signals"><b>Signal companies</b><span>with evidence and a fit score</span></div>
+      <div class="node" data-a="prospeo"><b>Campaign-ready leads</b><span>verified email, hook, CSV / HeyReach</span></div>
+    </div>
+  </div>
+</section>
+
+<nav class="stagenav" aria-label="Demo stages"><div class="in" id="snav"></div></nav>
+
+<div id="stages"></div>
+
+<section class="finale" id="finale" hidden>
+  <div class="fin">
+    <span class="eyebrow" style="color:var(--yellow)">One client, end to end</span>
+    <h2>What used to take a week in Clay now takes an afternoon, and it gets sharper every time we review.</h2>
+    <div class="stats">
+      <div class="y"><b id="fTime">3h 40m</b><span>operator time to first campaign</span></div>
+      <div><b id="fUsd">$0</b><span>Claude spend for this client</span></div>
+      <div><b id="fCred">0</b><span>Prospeo credits</span></div>
+      <div><b id="fLeads">0</b><span>leads with verified email</span></div>
+      <div><b>~10</b><span>clients one operator can run</span></div>
+    </div>
+    <p style="color:#c9c5b8;max-width:80ch">Every decision the team makes (keep, skip, not a fit) is stored per client and fed back into scoring as precedent, and blocked companies never come back. That compounding memory is what lets one operator run many clients without the quality dropping.</p>
+    <div class="row"><button class="btn yellow" type="button" id="againBtn">Replay the demo</button><a class="btn" href="/">Back to crackedgtm.ai</a></div>
+  </div>
+</section>
+
+<p class="foot">Cracked GTM · crackedgtm.ai · Demo data is fictional. Model names and per-token prices match what the production Worker uses.</p>
+
+<div class="caption" id="caption" hidden></div>
+
+<script>
+/* ============ demo data (fictional client) ============ */
+const CLIENT = {company: "Attestly", site: "attestly.ai", first: "Maya", email: "maya@attestly.ai",
+  sells: "AI agent that fills out security questionnaires and builds trust centers for early-stage B2B SaaS teams selling upmarket."};
+const CUSTOMERS = [
+  {d: "northpine.io", name: "Northpine", ind: "Legal tech · AI contract review", size: 14, stage: "Seed", geo: "SF", sells: "Mid-market legal teams",
+    people: [["Dana Whitfield", "Co-founder & CEO", true], ["Ravi Mehta", "Co-founder & CTO", false], ["Lena Ortiz", "Head of Sales", false]]},
+  {d: "fieldstack.app", name: "Fieldstack", ind: "Field service SaaS", size: 22, stage: "Series A", geo: "Austin", sells: "Enterprise utilities",
+    people: [["Marcus Bell", "Founder & CEO", false], ["Priya Raman", "VP Sales", true], ["Tom Achebe", "Head of Security", false]]},
+  {d: "orbitdesk.dev", name: "Orbitdesk", ind: "Developer observability", size: 9, stage: "Seed", geo: "SF", sells: "Platform teams at enterprises",
+    people: [["Jun Park", "Founder & CEO", true], ["Ana Silva", "Founding Engineer", false]]},
+  {d: "mintlayer.io", name: "Mintlayer", ind: "Fintech infrastructure", size: 11, stage: "Pre-seed", geo: "NYC", sells: "Banks and credit unions",
+    people: [["Sofia Grant", "Co-founder & CEO", true], ["Eli Novak", "Co-founder & COO", false]]},
+  {d: "harborlane.ai", name: "Harborlane", ind: "AI for logistics ops", size: 17, stage: "Seed", geo: "SF", sells: "Freight forwarders",
+    people: [["Omar Haddad", "Founder & CEO", false], ["Claire Dupont", "Founding AE", true]]},
+  {d: "quarrylabs.com", name: "Quarry Labs", ind: "Data consultancy", size: 85, stage: "Bootstrapped", geo: "Denver", sells: "Retail brands",
+    people: [["Greg Sato", "Managing Partner", true], ["Nina Ford", "Director of Delivery", false]]},
+];
+const PATTERNS = [
+  {finding: "B2B software selling to enterprise or regulated buyers", count: 5, of: 6, domains: "northpine, fieldstack, orbitdesk, mintlayer, harborlane", strength: "strong"},
+  {finding: "Seed to Series A, under 25 people", count: 5, of: 6, domains: "northpine, fieldstack, orbitdesk, mintlayer, harborlane", strength: "strong"},
+  {finding: "Founder-led sales; the CEO or first sales hire signs", count: 5, of: 6, domains: "northpine, orbitdesk, mintlayer, harborlane, fieldstack", strength: "strong"},
+  {finding: "Recently went through an accelerator", count: 4, of: 6, domains: "northpine, orbitdesk, mintlayer, harborlane", strength: "strong"},
+  {finding: "Site mentions SOC 2 'in progress' or a trust page", count: 3, of: 6, domains: "fieldstack, mintlayer, northpine", strength: "moderate"},
+];
+const ICP = {version: 2, confidence: 78,
+  one_liner: "Seed to Series A B2B SaaS, under 30 people, starting to sell into enterprise or regulated buyers, with the founder still running sales.",
+  qual: [["Sells B2B software to enterprise, mid-market or regulated buyers", 3], ["Seed or Series A, raised in the last 24 months", 2], ["Under 30 employees", 2], ["Founder or first sales hire runs deals", 2], ["Accelerator alum (YC, a16z speedrun, EF, Pear, SPC...)", 2], ["Public sign of security review pain (SOC 2 in progress, trust page, security hire)", 1]],
+  dq: ["Consumer product or marketplace", "Services firm or agency", "Over 100 employees", "Already has a dedicated compliance team"],
+  buyer: "Founder/CEO at under 15 people; VP Sales or founding AE once there is a sales hire."};
+const SOURCES = [
+  {name: "Y Combinator company directory · F26 batch", url: "ycombinator.com/companies?batch=Fall%202026", type: "accelerator", signal: "Just got into an accelerator", on: true, found: 31, added: 9},
+  {name: "a16z speedrun latest cohort", url: "speedrun.a16z.com/companies", type: "accelerator", signal: "Just got into an accelerator", on: true, found: 18, added: 5},
+  {name: "Jobs: 'Founding Account Executive' + enterprise", url: "", query: "founding account executive enterprise SaaS seed", type: "job board", signal: "Hiring first sales hire for enterprise", on: true, found: 24, added: 7},
+  {name: "New trust center pages", url: "", query: "\"trust center\" SOC 2 in progress startup", type: "directory", signal: "Launched a trust page", on: true, found: 15, added: 4},
+  {name: "Seed and Series A rounds this month: B2B infra", url: "", query: "seed round B2B SaaS enterprise November 2026", type: "funding news", signal: "Raised in the last 60 days", on: true, found: 22, added: 6},
+  {name: "LinkedIn Sales Navigator saved search", url: "linkedin.com/sales", type: "other", signal: "Hiring security engineer", on: false, access: "login"},
+];
+const SIGCOS = [
+  ["Ledgerkit", "ledgerkit.io", "Accelerator", "YC F26, B2B ledger API for fintechs selling to banks", 92],
+  ["Cobaltline", "cobaltline.dev", "Hiring", "Posted 'Founding AE, enterprise' 9 days ago", 89],
+  ["Tessellate", "tessellate.ai", "Funding", "Raised $4.2M seed, Oct 2026, AI audit tooling", 86],
+  ["Pinegrove", "pinegrove.so", "Trust page", "Launched trust center, SOC 2 Type I 'in progress'", 81],
+  ["Vantor Health", "vantorhealth.com", "Accelerator", "a16z speedrun, clinical ops SaaS for hospitals", 78],
+  ["Driftwork", "driftwork.app", "Accelerator", "YC F26, but consumer budgeting app", 22],
+];
+const LEADS = [
+  {name: "Hannah Cole", title: "Co-founder & CEO", co: "Ledgerkit", dom: "ledgerkit.io", meta: "8 people · SF · Seed", sig: "YC F26 · B2B ledger API for fintechs", hits: [1,2,3,4,5], tier: 1, flags: ["accelerator", "solo seller"], why: "Founder-led seller at an 8-person YC fintech selling to banks: every criterion but the security signal.", hook: "Saw Ledgerkit in the F26 batch. Banks will send you a 300-question security review before the first pilot; we can make that a same-day answer.", fit: true},
+  {name: "Marco Velez", title: "Founding Account Executive", co: "Cobaltline", dom: "cobaltline.dev", meta: "16 people · NYC · Series A", sig: "Hiring 'Founding AE, enterprise' (9 days ago)", hits: [1,2,3,4,6], tier: 1, flags: ["hiring sales", "enterprise"], why: "First sales hire at a Series A dev-tools company now pushing upmarket; buyer pattern matches 2 of 6 customers.", hook: "Congrats on the move to Cobaltline. First enterprise deals usually stall in security review; happy to show how Fieldstack cut that to a day.", fit: true},
+  {name: "Alex Brandt", title: "Head of Partnerships", co: "Driftwork", dom: "driftwork.app", meta: "12 people · SF · Seed", sig: "YC F26", hits: [2,3,5], tier: 3, flags: ["consumer"], dq: "Consumer product", why: "Great batch, wrong buyer: consumer budgeting app with no enterprise motion.", hook: "", fit: false},
+  {name: "Ivy Chen", title: "Founder & CEO", co: "Tessellate", dom: "tessellate.ai", meta: "11 people · SF · Seed", sig: "Raised $4.2M seed (Oct 2026)", hits: [1,2,3,4,6], tier: 1, flags: ["just raised", "SOC 2 pain"], why: "Fresh seed round, founder-led, sells audit tooling to enterprise: a near copy of Mintlayer.", hook: "Congrats on the seed. Funny problem for an audit company: your own buyers will audit you first. We automate that part.", fit: true},
+];
+
+/* ============ helpers ============ */
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
+let speed = 1, playing = false, runToken = 0;
+// every wait checks the run generation, so Reset or Stop cancels a stage mid-run
+const wait = ms => { const g = runToken; return new Promise((ok, no) => setTimeout(() => g === runToken ? ok() : no("cancelled"), ms / speed)); };
+addEventListener("unhandledrejection", e => { if (e.reason === "cancelled") e.preventDefault(); });
+const meter = {usd: 0, cred: 0, min: 0};
+function addCost(usd = 0, cred = 0, min = 0){
+  meter.usd += usd; meter.cred += cred; meter.min += min;
+  $("#mUsd").textContent = "$" + meter.usd.toFixed(3);
+  $("#mCred").textContent = meter.cred + " credit" + (meter.cred === 1 ? "" : "s");
+  $("#mTime").textContent = meter.min >= 60 ? Math.floor(meter.min / 60) + "h " + (meter.min % 60) + "m" : meter.min + " min";
+}
+// list price per million tokens, same table as the Worker: [input, output]
+const PRICE = {"claude-sonnet-5-5": [2, 10], "claude-haiku-4-5": [1, 5]};
+const costOf = (m, inTok, outTok) => (inTok * PRICE[m][0] + outTok * PRICE[m][1]) / 1e6;
+
+/* ============ console ============ */
+function consoleHTML(id, title){
+  return `<div class="console" aria-label="Under the hood log"><div class="ch"><span class="lights"><i></i><i></i><i></i></span><b>under the hood</b><span>· ${esc(title)}</span><span class="sp" id="${id}-st">idle</span></div>
+    <div class="log" id="${id}-log" role="log" aria-live="polite"><div class="l empty">Press the red button on the left to run this stage.<span class="cursor"></span></div></div></div>`;
+}
+function logger(id){
+  const el = $("#" + id + "-log");
+  return {
+    clear(){ el.innerHTML = ""; $("#" + id + "-st").textContent = "running"; },
+    done(t = "done"){ $("#" + id + "-st").textContent = t; },
+    line(html, cls = ""){ const d = document.createElement("div"); d.className = "l " + cls; d.innerHTML = html; el.appendChild(d); el.scrollTop = el.scrollHeight; return d; },
+    h(t){ return this.line(esc(t), "h"); },
+    req(method, path, extra = ""){ return this.line(`→ <b>${method}</b> ${esc(path)}${extra ? ' <span class="dim">' + esc(extra) + "</span>" : ""}`, "req"); },
+    ok(t){ return this.line("✓ " + esc(t), "ok"); },
+    err(t){ return this.line("✗ " + esc(t), "err"); },
+    dim(t){ return this.line(esc(t), "dim"); },
+    key(t){ return this.line(esc(t), "key"); },
+    block(label, body){ const d = document.createElement("details"); d.innerHTML = `<summary>${esc(label)}</summary><pre>${esc(body)}</pre>`; el.appendChild(d); el.scrollTop = el.scrollHeight; return d; },
+    claude(model, step, inTok, outTok, ms){ const c = costOf(model, inTok, outTok); addCost(c); return this.line(`✓ ${model} · ${step} · ${(inTok/1000).toFixed(1)}k in / ${(outTok/1000).toFixed(1)}k out · $${c.toFixed(4)} · ${(ms/1000).toFixed(1)}s`, "ok"); },
+  };
+}
+
+/* ============ stages ============ */
+const STAGES = [
+  {k: "onboard", n: "1", label: "Onboard", kick: "A. Automated onboarding",
+   h: "Two inputs in, a client brain out.",
+   p: "The client gives us their website and their customers. The engine reads their whole site, pulls customers from Stripe if we have a read-only key, sets up their workspace and drafts the kickoff email with the payment and guide links.",
+   vs: [["~2 days", "manual kickoff, intake forms, back and forth"], ["4 min", "one click, everything staged"]]},
+  {k: "research", n: "2", label: "Customer research", kick: "B. Research from existing customers",
+   h: "We learn the ICP from who already pays them.",
+   p: "Founders guess at their ICP. Their customer list doesn't lie. For every customer the engine reads their site and finds the leadership team in Prospeo; the operator ticks the person who actually bought. Claude then does pattern recognition across customers and turns it into a weighted, testable ICP.",
+   vs: [["1 to 2 weeks", "ICP workshops and guesswork"], ["45 min", "evidence-backed, counted as x of N"]]},
+  {k: "signals", n: "3", label: "Custom signals", kick: "C. Research becomes custom signals",
+   h: "Signals built for this client, not a generic intent feed.",
+   p: "From the patterns, Claude plans where this client's buyers show up right now: the exact accelerator directories, job boards, trust-page listings and funding feeds. A cheap reader pulls each source, a small model extracts companies with dated evidence, and everything is scored against the ICP and deduped against existing customers.",
+   vs: [["$800+/mo", "intent data that isn't about your buyer"], ["$0.24", "per run, sources specific to this client"]]},
+  {k: "review", n: "4", label: "Review", kick: "D. The review loop",
+   h: "Humans make the call. The engine remembers it.",
+   p: "Buyers at signal companies are scored by Claude against the ICP: it marks which criteria each lead meets and the tool adds the points, so the scale can't drift. The operator reviews one card at a time with a keyboard. Every decision is stored and fed back into the next scoring run as precedent, and 'not a fit' blocks that company for good.",
+   vs: [["Spreadsheet triage", "no memory, same mistakes every list"], ["~3 sec/lead", "and each decision trains the next pull"]]},
+  {k: "prospeo", n: "5", label: "Prospeo enrichment", kick: "E. How it hooks into Prospeo",
+   h: "The ICP compiles straight into Prospeo filters.",
+   p: "Prospeo is the data layer under every stage. The engine translates the ICP and buyer pattern into exact Prospeo filters, retries by dropping filters Prospeo rejects, searches people at signal companies, and reveals verified emails in bulk (only verified emails are billed). Out comes a campaign-ready CSV for HeyReach.",
+   vs: [["Clay waterfalls", "slow, expensive, rebuilt per client"], ["1 credit / 25 people", "plus 1 per verified email"]]},
+];
+const done = new Set();
+
+function stageShell(s){
+  return `<section class="stage" id="st-${s.k}" data-stage="${s.k}">
+    <div class="stage-h"><div class="t"><span class="k">${esc(s.kick)}</span><h2>${esc(s.h)}</h2><p>${esc(s.p)}</p></div>
+      <div class="vs"><div class="old"><b>${esc(s.vs[0][0])}</b>${esc(s.vs[0][1])}</div><div><b>${esc(s.vs[1][0])}</b>${esc(s.vs[1][1])}</div></div></div>
+    <div class="split"><div><div class="pane-h"><span class="dot"></span>What the operator sees</div><div class="ui" id="${s.k}-ui"></div></div>
+      <div><div class="pane-h"><span class="dot" style="background:var(--ink)"></span>What the backend does</div>${consoleHTML(s.k, s.label)}</div></div>
+  </section>`;
+}
+function renderNav(){
+  $("#snav").innerHTML = STAGES.map(s => `<button class="snav ${done.has(s.k) ? "done" : ""}" type="button" data-jump="${s.k}"><span class="n">${done.has(s.k) ? "✓" : s.n}</span>${esc(s.label)}</button>`).join("");
+  document.querySelectorAll("[data-jump]").forEach(b => b.onclick = () => jump(b.dataset.jump));
+}
+function jump(k){ const el = $("#st-" + k); if (el) el.scrollIntoView({behavior: "smooth", block: "start"}); }
+const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) document.querySelectorAll(".snav").forEach(b => b.classList.toggle("on", b.dataset.jump === e.target.dataset.stage)); }), {rootMargin: "-40% 0px -55% 0px"});
+function markDone(k){ done.add(k); renderNav(); if (done.size === STAGES.length) showFinale(); }
+
+/* ---------- 1. onboard ---------- */
+function uiOnboard(){
+  $("#onboard-ui").innerHTML = `
+    <div class="card hot">
+      <h3>New client <span class="chip sp">step 1 of 1</span></h3>
+      <div class="grid2">
+        <div class="field"><label for="obCo">Company</label><input id="obCo" value="${esc(CLIENT.company)}"></div>
+        <div class="field"><label for="obSite">Website</label><input id="obSite" value="${esc(CLIENT.site)}"></div>
+        <div class="field"><label for="obFirst">Founder</label><input id="obFirst" value="${esc(CLIENT.first)}"></div>
+        <div class="field"><label for="obEmail">Email</label><input id="obEmail" value="${esc(CLIENT.email)}"></div>
+      </div>
+      <div class="field"><label for="obCust">Customers (URLs, or leave blank and pull from Stripe)</label>
+        <textarea id="obCust" style="min-height:96px">${CUSTOMERS.map(c => "https://" + c.d).join("\n")}</textarea></div>
+      <div class="row"><button class="btn red" id="runOnboard" type="button">Onboard client</button><span class="hint">Or paste a restricted Stripe key (rk_live_…) and we read paying customers ourselves.</span></div>
+    </div>
+    <div id="obOut"></div>`;
+  $("#runOnboard").onclick = runOnboard;
+}
+async function runOnboard(){
+  const L = logger("onboard"); L.clear();
+  $("#runOnboard").disabled = true; const out = $("#obOut"); out.innerHTML = "";
+  L.h("1 · create the client record");
+  L.req("PUT", "/api/clients/attestly-m3k9", "Durable Object · SQLite");
+  await wait(500); L.ok("client brain created: inputs, research, ICP, memory tables");
+  L.h("2 · read their whole website");
+  L.req("POST", "/api/pull-site", '{"url":"attestly.ai"}');
+  await wait(400); L.dim("  reader: direct fetch → falls back to JS-rendering reader for SPAs");
+  const pages = ["/", "/pricing", "/customers", "/product", "/about"];
+  for (const p of pages){ await wait(260); L.dim("  read attestly.ai" + p + "  · " + (2 + Math.round(Math.random() * 5)) + ".1k chars"); }
+  L.ok("5 pages · 18.4k chars of positioning, pricing and proof stored as site context");
+  out.insertAdjacentHTML("beforeend", `<div class="card"><h3>Website read <span class="chip ok sp">5 pages</span></h3><div class="chips">${pages.map(p => `<span class="chip">attestly.ai${p}</span>`).join("")}</div><p class="hint">What they sell: ${esc(CLIENT.sells)}</p></div>`);
+  L.h("3 · customers");
+  L.req("POST", "/api/pull-stripe", '{"key":"rk_live_••••"} (optional path)');
+  await wait(500); L.dim("  restricted, read-only key · customers.list · emails → company domains");
+  L.dim("  drops gmail.com / outlook.com, dedupes subdomains, skips the client's own domain");
+  await wait(300); L.ok("6 customer domains ready for research");
+  out.insertAdjacentHTML("beforeend", `<div class="card"><h3>Customers <span class="chip ok sp">6</span></h3><div class="chips">${CUSTOMERS.map(c => `<span class="chip">${esc(c.d)}</span>`).join("")}</div></div>`);
+  L.h("4 · kickoff email + access checklist");
+  L.req("POST", "/api/claude", "tier=smart · step=Onboarding email");
+  L.block("prompt (excerpt)", `Draft the kickoff email to ${CLIENT.first} at ${CLIENT.company}.\nInclude: the Stripe link for the $2.5K trial week, the 3-page client guide,\nwhat we need from them (LinkedIn seats, sending domains, calendar link,\nbrand assets, 30 min for the ICP call). Founder voice, short, warm.`);
+  await wait(900); L.claude("claude-sonnet-5-5", "onboarding email", 4100, 620, 3400);
+  out.insertAdjacentHTML("beforeend", `<div class="card"><h3>Kickoff email, ready to send <span class="chip y sp">draft</span></h3>
+    <div class="email"><span class="sub">Subject: Kicking off Attestly x Cracked GTM</span>Hey Maya, so excited to get going.
+
+Two quick things to start the trial week: the payment link is here (stripe.com/…/attestly) and our short guide on how we work together is here (crackedgtm.ai/guide).
+
+We already read through your site and your six customers, so the ICP call can go straight to the good stuff. Before then, could you share LinkedIn seat access, the sending domains and your calendar link?
+
+Talk soon,
+Priyanka</div>
+    <div class="row" style="gap:14px">${["Payment link sent", "LinkedIn seats", "Sending domains", "HeyReach workspace", "Brand assets"].map((x, i) => `<span class="check"><span class="tick ${i < 1 ? "on" : ""}">${i < 1 ? "✓" : ""}</span>${x}</span>`).join("")}</div></div>`);
+  addCost(0, 0, 4);
+  L.ok("client staged in 4 operator minutes. Next: research the customers.");
+  L.done(); markDone("onboard");
+  if (!playing) out.insertAdjacentHTML("beforeend", `<div class="row"><button class="btn red" type="button" data-jump="research">Next: research their customers →</button></div>`), renderNav();
+}
+
+/* ---------- 2. research ---------- */
+function uiResearch(){
+  $("#research-ui").innerHTML = `
+    <div class="card hot">
+      <h3>Team members + buyers <span class="hint sp">reads each customer's site and finds leaders in Prospeo</span></h3>
+      <div class="tablewrap"><table><thead><tr><th>Customer</th><th>What they do</th><th>Size</th><th>Stage</th><th>Buyer</th><th>Status</th></tr></thead>
+      <tbody id="custRows">${CUSTOMERS.map(c => `<tr id="cr-${c.d.replace(/\W/g, "")}"><td><b>${esc(c.d)}</b></td><td class="hint">waiting</td><td></td><td></td><td></td><td><span class="status">queued</span></td></tr>`).join("")}</tbody></table></div>
+      <div class="row"><button class="btn red" id="runResearch" type="button">Research 6 customers</button><span class="hint">3 at a time · 1 Prospeo credit each</span></div>
+    </div>
+    <div id="rsOut"></div>`;
+  $("#runResearch").onclick = runResearch;
+}
+async function runResearch(){
+  const L = logger("research"); L.clear(); $("#runResearch").disabled = true; const out = $("#rsOut"); out.innerHTML = "";
+  L.h("1 · research each customer (3 workers in parallel)");
+  L.block("Prospeo filters sent per customer", JSON.stringify({page: 1, filters: {company: {websites: {include: ["northpine.io"]}}, person_seniority: {include: ["Founder/Owner", "C-Suite", "Partner", "Vice President", "Head", "Director"]}}}, null, 2));
+  for (let i = 0; i < CUSTOMERS.length; i += 3){
+    const batch = CUSTOMERS.slice(i, i + 3);
+    batch.forEach(c => { L.req("POST", "/api/research-customer", c.d); const r = $("#cr-" + c.d.replace(/\W/g, "")); r.lastElementChild.innerHTML = '<span class="status run">reading…</span>'; });
+    await wait(700);
+    for (const c of batch){
+      await wait(260);
+      L.dim(`  ${c.d}: site read · prospeo.search-person → ${c.people.length + 4} leaders`);
+      addCost(0, 1);
+      const r = $("#cr-" + c.d.replace(/\W/g, ""));
+      r.className = "new";
+      r.innerHTML = `<td><b>${esc(c.d)}</b><div class="buyers">${c.people.map(p => `<span class="buyer" data-buyer="${p[2] ? 1 : 0}" data-title="${esc(p[1])}"><span class="tick"></span><span class="who"><b>${esc(p[0])}</b><span class="hint">${esc(p[1])}</span></span></span>`).join("")}</div></td><td>${esc(c.ind)}</td><td class="num">${c.size}</td><td>${esc(c.stage)}</td><td class="hint">tick one</td><td><span class="status ok">✓ found</span></td>`;
+    }
+  }
+  L.ok("6 customers researched · 6 Prospeo credits");
+  L.h("2 · operator confirms the real buyer");
+  L.dim("  the operator ticks who actually signed. Everything downstream trusts confirmed buyers over guesses.");
+  for (const el of document.querySelectorAll('[data-buyer="1"]')){ await wait(330); const t = el.querySelector(".tick"); t.classList.add("on"); t.textContent = "✓"; el.closest("tr").children[4].innerHTML = `<b>${esc(el.dataset.title)}</b>`; }
+  L.req("POST", "/api/enrich-buyer", "× 6 LinkedIn profiles");
+  await wait(500); L.ok("full profiles: tenure, past roles, skills (6 credits)"); addCost(0, 6, 6);
+  L.h("3 · pattern recognition across customers");
+  L.req("POST", "/api/claude", "tier=smart · step=Company patterns");
+  L.block("prompt (excerpt, real)", `You are a GTM analyst doing pattern recognition across a startup's earliest customers.
+...
+2. A pattern needs at least 2 customers. Report it as a count over 6 and name the domains.
+   Strength: strong = 60%+ of customers, moderate = 40-59%, weak = under 40%.
+3. Dimensions: industry; who THEY sell to; business model; sales motion; size; stage;
+   geography; buyer title, function and seniority (confirmed buyers outweigh leaders)...
+4. Find the intersection: the narrowest description that still covers most customers.
+5. Name outliers and anti-patterns.`);
+  await wait(1500); L.claude("claude-sonnet-5-5", "company patterns", 14200, 3100, 11800);
+  out.insertAdjacentHTML("beforeend", `<div class="card"><h3>What their customers have in common <span class="chip sp">6 customers</span></h3>
+    <div>${PATTERNS.map(p => `<div class="pattern"><div class="f"><b>${esc(p.finding)}</b><span>${esc(p.domains)}</span></div><div class="bar ${p.strength === "moderate" ? "mod" : ""}"><i style="width:0" data-w="${Math.round(p.count / p.of * 100)}"></i></div><div class="c">${p.count}/${p.of}</div></div>`).join("")}</div>
+    <p class="hint"><b>Outlier:</b> quarrylabs.com (85-person services firm, sells to retail). Flagged as an anti-pattern so it never shapes the list.</p></div>`);
+  requestAnimationFrame(() => out.querySelectorAll("[data-w]").forEach(b => b.style.width = b.dataset.w + "%"));
+  L.req("POST", "/api/claude", "tier=smart · step=Buyer patterns");
+  await wait(900); L.claude("claude-sonnet-5-5", "buyer patterns", 6800, 1900, 7200);
+  L.req("POST", "/api/claude", "tier=smart · step=ICP v2");
+  await wait(1000); L.claude("claude-sonnet-5-5", "ICP build", 9400, 2600, 9100);
+  out.insertAdjacentHTML("beforeend", `<div class="icp"><div class="ih"><b>ICP v${ICP.version}</b><span class="chip">${ICP.confidence}% confidence</span><span style="font-size:13px">${esc(ICP.one_liner)}</span></div>
+    <div class="ib"><div><h4>Qualification (points)</h4><ul>${ICP.qual.map(([q, w], i) => `<li><span class="w">Q${i + 1}·${w}</span>${esc(q)}</li>`).join("")}</ul></div>
+    <div><h4>Disqualify if</h4><ul>${ICP.dq.map(d => `<li>${esc(d)}</li>`).join("")}</ul><h4 style="margin-top:10px">Buyer</h4><p style="font-size:13px">${esc(ICP.buyer)}</p></div></div></div>`);
+  L.ok("ICP v2 saved to the client brain. It keeps sharpening as review decisions come in.");
+  addCost(0, 0, 35); L.done(); markDone("research");
+  if (!playing) out.insertAdjacentHTML("beforeend", `<div class="row"><button class="btn red" type="button" data-jump="signals">Next: generate signals →</button></div>`), renderNav();
+}
+
+/* ---------- 3. signals ---------- */
+function uiSignals(){
+  $("#signals-ui").innerHTML = `
+    <div class="card hot">
+      <h3>Signals we track for Attestly</h3>
+      <div class="field"><label for="sigText">From the team (plain English)</label>
+        <textarea id="sigText" style="min-height:76px;font-family:var(--f-body);font-size:13.5px">Companies that just got into an accelerator, are hiring their first enterprise AE, or just put up a trust page. They're about to hit their first security review.</textarea></div>
+      <div class="row"><button class="btn red" id="runSignals" type="button">Plan sources + research</button><span class="hint">Claude combines this with the customer patterns and ICP</span></div>
+    </div>
+    <div id="sgOut"></div>`;
+  $("#runSignals").onclick = runSignals;
+}
+async function runSignals(){
+  const L = logger("signals"); L.clear(); $("#runSignals").disabled = true; const out = $("#sgOut"); out.innerHTML = "";
+  L.h("1 · build the signal brief from research");
+  L.block("signal brief (auto-assembled)", `Client sells: ${ICP.one_liner}
+Their customers have in common: B2B selling to enterprise or regulated buyers; seed to A
+- B2B software selling to enterprise or regulated buyers (5/6)
+- Recently went through an accelerator (4/6)
+Buyer: ${ICP.buyer}
+Disqualify: ${ICP.dq.join("; ")}`);
+  L.h("2 · Claude plans where those signals show up");
+  L.req("POST", "/api/claude", "tier=smart · step=Source planning");
+  await wait(1300); L.claude("claude-sonnet-5-5", "source planning", 5200, 2400, 9800);
+  out.insertAdjacentHTML("beforeend", `<div class="card"><h3>Sources Claude planned <span class="chip sp">${SOURCES.length}</span></h3>
+    <div class="tablewrap"><table><thead><tr><th></th><th>Source</th><th>Signal</th><th>Type</th><th>Status</th></tr></thead><tbody>
+    ${SOURCES.map((s, i) => `<tr><td><span class="tick ${s.on ? "on" : ""}">${s.on ? "✓" : ""}</span></td><td><b>${esc(s.name)}</b><div class="hint">${esc(s.url || "search: " + s.query)}</div></td><td>${esc(s.signal)}</td><td><span class="chip ${s.access === "login" ? "dim" : ""}">${esc(s.access === "login" ? "login" : s.type)}</span></td><td id="src-${i}"><span class="status">${s.on ? "queued" : "skipped"}</span></td></tr>`).join("")}
+    </tbody></table></div></div>`);
+  L.h("3 · research each source (fast mode, 2 at a time)");
+  L.dim("  fast mode: reader renders the page (JS included), follows up to 3 pagination links with no AI,");
+  L.dim("  then Haiku reads the text in 14k chunks and extracts companies with dated evidence.");
+  const on = SOURCES.map((s, i) => [s, i]).filter(([s]) => s.on);
+  for (let k = 0; k < on.length; k += 2){
+    const pair = on.slice(k, k + 2);
+    pair.forEach(([s, i]) => { L.req("POST", "/api/research-source", s.name); $("#src-" + i).innerHTML = '<span class="status run">reading…</span>'; });
+    await wait(900);
+    for (const [s, i] of pair){
+      await wait(250);
+      const pagesRead = s.url ? 3 : 0;
+      L.dim(`  ${s.url ? "read " + pagesRead + " pages" : "1 capped web search"} → ${s.found} companies, ${s.added} new after dedupe`);
+      L.claude("claude-haiku-4-5", "extract", 28000, 2600, 4200);
+      $("#src-" + i).innerHTML = `<span class="status ok">✓ ${s.found} found · ${s.added} new</span>`;
+    }
+  }
+  L.dim("  dedupe: existing customers, the client's own domain, and anything already found");
+  L.ok("31 signal companies, ranked by fit to the ICP");
+  out.insertAdjacentHTML("beforeend", `<div class="card"><h3>Signal companies <span class="chip ok sp">31</span></h3>
+    <div class="tablewrap"><table><thead><tr><th>Fit</th><th>Company</th><th>Signal</th><th>Evidence</th></tr></thead><tbody>
+    ${SIGCOS.map(([n, d, s, e, f]) => `<tr class="new"><td><span class="fit ${f >= 75 ? "hi" : f >= 50 ? "mid" : "lo"}">${f}</span></td><td><b>${esc(n)}</b><div class="hint">${esc(d)}</div></td><td><span class="chip">${esc(s)}</span></td><td>${esc(e)}</td></tr>`).join("")}
+    </tbody></table></div><p class="hint">Driftwork shows the point: right batch, wrong buyer. The ICP's "consumer product" disqualifier scores it 22, so it never reaches review.</p></div>`);
+  addCost(0, 0, 20); L.done(); markDone("signals");
+  if (!playing) out.insertAdjacentHTML("beforeend", `<div class="row"><button class="btn red" type="button" data-jump="review">Next: review the leads →</button></div>`), renderNav();
+}
+
+/* ---------- 4. review ---------- */
+let rvIdx = 0, rvAdded = 0; const decisions = [];
+function uiReview(){
+  rvIdx = 0; rvAdded = 0; decisions.length = 0;
+  $("#review-ui").innerHTML = `
+    <div class="card hot" id="rvStart">
+      <h3>Buyers at signal companies</h3>
+      <p class="hint">Prospeo finds the buyer at each signal company (fit 60+), then Claude scores every lead against ICP v2.</p>
+      <div class="row"><button class="btn red" id="runScore" type="button">Find buyers + score</button></div>
+    </div>
+    <div id="rvBox"></div>
+    <div class="card" id="rvDec" hidden><h3>Decisions saved to memory</h3><div class="decisions" id="rvDecList"></div></div>`;
+  $("#runScore").onclick = runScore;
+}
+async function runScore(){
+  const L = logger("review"); L.clear(); $("#runScore").disabled = true;
+  L.h("1 · find the buyer at each signal company");
+  L.req("POST", "/api/prospeo/people-at", "26 websites · buyer-pattern titles");
+  await wait(800); L.ok("4 buyers matched the buyer pattern (demo shows 4 of 52) · 1 credit"); addCost(0, 1);
+  L.h("2 · score against the ICP");
+  L.req("POST", "/api/claude", "tier=fast · step=Scoring · 25 rows per call");
+  L.block("scoring prompt (excerpt, real)", `You qualify prospects for Attestly.
+Qualification criteria (points):
+${ICP.qual.map(([q, w], i) => `Q${i + 1} [${w}] ${q}`).join("\n")}
+Disqualify if any is true:
+${ICP.dq.map((d, i) => `D${i + 1} ${d}`).join("\n")}
+Rules:
+- Judge the PERSON against the buyer pattern as well as the company.
+- Never invent signals.
+- "hook" is one specific line we could open an email with, grounded in the row.
+THE TEAM'S PAST DECISIONS FOR THIS CLIENT. Treat them as precedent...
+Reply: [{"i":0,"hits":["Q1","Q3"],"tier":2,"disqualifier":null,"reason":"","hook":""}]`);
+  await wait(1100); L.claude("claude-haiku-4-5", "scoring", 7400, 1800, 5200);
+  L.dim("  Claude only marks which criteria each lead meets (hits). The tool adds the points itself,");
+  L.dim("  so a score means the same thing on every run and every client.");
+  L.h("3 · operator reviews, one card at a time");
+  L.dim("  keys: A = add to campaign · S = skip · X = not a fit (blocks the company forever)");
+  $("#rvStart").hidden = true; renderCard();
+}
+function renderCard(){
+  const box = $("#rvBox"); const l = LEADS[rvIdx]; const total = ICP.qual.reduce((s, q) => s + q[1], 0);
+  const camp = `<div class="campbar"><span class="hint">Adding to</span> <b>Attestly · Nov wave 1</b><div class="cprog"><i style="width:${Math.round(rvAdded / 100 * 100)}%"></i></div><span class="hint"><b>${rvAdded}</b> / 100 leads</span></div>`;
+  if (!l){ box.innerHTML = `<div class="review">${camp}<div class="rv-card"><b>Queue reviewed.</b><p class="hint">${rvAdded} added. The next pull will be scored with these decisions as precedent.</p><div class="row"><button class="btn red" type="button" data-jump="prospeo">Next: the Prospeo layer →</button></div></div></div>`; renderNav(); finishReview(); return; }
+  const pts = l.hits.reduce((s, h) => s + ICP.qual[h - 1][1], 0); const pct = Math.round(pts / total * 100); const pass = pct >= 60 && !l.dq;
+  box.innerHTML = `<div class="review">${camp}
+    <div class="rv-card" id="rvCard">
+      <div class="rv-top"><span class="hint">${LEADS.length - rvIdx} to review · tier ${l.tier}</span><span class="rv-flags">${l.flags.map(f => `<span class="chip ${l.dq ? "" : "ok"}">${esc(f)}</span>`).join("")}${l.dq ? `<span class="chip r">${esc(l.dq)}</span>` : ""}</span><span class="pill ${pass ? "pass" : "no"}">${pct}%</span></div>
+      <h3 class="rv-name">${esc(l.name)}</h3>
+      <p>${esc(l.title)} · <b>${esc(l.co)}</b> · ${esc(l.dom)}</p>
+      <p class="hint">${esc(l.meta)}</p>
+      <p><b>Signal:</b> ${esc(l.sig)}</p>
+      <div class="hits">${ICP.qual.map((q, i) => `<span class="hit ${l.hits.includes(i + 1) ? "on" : ""}" title="${esc(q[0])}">Q${i + 1}·${q[1]}</span>`).join("")}</div>
+      <p><b>Why:</b> ${esc(l.why)}</p>
+      ${l.hook ? `<p><b>Opener:</b> <em>${esc(l.hook)}</em></p>` : ""}
+      <div class="rv-acts"><button class="btn red" type="button" data-rv="add">Add to wave 1 <kbd>A</kbd></button><button class="btn" type="button" data-rv="skip">Skip <kbd>S</kbd></button><button class="btn ghost" type="button" data-rv="nofit">Not a fit <kbd>X</kbd></button></div>
+    </div></div>`;
+  box.querySelectorAll("[data-rv]").forEach(b => b.onclick = () => decide(b.dataset.rv));
+}
+async function decide(kind){
+  const l = LEADS[rvIdx]; if (!l) return; const L = logger("review");
+  const card = $("#rvCard"); if (card) card.classList.add("out");
+  if (kind === "add"){ rvAdded++; L.req("POST", "/api/memory/attestly-m3k9", `addSent + addFeedback{kept} · ${l.name}`); L.ok(`${l.co} → wave 1. Never contacted twice across campaigns.`); }
+  else if (kind === "nofit"){ L.req("POST", "/api/memory/attestly-m3k9", `addBlocked{${l.dom}} + addFeedback{removed: "${l.dq || "not a fit"}"}`); L.key(`${l.dom} blocked for this client. Similar companies now get scored down as precedent.`); }
+  else { L.dim(`skipped ${l.name}, stays in the pool`); }
+  decisions.push([kind, l]); addCost(0, 0, 1);
+  $("#rvDec").hidden = false;
+  $("#rvDecList").innerHTML = decisions.map(([k, x]) => `<div><span class="chip ${k === "add" ? "ok" : k === "nofit" ? "r" : ""}">${k === "add" ? "kept" : k === "nofit" ? "blocked" : "skipped"}</span>${esc(x.title)} at ${esc(x.co)}${k === "nofit" ? ` <span class="hint">→ "${esc(x.dq || "not a fit")}" becomes precedent</span>` : ""}</div>`).join("");
+  await wait(280); rvIdx++; renderCard();
+}
+function finishReview(){
+  const L = logger("review");
+  L.h("4 · the loop closes");
+  L.dim("  next scoring call includes, verbatim:");
+  L.block("THE TEAM'S PAST DECISIONS FOR THIS CLIENT", decisions.map(([k, x]) => k === "nofit" ? `Removed by the team:\n- ${x.title} at ${x.co} → ${x.dq || "not a fit"}` : k === "add" ? `Kept and contacted by the team (these were good):\n- ${x.title} at ${x.co}` : "").filter(Boolean).join("\n"));
+  L.ok("review is the training signal. Every client's engine gets sharper with use.");
+  L.done(); markDone("review");
+}
+document.addEventListener("keydown", e => {
+  if (e.target.closest("input,textarea") || !LEADS[rvIdx] || !$("#rvCard")) return;
+  const k = e.key.toLowerCase(); if (k === "a") decide("add"); else if (k === "s") decide("skip"); else if (k === "x") decide("nofit");
+});
+
+/* ---------- 5. prospeo ---------- */
+const FILTERS = {page: 1, filters: {
+  person_job_title: {include: ["Founder", "Co-founder", "CEO", "Founding Account Executive", "VP Sales", "Head of Sales"], exclude: ["Founder in Residence", "Founders Program"], match_mode: "CONTAINS"},
+  person_seniority: {include: ["Founder/Owner", "C-Suite", "Vice President", "Head"]},
+  company_headcount_range: ["1-10", "11-20", "21-50"],
+  company_funding: {stage: ["Pre-seed", "Seed", "Series A"], last_funding_date: "last_24_months"},
+  company_industry: {include: ["Software Development", "Financial Services", "IT Services and IT Consulting"]},
+  company: {websites: {exclude: CUSTOMERS.map(c => c.d).concat(["attestly.ai"])}},
+  person_location_search: {include: ["United States"]},
+}};
+function uiProspeo(){
+  $("#prospeo-ui").innerHTML = `
+    <div class="touch">
+      <div><span class="chip">stage 2</span><b>Team lookup</b>Leaders at each customer, for buyer confirmation.</div>
+      <div><span class="chip">stage 2</span><b>Buyer enrich</b>Full LinkedIn profile for each confirmed buyer.</div>
+      <div class="lit"><span class="chip">here</span><b>ICP → filters</b>The ICP compiles to a Prospeo search, with a fallback ladder.</div>
+      <div><span class="chip">stage 4</span><b>People at signals</b>Buyer at each signal company by website.</div>
+      <div class="lit"><span class="chip">here</span><b>Verified emails</b>Bulk enrich, 50 per call, only verified billed.</div>
+    </div>
+    <div class="card hot">
+      <h3>Translate ICP v2 → Prospeo search</h3>
+      <p class="hint">Claude translates the ICP and buyer pattern into Prospeo's exact filter vocabulary. Anything Prospeo can't filter on becomes a check for the scorer instead.</p>
+      <div class="row"><button class="btn red" id="runProspeo" type="button">Translate + pull 25</button></div>
+    </div>
+    <div id="psOut"></div>`;
+  $("#runProspeo").onclick = runProspeo;
+}
+async function runProspeo(){
+  const L = logger("prospeo"); L.clear(); $("#runProspeo").disabled = true; const out = $("#psOut"); out.innerHTML = "";
+  L.h("1 · translate the ICP into Prospeo filters");
+  L.req("POST", "/api/claude", "tier=smart · step=Translation");
+  L.dim("  allowed values only: Prospeo's seniority, department, headcount and funding enums");
+  L.dim("  titles as full phrases (substring-matched), never bare acronyms like 'cto'");
+  await wait(1200); L.claude("claude-sonnet-5-5", "ICP → filters", 6100, 1400, 6400);
+  L.key("  not expressible in Prospeo → handed to the scorer: 'sells to enterprise or regulated buyers', 'SOC 2 in progress'");
+  out.insertAdjacentHTML("beforeend", `<div class="card"><h3>Prospeo search, generated <span class="chip y sp">POST /search-person</span></h3><div class="json">${esc(JSON.stringify(FILTERS, null, 2))}</div></div>`);
+  L.h("2 · search with a fallback ladder");
+  L.req("POST", "/api/prospeo/search", "full filter set");
+  out.insertAdjacentHTML("beforeend", `<div class="card"><h3>Fallback ladder</h3><p class="hint">If Prospeo rejects a filter, the Worker drops one at a time and shows exactly what happened, instead of failing the pull.</p><div class="ladder" id="ladder"></div></div>`);
+  const lad = $("#ladder");
+  await wait(900); L.err("  try 1: INVALID_FILTERS · company_funding.last_funding_date"); lad.insertAdjacentHTML("beforeend", `<div><span class="num">try 1</span><span>Full filter set</span><span class="chip r">INVALID_FILTERS</span></div>`);
+  await wait(400); L.dim("  waits 1.5s to stay under the rate limit, drops last_funding_date, keeps funding stage");
+  await wait(900); L.ok("  try 2: 25 people (1,284 total match) · 1 credit"); addCost(0, 1); lad.insertAdjacentHTML("beforeend", `<div><span class="num">try 2</span><span>Removed <b>last_funding_date</b> (stage filter still applied)</span><span class="chip ok">OK · 1,284 match</span></div>`);
+  L.h("3 · score, then reveal verified emails");
+  L.req("POST", "/api/claude", "tier=fast · step=Scoring · 25 rows");
+  await wait(800); L.claude("claude-haiku-4-5", "scoring", 7900, 2100, 5600);
+  L.dim("  17 of 25 pass the ICP. Only passing leads get an email lookup.");
+  L.req("POST", "/api/prospeo/emails", "17 leads → bulk-enrich-person (50 per call, only_verified_email)");
+  await wait(1100); L.ok("  14 verified emails · 14 credits (unverified are free and dropped)"); addCost(0, 14, 8);
+  out.insertAdjacentHTML("beforeend", `<div class="card"><h3>Campaign-ready <span class="chip ok sp">14 verified</span></h3>
+    <div class="tablewrap"><table><thead><tr><th>Score</th><th>Buyer</th><th>Company</th><th>Email</th><th>Hook</th></tr></thead><tbody>
+      <tr class="new"><td><span class="fit hi">92</span></td><td><b>Hannah Cole</b><div class="hint">Co-founder & CEO</div></td><td>Ledgerkit</td><td class="num">hannah@ledgerkit.io ✓</td><td class="hint">Banks will send you a 300-question security review…</td></tr>
+      <tr class="new"><td><span class="fit hi">85</span></td><td><b>Ivy Chen</b><div class="hint">Founder & CEO</div></td><td>Tessellate</td><td class="num">ivy@tessellate.ai ✓</td><td class="hint">Your own buyers will audit you first…</td></tr>
+      <tr class="new"><td><span class="fit hi">83</span></td><td><b>Marco Velez</b><div class="hint">Founding AE</div></td><td>Cobaltline</td><td class="num">marco@cobaltline.dev ✓</td><td class="hint">First enterprise deals stall in security review…</td></tr>
+      <tr class="new"><td><span class="fit hi">79</span></td><td><b>Ruth Okafor</b><div class="hint">Co-founder & CEO</div></td><td>Pinegrove</td><td class="num">ruth@pinegrove.so ✓</td><td class="hint">Saw the new trust center, nice. Want the questionnaires…</td></tr>
+    </tbody></table></div>
+    <div class="row"><button class="btn dark" type="button" id="csvBtn">Export CSV for HeyReach</button><span class="hint">Every exported lead is logged as sent, so no one is contacted twice.</span></div></div>`);
+  $("#csvBtn").onclick = () => { L.ok("CSV written: name, title, company, email, linkedin, hook, signal · marked as sent in memory"); };
+  L.ok("ICP in, verified buyers out. Same pipeline for every client, no Clay table to rebuild.");
+  L.done(); markDone("prospeo");
+}
+
+/* ---------- finale ---------- */
+function showFinale(){
+  $("#finale").hidden = false;
+  $("#fUsd").textContent = "$" + meter.usd.toFixed(2);
+  $("#fCred").textContent = meter.cred;
+  $("#fLeads").textContent = 14;
+  const m = meter.min; $("#fTime").textContent = Math.floor(m / 60) ? Math.floor(m / 60) + "h " + (m % 60) + "m" : m + " min";
+}
+
+/* ============ boot, reset, autoplay ============ */
+const UI = {onboard: uiOnboard, research: uiResearch, signals: uiSignals, review: uiReview, prospeo: uiProspeo};
+function boot(){
+  $("#stages").innerHTML = STAGES.map(stageShell).join("");
+  Object.values(UI).forEach(f => f());
+  renderNav();
+  document.querySelectorAll(".stage").forEach(s => io.observe(s));
+  document.querySelectorAll(".node[data-a]").forEach(n => { n.style.cursor = "pointer"; n.onclick = () => jump(n.dataset.a); });
+}
+function reset(){
+  runToken++; playing = false; done.clear(); meter.usd = meter.cred = meter.min = 0; addCost();
+  $("#finale").hidden = true; $("#caption").hidden = true; $("#playBtn").textContent = "▶ Autoplay";
+  boot(); window.scrollTo({top: 0});
+}
+function caption(k, t){ const c = $("#caption"); c.hidden = !t; c.innerHTML = t ? `<span class="k">${esc(k)}</span>${esc(t)}` : ""; }
+function lit(k){ document.querySelectorAll(".node[data-a]").forEach(n => n.classList.toggle("lit", n.dataset.a === k)); }
+async function press(id){ const b = $("#" + id); if (!b) return; b.classList.add("pulse"); await wait(900); b.classList.remove("pulse"); }
+async function autoplay(){
+  if (playing){ reset(); return; }
+  reset(); playing = true; $("#playBtn").textContent = "■ Stop"; const tok = runToken;
+  const alive = () => playing && tok === runToken;
+  const scene = async (k, cap, btn, run) => {
+    if (!alive()) return; lit(k); jump(k); caption(STAGES.find(s => s.k === k).kick, cap);
+    await wait(1600); if (!alive()) return; await press(btn); if (!alive()) return;
+    await run(); await wait(1400);
+  };
+  await scene("onboard", "Website and customers in. The engine reads the site, stages the client and drafts the kickoff.", "runOnboard", runOnboard);
+  await scene("research", "Every customer researched in Prospeo. We tick the real buyer, Claude finds the pattern and builds the ICP.", "runResearch", runResearch);
+  await scene("signals", "Claude plans sources specific to this client, then a cheap reader pulls companies showing the signal.", "runSignals", runSignals);
+  await scene("review", "The operator reviews scored leads. Every decision is remembered and trains the next pull.", "runScore", async () => {
+    await runScore();
+    for (const k of ["add", "add", "nofit", "add"]){ if (!alive()) return; await wait(1500); const b = document.querySelector(`[data-rv="${k}"]`); if (b){ b.classList.add("pulse"); await wait(600); } await decide(k); }
+  });
+  await scene("prospeo", "The ICP compiles into Prospeo filters. Verified emails come back, ready for the campaign.", "runProspeo", runProspeo);
+  if (!alive()) return;
+  caption("", ""); lit(""); playing = false; $("#playBtn").textContent = "▶ Autoplay";
+  $("#finale").scrollIntoView({behavior: "smooth", block: "center"});
+}
+$("#playBtn").onclick = autoplay;
+$("#resetBtn").onclick = reset;
+$("#againBtn").onclick = () => { reset(); };
+$("#speedBtn").onclick = () => { speed = speed === 1 ? 2 : speed === 2 ? 4 : 1; $("#speedBtn").textContent = speed + "x"; };
+boot();
+if (/[?&]autoplay/.test(location.search)) setTimeout(autoplay, 800);
+</script>
+</body>
+</html>

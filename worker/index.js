@@ -400,6 +400,15 @@ export default {
       }
       if (path === "/api/logout") return json({ ok: true }, 200, { "set-cookie": `${COOKIE}=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0` });
 
+      // Public, read-only demo of the engine (fictional data, no API calls): crackedgtm.ai/onboarding/demo
+      if (path === "/onboarding/demo") return Response.redirect(url.origin + "/onboarding/demo/", 301);
+      if (path.startsWith("/onboarding/demo/")) {
+        const res = await env.ASSETS.fetch(req);
+        const out = new Response(res.body, res);
+        out.headers.set("cache-control", "public, max-age=300"); out.headers.set("x-robots-tag", "noindex");
+        return out;
+      }
+
       const authed = await validSession(req, env);
 
       if (path === "/onboarding" || path.startsWith("/onboarding/")) {

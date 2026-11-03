@@ -734,6 +734,13 @@ Reply with only: {"findings":[{"where":"page or url","what":"one plain sentence"
         if (error && !Object.keys(out).length) return fail(502, error);
         return json({ companies: out, credits, ...(error ? { warning: error } : {}) });
       }
+      if (path === "/api/yc" && req.method === "GET") {
+        // YC's public company directory (yc-oss, rebuilt daily), passed through untouched so the browser does the filtering
+        const what = url.searchParams.get("f") === "meta" ? "meta.json" : "companies/all.json";
+        const r = await fetch("https://yc-oss.github.io/api/" + what, { cf: { cacheTtl: 21600, cacheEverything: true } });
+        if (!r.ok) return fail(502, "Couldn't load the YC directory (" + r.status + ")");
+        return new Response(r.body, { headers: { "content-type": "application/json", "cache-control": "private, max-age=3600" } });
+      }
       if (path === "/api/prospeo/suggest" && req.method === "POST") {
         // Free Prospeo lookup that returns location names exactly as Prospeo stores them
         if (!env.PROSPEO_API_KEY) return fail(503, "PROSPEO_API_KEY is not set on the Worker.");
@@ -762,7 +769,7 @@ Reply with only: {"findings":[{"where":"page or url","what":"one plain sentence"
         const send = async () => {
           const sent = { page: restart ? 1 : (body.page || 1), filters: JSON.parse(JSON.stringify(filters)) };
           if (attempts.length) await new Promise(r => setTimeout(r, 1500)); // stay under Prospeo's rate limit
-          const r = await fetch((env.PROSPEO_BASE || "https://api.prospeo.io") + "/search-person", { method: "POST", headers: { "X-KEY": env.PROSPEO_API_KEY, "content-type": "application/json" }, body: JSON.stringify(sent) });
+          const r = await fetch((env.PROSPEO_BASE || "https://api.prospeo.io") + (body.target === "company" ? "/search-company" : "/search-person"), { method: "POST", headers: { "X-KEY": env.PROSPEO_API_KEY, "content-type": "application/json" }, body: JSON.stringify(sent) });
           const raw = await r.text(); let d = {}; try { d = JSON.parse(raw); } catch {}
           return { r, d, raw, sent };
         };

@@ -248,6 +248,7 @@ textarea.in{resize:vertical;line-height:1.55;min-height:150px}
   .card{padding:16px}
 }
 @media (max-width:480px){.mark{display:none}}
+@media (max-width:620px){.meter2{display:none}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 
 /* ---- list builder additions ---- */
@@ -347,6 +348,16 @@ textarea.in.sm{min-height:84px}
 .li a{color:var(--ink);font-weight:700}
 .li .big{font-family:var(--f-display);font-weight:900;font-size:17px}
 #rsWrap:empty{display:none}
+.segs{display:flex;flex-direction:column;gap:10px}
+.seg2{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:start;padding:14px 16px;border-radius:var(--r-sm);background:var(--glass-2);box-shadow:var(--shadow-sm)}
+.seg2 h3{font-family:var(--f-display);font-weight:800;font-size:16px}
+.seg2 .counts{display:flex;gap:14px;flex-wrap:wrap;align-items:baseline;margin-top:6px}
+.seg2 .counts b{font-family:var(--f-display);font-weight:900;font-size:22px}
+.seg2 .counts span{font-size:12.5px;color:var(--muted)}
+.seg2 .sample{font-size:12.5px;color:var(--muted);margin-top:4px}
+.seg2 .acts{display:flex;flex-direction:column;gap:6px;align-items:flex-end}
+.seg2 .bar{margin-top:8px}
+@media (max-width:760px){.seg2{grid-template-columns:minmax(0,1fr)}.seg2 .acts{flex-direction:row;flex-wrap:wrap;align-items:center}}
 #rsWrap{margin-bottom:20px}
 @media (max-width:760px){
   .row3,.checks,.statrow{grid-template-columns:minmax(0,1fr)}
@@ -363,10 +374,11 @@ textarea.in.sm{min-height:84px}
 <nav class="nav"><div class="navin">
   <button class="mark" type="button" id="homeBtn">Cracked GTM</button>
   <div class="seg" id="seg">
-    <button type="button" data-view="intake">Intake</button>
-    <button type="button" data-view="icp" disabled>ICP</button>
-    <button type="button" data-view="train" disabled>Train</button>
-    <button type="button" data-view="list" disabled>List</button>
+    <button type="button" data-view="intake" data-need="1">Intake</button>
+    <button type="button" data-view="icp" data-need="2" disabled>ICP</button>
+    <button type="button" data-view="train" data-need="3" disabled>Train</button>
+    <button type="button" data-view="market" data-need="2" disabled>Market</button>
+    <button type="button" data-view="list" data-need="3" disabled>List</button>
   </div>
   <span class="meter2" id="meter" title="Spend on this client">$0.00 · 0 credits</span>
 </div></nav>
@@ -451,6 +463,7 @@ textarea.in.sm{min-height:84px}
 
   <section class="view" id="v-icp" hidden></section>
   <section class="view" id="v-train" hidden></section>
+  <section class="view" id="v-market" hidden></section>
   <section class="view" id="v-list" hidden></section>
 </main>
 
@@ -480,7 +493,7 @@ let uid = 0; const nid = p => (p || "x") + (++uid) + Date.now().toString(36);
 const fresh = () => ({id: null, base: null, unlocked: 1, view: "home",
   intake: {name: "", site: "", founders: [], comp: "", dream: "", never: "", locs: [], locOnly: true, event: "", sources: [], ctx: "", siteText: ""},
   analysis: null, icp: null, prevIcp: null, checks: [], signals: [], rules: [],
-  pool: {}, round: null, rounds: [], tab: "ready", locFilter: true, usedQueries: [], prospeo: {variants: [], page: 1},
+  pool: {}, round: null, rounds: [], tab: "ready", locFilter: true, usedQueries: [], prospeo: {variants: [], page: 1}, market: {segments: [], yc: null},
   spend: {usd: 0, credits: 0}});
 let S = fresh();
 let busy = false, saveTimer = null, status = {};
@@ -516,7 +529,7 @@ async function saveNow(){
   readIntake();
   const I = S.intake;
   const lb = {v: 1, unlocked: S.unlocked, intake: {...I, sources: I.sources.map(s => ({...s, text: String(s.text || "").slice(0, 40000)})), siteText: String(I.siteText || "").slice(0, 15000)},
-    analysis: S.analysis, icp: S.icp, checks: S.checks, signals: S.signals, rules: S.rules, pool: compactPool(), rounds: S.rounds.slice(-40), usedQueries: S.usedQueries.slice(-80), prospeo: S.prospeo, spend: S.spend};
+    analysis: S.analysis, icp: S.icp, checks: S.checks, signals: S.signals, rules: S.rules, pool: compactPool(), rounds: S.rounds.slice(-40), usedQueries: S.usedQueries.slice(-80), prospeo: S.prospeo, market: S.market, spend: S.spend};
   let body = JSON.stringify(lb);
   if (body.length > 800000){ lb.intake.sources = lb.intake.sources.map(s => ({...s, text: s.text.slice(0, 8000)})); body = JSON.stringify(lb); }
   const by = k => I.sources.filter(s => s.kind === k).map(s => `## ${s.name}\n${s.text}`).join("\n\n").slice(0, 60000);
@@ -573,22 +586,23 @@ function importDemo(c){
 function openClient(c){
   S = fresh(); S.id = c.id; S.base = {...c}; delete S.base.id; delete S.base.updatedAt;
   const lb = c.lb;
-  Object.assign(S, {unlocked: lb.unlocked || 1, analysis: lb.analysis, icp: lb.icp, checks: arr(lb.checks), signals: arr(lb.signals), rules: arr(lb.rules), pool: lb.pool || {}, rounds: arr(lb.rounds), usedQueries: arr(lb.usedQueries), prospeo: lb.prospeo || {variants: [], page: 1}, spend: lb.spend || {usd: 0, credits: 0}});
+  Object.assign(S, {unlocked: lb.unlocked || 1, analysis: lb.analysis, icp: lb.icp, checks: arr(lb.checks), signals: arr(lb.signals), rules: arr(lb.rules), pool: lb.pool || {}, rounds: arr(lb.rounds), usedQueries: arr(lb.usedQueries), prospeo: lb.prospeo || {variants: [], page: 1}, market: lb.market || {segments: [], yc: null}, spend: lb.spend || {usd: 0, credits: 0}});
   S.intake = {...S.intake, ...lb.intake};
   addSpend(0, 0); writeIntake();
   if (S.unlocked >= 2 && S.analysis) renderIcp();
   if (S.unlocked >= 3){ renderTrain(); if (S.round) prepRound(); }
   if (S.unlocked >= 4) renderList();
-  show(S.unlocked >= 4 ? "list" : S.unlocked >= 3 ? "train" : S.unlocked >= 2 ? "icp" : "intake");
+  show(S.unlocked >= 3 && Object.values(S.pool).some(t => t.review) ? "list" : S.unlocked >= 3 ? "train" : S.unlocked >= 2 ? "icp" : "intake");
 }
 
 /* ================= navigation ================= */
 function show(view){
   S.view = view;
-  ["home", "intake", "icp", "train", "list"].forEach(v => $("#v-" + v).hidden = v !== view);
-  $("#rsWrap").hidden = !(view === "train" || view === "list");
-  document.querySelectorAll("#seg button").forEach((b, i) => { b.classList.toggle("on", b.dataset.view === view); b.disabled = i + 1 > S.unlocked; });
+  ["home", "intake", "icp", "train", "market", "list"].forEach(v => $("#v-" + v).hidden = v !== view);
+  $("#rsWrap").hidden = !(view === "train" || view === "list" || view === "market");
+  document.querySelectorAll("#seg button").forEach(b => { b.classList.toggle("on", b.dataset.view === view); b.disabled = Number(b.dataset.need) > S.unlocked; });
   if (view === "list") renderList();
+  if (view === "market") renderMarket();
   window.scrollTo({top: 0, behavior: "smooth"});
 }
 document.querySelectorAll("#seg button").forEach(b => b.onclick = () => show(b.dataset.view));
@@ -883,7 +897,8 @@ function addCandidate(c){
     const t = S.pool[id]; if (t && c.people?.length && !arr(t.people).length) t.people = c.people;
     return false;
   }
-  S.pool[id] = {id, name: c.name, site: domainOf(c.site || ""), what: c.what || "", loc: c.loc || "", size: c.size || "", stage: c.stage || "", sig: c.sig || "", evidence: c.evidence || "", evidenceUrl: c.evidenceUrl || "", src: c.src || "", people: arr(c.people), addedAt: Date.now(), s: null, review: null};
+  if (ycCache){ const yc = ycCache.find(x => domainOf(x.website || "") === domainOf(c.site || "") && c.site); if (yc){ c.yc = yc.batch || "YC"; } }
+  S.pool[id] = {id, yc: c.yc || "", name: c.name, site: domainOf(c.site || ""), what: c.what || "", loc: c.loc || "", size: c.size || "", stage: c.stage || "", sig: c.sig || "", evidence: c.evidence || "", evidenceUrl: c.evidenceUrl || "", src: c.src || "", people: arr(c.people), addedAt: Date.now(), s: null, review: null};
   return true;
 }
 async function webSearch(queries, limit){
@@ -1150,6 +1165,7 @@ function renderSummary(){
     ${trusted ? `<div class="banner"><span><b>It's calling it your way.</b> Two rounds in a row at 80% or better. The ready list is worth trusting now.</span></div>` : ""}
     <div class="foot">
       <button class="pill" type="button" id="nextRound">Next ${BATCH} <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+      <button class="ghost" type="button" data-go="market">Map the market</button>
       <button class="${trusted ? "pill" : "ghost"}" type="button" data-go="list">See the list (${B.kept.length + B.ready.length})</button>
       <div class="status" id="moreStatus"></div>
     </div>`;
@@ -1196,6 +1212,171 @@ async function nextRound(){
 function wireTrainFoot(){
   document.querySelectorAll("#v-train [data-go]").forEach(b => b.onclick = () => { S.unlocked = Math.max(S.unlocked, 4); show(b.dataset.go); save(); });
   const m = $("#moreBtn"); if (m) m.onclick = async () => { m.disabled = true; try { await refill("#moreStatus", 25); } catch(e){} newRound(); renderTrain(); save(); };
+}
+
+/* ================= market map (TAM) ================= */
+const fmtN = n => n == null ? "–" : Number(n).toLocaleString();
+function companyFromSearch(co, label){
+  const loc = co.location ? (typeof co.location === "string" ? co.location : [co.location.city, co.location.state, co.location.country].filter(Boolean).join(", ")) : "";
+  const f = co.funding || {};
+  return {name: co.name || co.domain || "", site: domainOf(co.domain || co.website || ""), what: String(co.description || co.description_ai || co.short_description || co.industry || "").slice(0, 280), loc,
+    size: co.employee_count != null ? String(co.employee_count) : (co.employee_range || ""), stage: f.latest_funding_stage ? f.latest_funding_stage + (f.latest_funding_date ? " (" + String(f.latest_funding_date).slice(0, 7) + ")" : "") : "",
+    sig: label, src: "Market", li: {name: co.name || "", employees: co.employee_count ?? null, range: co.employee_range || "", linkedin: co.linkedin_url || "", location: loc, stage: f.latest_funding_stage || "", fundedAt: f.latest_funding_date || "", totalFunding: f.total_funding_printed || ""}};
+}
+async function segSearch(seg, local, page){
+  const filters = JSON.parse(JSON.stringify(seg.filters));
+  if (local && S.intake.locs.length) filters.company_location_search = {include: S.intake.locs};
+  return api("/api/prospeo/search", {target: "company", filters, page: page || 1, strict: true, keep: local ? ["company_location_search"] : []});
+}
+async function countSegment(seg){
+  seg.counting = true; renderMarket();
+  try {
+    const w = await segSearch(seg, false, 1); seg.world = w.pagination?.total_count ?? arr(w.results).length;
+    seg.sample = arr(w.results).slice(0, 4).map(x => x.company?.name).filter(Boolean);
+    seg.loosened = arr(w.attempts).map(a => a.dropped).filter(Boolean);
+    if (S.intake.locs.length){ const l = await segSearch(seg, true, 1); seg.local = l.pagination?.total_count ?? arr(l.results).length; seg.localPages = l.pagination?.total_page || 1; }
+    seg.err = "";
+  } catch(e){ seg.err = e.error || "Prospeo couldn't search this segment"; }
+  seg.counting = false; renderMarket(); save();
+}
+async function mapMarket(){
+  const b = $("#mapBtn"); if (b) b.disabled = true; $("#mkStatus").innerHTML = "";
+  const l = line("#mkStatus", "Splitting the market into segments", ["reading the ICP", "using what you kept and passed", "writing Prospeo filters"]);
+  try {
+    const kept = Object.values(S.pool).filter(t => t.review === "keep").slice(-8).map(t => t.name + " (" + t.what.slice(0, 70) + ")");
+    const r = await claude(`${brief()}\nKept so far: ${kept.join("; ") || "none"}\n\nMap the total addressable market for ${S.intake.name} as 5 to 7 distinct segments of companies that could buy (not competitors). Each segment is a group a seller would recognise (e.g. "Voice agents for healthcare scheduling"), described in one line, and expressed as a Prospeo company search using only these filters, exactly in these shapes:\n${PROSPEO_VOCAB}\nRules: make segments as non-overlapping as you can. keywords are short category phrases companies use about themselves (2-6 per segment). No location filters; the tool adds them.\nReply with only {"segments":[{"label":"","why":"one line on why they buy","filters":{}}]}`, {max: 4000});
+    const allowed = ["company_keywords", "company_website_search", "company_industry", "company_headcount_range", "company_funding", "company_job_posting_hiring_for", "company_founded"];
+    const segs = arr(r.segments).map(x => { const f = {}; for (const k of allowed) if (x.filters && x.filters[k]) f[k] = x.filters[k];
+      if (Array.isArray(f.company_headcount_range)) f.company_headcount_range = f.company_headcount_range.filter(v => HEADCOUNT.includes(v));
+      if (f.company_funding?.stage) f.company_funding.stage = arr(f.company_funding.stage).filter(v => FUNDING.includes(v));
+      return {id: nid("g"), label: x.label || "Segment", why: x.why || "", filters: f, page: 1, pulled: 0}; }).filter(x => Object.keys(x.filters).length);
+    if (!segs.length) throw {error: "No segments came back. Try again."};
+    S.market.segments = segs; l.done(true, `${segs.length} segments`);
+    renderMarket();
+    const l2 = line("#mkStatus", "Counting companies in each segment with Prospeo");
+    await pmap(segs, 2, countSegment); l2.done(true, "Counted");
+    save(); renderMarket();
+    const st = $("#mkStatus"); if (st) st.innerHTML = `<div class="ok">✓ Mapped ${segs.length} segments. Add the ones you want to your list.</div>`;
+  } catch(e){ l.done(false, e.error || "Couldn't map the market"); }
+  const b2 = $("#mapBtn"); if (b2) b2.disabled = false;
+}
+async function addSegment(text){
+  $("#mkStatus").innerHTML = ""; const l = line("#mkStatus", "Turning that into a search");
+  try {
+    const r = await claude(`${brief()}\nThe team wants this market segment: "${text}"\nExpress it as a Prospeo company search using only these filters, exactly in these shapes:\n${PROSPEO_VOCAB}\nNo location filters.\nReply with only {"label":"","why":"","filters":{}}`, {max: 1500, tier: "fast"});
+    const seg = {id: nid("g"), label: r.label || text, why: r.why || "", filters: r.filters || {}, page: 1, pulled: 0};
+    S.market.segments.push(seg); l.done(true, "Added"); await countSegment(seg);
+    const st = $("#mkStatus"); if (st) st.innerHTML = `<div class="ok">✓ Added "${esc(seg.label)}"</div>`;
+  } catch(e){ l.done(false, e.error); }
+}
+async function pullSegment(id, maxPages){
+  const seg = S.market.segments.find(x => x.id === id); if (!seg || seg.pulling) return;
+  seg.pulling = true; renderMarket();
+  const local = S.intake.locOnly && S.intake.locs.length > 0;
+  let added = 0, pages = 0; const newIds = [];
+  try {
+    while (pages < maxPages && !seg.done){
+      const r = await segSearch(seg, local, seg.page); pages++; seg.page++;
+      const res = arr(r.results); if (!res.length || seg.page > (r.pagination?.total_page || 1)) seg.done = true;
+      res.forEach(x => { const c = companyFromSearch(x.company || {}, seg.label); if (addCandidate(c)){ added++; const t = S.pool[keyOf(c.name, c.site)]; if (t){ t.li = c.li; newIds.push(t.id); } } });
+      seg.pulled += res.length; seg.status = `Pulling… ${seg.pulled} so far`; renderMarket();
+    }
+    if (newIds.length){ seg.status = `Judging ${newIds.length} companies`; renderMarket(); await scoreAll(newIds); newIds.forEach(id => { const t = S.pool[id]; if (t?.s && t.loc){ const f = inFocus(t.loc); if (f !== null) t.s.inLoc = f; } }); }
+    seg.status = `Added ${added} new companies to your list` + (seg.done ? " (that's everyone in this segment)" : "");
+  } catch(e){ seg.status = e.error || "Couldn't pull this segment"; }
+  seg.pulling = false; S.unlocked = Math.max(S.unlocked, 3); save(); renderMarket();
+}
+
+/* ================= YC directory ================= */
+let ycCache = null;
+async function loadYcData(){
+  if (ycCache) return ycCache;
+  let data = null;
+  try { const r = await fetch("https://yc-oss.github.io/api/companies/all.json"); if (r.ok) data = await r.json(); } catch(e){}
+  if (!data){ const r = await fetch("/api/yc", {credentials: "same-origin"}); if (!r.ok) throw {error: "Couldn't load the YC directory. Try again in a minute."}; data = await r.json(); }
+  ycCache = arr(data); return ycCache;
+}
+function markYc(){
+  if (!ycCache) return;
+  const byDom = new Map(ycCache.map(c => [domainOf(c.website || ""), c]).filter(x => x[0]));
+  Object.values(S.pool).forEach(t => { const c = t.site && byDom.get(t.site); if (c && !t.yc){ t.yc = c.batch || "YC"; t.ycUrl = c.url || ""; } });
+}
+async function pullYc(){
+  const b = $("#ycBtn"); if (b) b.disabled = true; $("#ycStatus").innerHTML = "";
+  try {
+    const l1 = line("#ycStatus", "Loading YC's company directory");
+    const all = await loadYcData(); const active = all.filter(c => !c.status || ["active", "public"].includes(String(c.status).toLowerCase()));
+    l1.done(true, `${fmtN(all.length)} YC companies, ${fmtN(active.length)} active`);
+    const l2 = line("#ycStatus", "Choosing what to look for", ["reading the ICP and your rules"]);
+    const kw = await claude(`${brief()}\n\nWe will search YC's company directory text (one-liner, description, tags) for companies that could buy from ${S.intake.name}. Give 12-25 short lowercase keywords or phrases that a matching company would use about itself (e.g. "voice agent", "phone calls", "receptionist"), and a few words that mark a competitor to exclude.\nReply with only {"include":[""],"exclude":[""]}`, {tier: "fast", max: 1200});
+    const inc = arr(kw.include).map(x => String(x).toLowerCase().trim()).filter(x => x.length > 2);
+    const exc = arr(kw.exclude).map(x => String(x).toLowerCase().trim()).filter(x => x.length > 3);
+    l2.done(true, `Looking for: ${inc.slice(0, 8).join(", ")}${inc.length > 8 ? "…" : ""}`);
+    const text = c => [c.one_liner, c.long_description, arr(c.tags).join(" "), arr(c.industries).join(" ")].join(" ").toLowerCase();
+    const hits = active.map(c => { const t = text(c); return {c, n: inc.filter(k => t.includes(k)).length, bad: exc.some(k => t.includes(k))}; })
+      .filter(x => x.n > 0).sort((a, b) => b.n - a.n || String(b.c.batch).localeCompare(String(a.c.batch))).slice(0, 400);
+    const ids = []; let added = 0;
+    hits.forEach(({c}) => {
+      const site = domainOf(c.website || ""); const loc = String(c.all_locations || "").split(";")[0].trim();
+      const cand = {name: c.name, site, what: c.one_liner || String(c.long_description || "").slice(0, 200), loc, size: c.team_size != null ? String(c.team_size) : "", stage: "YC " + (c.batch || ""), sig: "YC " + (c.batch || ""), evidence: [c.isHiring ? "Hiring now" : "", arr(c.tags).slice(0, 4).join(", ")].filter(Boolean).join(" · "), src: "YC"};
+      if (addCandidate(cand)) added++;
+      const t = S.pool[keyOf(c.name, site)]; if (t){ t.yc = c.batch || "YC"; t.ycUrl = c.url || ""; ids.push(t.id); }
+    });
+    markYc();
+    const todo = ids.filter(id => !S.pool[id].s && !S.pool[id].review);
+    if (todo.length){ const l3 = line("#ycStatus", `Judging ${todo.length} YC companies against your rules`); await scoreAll(todo); todo.forEach(id => { const t = S.pool[id]; if (t?.s && t.loc){ const f = inFocus(t.loc); if (f !== null) t.s.inLoc = f; } }); l3.done(); }
+    S.market.yc = {matched: hits.length, added, at: Date.now()}; S.unlocked = Math.max(S.unlocked, 3); save();
+    $("#ycStatus").insertAdjacentHTML("beforeend", `<div class="ok">✓ ${hits.length} YC companies match, ${added} new to your list. They're in the YC tab on the list.</div>`);
+    renderMarketStats();
+  } catch(e){ $("#ycStatus").insertAdjacentHTML("beforeend", `<div class="bad">✕ ${esc(e.error || "Couldn't pull YC companies")}</div>`); }
+  const b2 = $("#ycBtn"); if (b2) b2.disabled = false;
+}
+function marketStatsHTML(){
+  const segs = S.market.segments; const world = segs.reduce((a, x) => a + (x.world || 0), 0); const local = segs.reduce((a, x) => a + (x.local || 0), 0);
+  const B = buckets(); const yc = Object.values(S.pool).filter(t => t.yc).length;
+  return `<div><b>${fmtN(world)}</b><span>companies worldwide${segs.length > 1 ? " (segments can overlap)" : ""}</span></div>
+    <div><b>${S.intake.locs.length ? fmtN(local) : "–"}</b><span>in ${esc(S.intake.locs[0] || "your location")}</span></div>
+    <div><b>${fmtN(B.kept.length + B.ready.length)}</b><span>on your list now</span></div>
+    <div><b>${fmtN(yc)}</b><span>YC companies on your list</span></div>`;
+}
+function renderMarketStats(){ const el = $("#mkStats"); if (el) el.innerHTML = marketStatsHTML(); }
+function renderMarket(){
+  if (S.view !== "market") return;
+  const segs = S.market.segments; const max = Math.max(1, ...segs.map(x => x.world || 0)); const loc = S.intake.locs[0] || "";
+  const local = S.intake.locOnly && S.intake.locs.length;
+  const keepMsg = $("#mkStatus") ? $("#mkStatus").innerHTML.replace(/<span class="spin"><\/span>/g, "") : "";
+  $("#v-market").innerHTML = `
+    <div class="vh"><h1>Market map</h1><p>How many companies could buy, split into segments. Add a segment to pull every company in it; each one gets judged with the rules you trained, so the list stays clean.</p></div>
+    <div class="statrow" id="mkStats">${marketStatsHTML()}</div>
+    <div class="card">
+      <div class="sect"><h2>Segments</h2><span>counted with Prospeo's company search · about 1 credit per count</span><button class="ghost r" type="button" id="mapBtn">${segs.length ? "Re-map the market" : "Map the market"}</button></div>
+      <div class="status" id="mkStatus">${keepMsg}</div>
+      <div class="segs">${segs.map(g => `<div class="seg2">
+        <div style="min-width:0"><h3>${esc(g.label)}</h3>${g.why ? `<div class="note">${esc(g.why)}</div>` : ""}
+          <div class="counts">${g.counting ? '<span><span class="spin"></span> Counting…</span>' : g.err ? `<span style="color:var(--bad)">${esc(g.err)}</span>` : `<b>${fmtN(g.world)}</b><span>worldwide</span>${S.intake.locs.length ? `<b>${fmtN(g.local)}</b><span>in ${esc(loc)}</span>` : ""}`}</div>
+          ${g.world ? `<div class="bar"><i style="width:${Math.round(g.world / max * 100)}%"></i></div>` : ""}
+          ${g.sample?.length ? `<div class="sample">e.g. ${g.sample.map(esc).join(", ")}</div>` : ""}
+          ${g.loosened?.length ? `<div class="sample">Prospeo didn't accept: ${esc(g.loosened.join(", "))}, so the count is broader</div>` : ""}
+          ${g.status ? `<div class="sample">${g.pulling ? '<span class="spin"></span> ' : "✓ "}${esc(g.status)}</div>` : ""}</div>
+        <div class="acts">
+          ${g.done ? '<span class="tag good">All added</span>' : `<button class="pill sm" type="button" data-pull="${g.id}" data-pages="1" ${g.pulling ? "disabled" : ""}>Add 25</button>
+          <button class="ghost" type="button" data-pull="${g.id}" data-pages="10" ${g.pulling ? "disabled" : ""}>Add up to 250${local ? " in " + esc(loc.split(",")[0]) : ""}</button>`}
+          <button class="x" type="button" data-segx="${g.id}" aria-label="Remove segment">✕</button></div>
+      </div>`).join("") || '<div class="empty">Map the market to see how big it is.</div>'}</div>
+      <div class="addrule"><input class="in" id="segIn" placeholder="Add a segment in plain words, e.g. AI receptionists for dental clinics" autocomplete="off"><button class="ghost" type="button" id="segAdd">Add</button></div>
+    </div>
+    <div class="card">
+      <div class="sect"><h2>YC companies</h2><span>every active YC company that fits, from YC's public directory (updated daily)</span></div>
+      <div class="foot"><button class="pill sm" type="button" id="ycBtn">${S.market.yc ? "Pull YC companies again" : "Pull YC companies"}</button>${S.market.yc ? `<span class="note">Last pull: ${fmtN(S.market.yc.matched)} matched. They're in the YC tab on the list.</span>` : ""}<button class="link" type="button" id="goYc" style="font-size:13px">Open the YC list →</button></div>
+      <div class="status" id="ycStatus"></div>
+    </div>`;
+  $("#mapBtn").onclick = () => mapMarket();
+  $("#segAdd").onclick = () => { const v = $("#segIn").value.trim(); if (v){ $("#segIn").value = ""; addSegment(v); } };
+  $("#segIn").onkeydown = e => { if (e.key === "Enter") $("#segAdd").click(); };
+  document.querySelectorAll("[data-pull]").forEach(b => b.onclick = () => pullSegment(b.dataset.pull, Number(b.dataset.pages)));
+  document.querySelectorAll("[data-segx]").forEach(b => b.onclick = () => { S.market.segments = S.market.segments.filter(x => x.id !== b.dataset.segx); save(); renderMarket(); });
+  $("#ycBtn").onclick = pullYc;
+  $("#goYc").onclick = () => { S.unlocked = Math.max(S.unlocked, 3); S.tab = "yc"; show("list"); };
 }
 
 /* ================= research you found ================= */
@@ -1268,14 +1449,16 @@ function buckets(){
   const ready = scored.filter(t => t.s.verdict === "keep" && t.s.conf >= 70 && t.s.fit >= 65 && t.s.category !== "competitor" && locOk(t)).sort((a, b) => b.s.fit - a.s.fit);
   const out = scored.filter(t => !ready.includes(t) && (t.s.category === "competitor" || (t.s.verdict === "pass" && t.s.conf >= 65) || !locOk(t)));
   const needs = scored.filter(t => !ready.includes(t) && !out.includes(t)).sort((a, b) => b.s.fit - a.s.fit);
-  return {kept: kept.sort((a, b) => (b.s?.fit || 0) - (a.s?.fit || 0)), ready, needs, out: [...out, ...passed]};
+  const yc = all.filter(t => t.yc && t.review !== "pass" && !(t.s && (t.s.category === "competitor" || (t.s.verdict === "pass" && t.s.conf >= 65))) && locOk(t))
+    .sort((a, b) => (b.review === "keep") - (a.review === "keep") || (b.s?.fit || 0) - (a.s?.fit || 0));
+  return {kept: kept.sort((a, b) => (b.s?.fit || 0) - (a.s?.fit || 0)), ready, needs, out: [...out, ...passed], yc};
 }
 function renderList(){
   if (!S.analysis) return;
   const keepMsg = $("#listStatus") ? $("#listStatus").innerHTML.replace(/<span class="spin"><\/span>/g, "") : "";
   const B = buckets(); const tab = S.tab in B ? S.tab : "ready";
   const rows = B[tab];
-  const labels = {kept: "You kept", ready: "Ready", needs: "Needs you", out: "Filtered out"};
+  const labels = {kept: "You kept", ready: "Ready", needs: "Needs you", out: "Filtered out", yc: "YC"};
   $("#v-list").innerHTML = `
     <div class="vh"><h1>${esc(S.intake.name)} target list</h1><p>Kept plus Ready is the list. Ready means the engine is confident it matches your calls. Train more to grow it.</p></div>
     <div class="toolbar">
@@ -1290,13 +1473,15 @@ function renderList(){
       <button class="ghost" type="button" id="findMore">Find 50 more</button>
       <button class="ghost" type="button" id="peopleBtn">Founders + LinkedIn sizes</button>
       <button class="ghost" type="button" id="emailBtn">Get emails</button>
-      <button class="ghost" type="button" id="csvBtn">Download CSV</button>
+      <button class="ghost" type="button" id="csvBtn">${tab === "yc" ? "Download YC CSV" : "Download CSV"}</button>
     </div>
     <div class="status" id="listStatus">${keepMsg}</div>
-    <div class="tlist">${rows.map(rowHTML).join("") || `<div class="empty">${tab === "ready" ? "Nothing ready yet. Train a round or two and the engine starts sorting companies here." : "Nothing here."}</div>`}</div>`;
+    ${tab === "yc" ? `<p class="note">YC companies that fit, kept first. Not on here: ones you passed, competitors and clear misses.${S.market.yc ? "" : ' <button class="link" type="button" id="ycFromList" style="font-size:12.5px">Pull YC companies →</button>'}</p>` : ""}
+    <div class="tlist">${rows.map(rowHTML).join("") || `<div class="empty">${tab === "yc" ? "No YC companies yet. Pull them from the Market tab." : tab === "ready" ? "Nothing ready yet. Train a round or two and the engine starts sorting companies here." : "Nothing here."}</div>`}</div>`;
   document.querySelectorAll("[data-tab]").forEach(b => b.onclick = () => { S.tab = b.dataset.tab; renderList(); });
   const lf = $("#locFilter"); if (lf) lf.onchange = () => { S.locFilter = lf.checked; renderList(); };
   $("#trainMore").onclick = () => { const ids = buckets().needs.slice(0, BATCH).map(t => t.id); newRound(ids.length ? ids : undefined); renderTrain(); show("train"); };
+  const yf = $("#ycFromList"); if (yf) yf.onclick = () => show("market");
   $("#findMore").onclick = findMore; $("#peopleBtn").onclick = findPeople; $("#emailBtn").onclick = getEmails; $("#csvBtn").onclick = downloadCsv;
   document.querySelectorAll("[data-lfb]").forEach(b => b.onclick = () => listReview(b.dataset.lfb, b.dataset.v));
   document.querySelectorAll("[data-deep]").forEach(b => b.onclick = () => deepResearch(b.dataset.deep));
@@ -1306,7 +1491,7 @@ function rowHTML(t){
   return `<div class="lrow" id="r-${esc(t.id)}">
     <div class="score ${s.fit >= 80 ? "top" : ""}">${sc}</div>
     <div style="min-width:0">
-      <div class="nm"><b>${esc(t.name)}</b>${s.category ? `<span class="cat ${s.category}">${esc(s.category)}</span>` : ""}${t.review === "keep" ? '<span class="tag good">You kept</span>' : t.review === "pass" ? `<span class="tag bad">You passed${t.reason ? ": " + esc(t.reason) : ""}</span>` : ""}${t.sig ? `<span class="tag">${esc(t.sig)}</span>` : ""}</div>
+      <div class="nm"><b>${esc(t.name)}</b>${s.category ? `<span class="cat ${s.category}">${esc(s.category)}</span>` : ""}${t.review === "keep" ? '<span class="tag good">You kept</span>' : t.review === "pass" ? `<span class="tag bad">You passed${t.reason ? ": " + esc(t.reason) : ""}</span>` : ""}${t.yc && !/^YC /.test(t.sig || "") ? `<span class="tag hi">YC ${esc(t.yc)}</span>` : ""}${t.sig ? `<span class="tag">${esc(t.sig)}</span>` : ""}</div>
       <div class="meta">${esc([t.site, t.loc, t.size && (/^\d+$/.test(t.size) ? t.size + " employees" : t.size + " people"), t.stage].filter(Boolean).join(" · "))}</div>
       <p class="why">${esc(s.why || t.what)}</p>
       <details><summary>Details${t.people?.length ? " · " + t.people.length + (t.people.length === 1 ? " person" : " people") : ""}${t.opener ? " · opener" : ""}</summary><div class="detail">
@@ -1386,15 +1571,16 @@ async function getEmails(){
 }
 function downloadCsv(){
   const B = buckets(); const q = v => '"' + String(v ?? "").replace(/"/g, '""') + '"';
+  const ycOnly = S.tab === "yc";
   const rows = [["Status", "Fit", "Company", "Website", "Company LinkedIn", "Location", "Employees (LinkedIn)", "Funding", "What they do", "Why reach out", "Signal", "Evidence", "Opener", "Person", "Title", "LinkedIn", "Email"]];
-  [...B.kept.map(t => ["Kept", t]), ...B.ready.map(t => ["Ready", t])].forEach(([st, t]) => {
+  (ycOnly ? B.yc.map(t => [t.review === "keep" ? "Kept" : B.ready.includes(t) ? "Ready" : "Needs review", t]) : [...B.kept.map(t => ["Kept", t]), ...B.ready.map(t => ["Ready", t])]).forEach(([st, t]) => {
     const base = [st, t.s?.fit ?? "", t.name, t.site, t.li?.linkedin || "", t.loc, t.li?.employees ?? t.li?.range ?? t.size ?? "", t.stage || "", t.what, t.s?.why || "", t.sig, t.evidence, t.opener || ""];
     const ps = arr(t.people).length ? t.people : [{}];
     ps.forEach(p => rows.push([...base, p.name || "", p.title || "", p.linkedin || "", p.email || ""]));
   });
   const blob = new Blob([rows.map(r => r.map(q).join(",")).join("\n")], {type: "text/csv"});
   const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
-  a.download = (S.intake.name || "client").toLowerCase().replace(/[^a-z0-9]+/g, "-") + "-target-list.csv"; a.click();
+  a.download = (S.intake.name || "client").toLowerCase().replace(/[^a-z0-9]+/g, "-") + (ycOnly ? "-yc-companies.csv" : "-target-list.csv"); a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 2000);
 }
 

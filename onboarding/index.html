@@ -570,7 +570,7 @@ async function boot(){
   try { status = await api("/api/status"); } catch {}
   try { settings = {...settings, ...(await api("/api/settings"))}; } catch {}
   await refresh();
-  $("#storeNote").innerHTML = `Claude: <b>${status.claude ? "connected" : "add ANTHROPIC_API_KEY"}</b> · Prospeo: <b>${status.prospeo ? "connected" : "add PROSPEO_API_KEY"}</b> · <a href="#" id="logout">Sign out</a>`;
+  $("#storeNote").innerHTML = `Claude: <b>${status.claude ? "connected" : "add ANTHROPIC_API_KEY"}</b> · Prospeo: <b>${status.prospeo ? "connected" : "add PROSPEO_API_KEY"}</b> · <a href="/onboarding/lists/">List builder</a> · <a href="#" id="logout">Sign out</a>`;
   $("#logout").onclick = async e => { e.preventDefault(); await fetch("/api/logout"); location.reload(); };
   render();
   // pick up Khaled's changes; skip while someone is mid-edit on this screen

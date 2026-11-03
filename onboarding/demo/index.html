@@ -439,6 +439,7 @@ async function detectMode(){
   try { status = await api("/api/status"); live = !!status.claude; } catch(e){ live = false; }
   const m = $("#mode"); m.className = "mode" + (live ? " live" : "");
   m.innerHTML = `<i></i><span>${live ? "Live" : "Demo"}</span>`;
+  if (live && !$("#lbLink")) m.insertAdjacentHTML("afterend", '<a class="mode" id="lbLink" href="/onboarding/lists/" style="text-decoration:none">List builder →</a>');
   renderBanner();
 }
 function renderBanner(){

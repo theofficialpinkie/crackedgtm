@@ -1,0 +1,1260 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<link rel="icon" href="/favicon.svg">
+<title>Cracked GTM List Builder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* Layout: soft clay + frosted glass. One centered column, three views (intake, ICP, targets) behind a pill nav.
+   Blush paper, warm graphite ink, glass tiles tinted sage / mist / cream. Graphite pill = the one action. */
+:root{
+  --bg:#F7EEEC; --bg2:#F2E6E3; --ink:#4B4543; --ink-2:#6E6764; --muted:#9A918D;
+  --glass:rgba(255,255,255,.62); --glass-2:rgba(255,255,255,.82); --rim:rgba(255,255,255,.95); --edge:rgba(120,95,88,.14);
+  --sage:#DDE5DA; --sage-ink:#8FA389; --mist:#DCE6EC; --mist-ink:#9DB6C6; --cream:#EFE9DD; --cream-ink:#B8AC93;
+  --pill:#5B5452; --pill-2:#454040; --on-pill:#FFFFFF;
+  --good:#4E8B63; --good-bg:#E2EFE5; --bad:#B4554C; --bad-bg:#F6E1DE; --hi:#FFE9A8; --on-hi:#4B4543;
+  --shadow:0 1px 0 var(--rim) inset, 0 18px 40px -18px rgba(110,80,72,.35), 0 2px 6px rgba(110,80,72,.08);
+  --shadow-sm:0 1px 0 var(--rim) inset, 0 6px 16px -8px rgba(110,80,72,.28);
+  --f-display:'Nunito','Arial Rounded MT Bold','Helvetica Rounded',system-ui,sans-serif;
+  --f-body:'DM Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --f-mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+  --r:22px; --r-sm:14px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#1D1A19; --bg2:#242120; --ink:#EDE6E3; --ink-2:#C4BBB7; --muted:#8E8582;
+  --glass:rgba(255,255,255,.06); --glass-2:rgba(255,255,255,.1); --rim:rgba(255,255,255,.1); --edge:rgba(255,255,255,.08);
+  --sage:#2C3329; --sage-ink:#8FA389; --mist:#273038; --mist-ink:#9DB6C6; --cream:#332F28; --cream-ink:#B8AC93;
+  --pill:#EDE6E3; --pill-2:#D6CDC9; --on-pill:#1D1A19;
+  --good:#7FC495; --good-bg:#1F2D23; --bad:#E88B81; --bad-bg:#3A2321; --hi:#5E5230; --on-hi:#FFF4D2;
+  --shadow:0 1px 0 var(--rim) inset, 0 18px 40px -18px rgba(0,0,0,.7); --shadow-sm:0 1px 0 var(--rim) inset, 0 6px 16px -8px rgba(0,0,0,.6);
+  color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#1D1A19; --bg2:#242120; --ink:#EDE6E3; --ink-2:#C4BBB7; --muted:#8E8582;
+  --glass:rgba(255,255,255,.06); --glass-2:rgba(255,255,255,.1); --rim:rgba(255,255,255,.1); --edge:rgba(255,255,255,.08);
+  --sage:#2C3329; --sage-ink:#8FA389; --mist:#273038; --mist-ink:#9DB6C6; --cream:#332F28; --cream-ink:#B8AC93;
+  --pill:#EDE6E3; --pill-2:#D6CDC9; --on-pill:#1D1A19;
+  --good:#7FC495; --good-bg:#1F2D23; --bad:#E88B81; --bad-bg:#3A2321; --hi:#5E5230; --on-hi:#FFF4D2;
+  --shadow:0 1px 0 var(--rim) inset, 0 18px 40px -18px rgba(0,0,0,.7); --shadow-sm:0 1px 0 var(--rim) inset, 0 6px 16px -8px rgba(0,0,0,.6);
+  color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{min-height:100%}
+body{margin:0;min-height:100vh;background:radial-gradient(1200px 700px at 50% -10%,var(--bg2),transparent 70%),var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased}
+button,input,textarea,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--ink-2);outline-offset:3px}
+h1,h2,h3,p{margin:0}
+h1,h2,h3{text-wrap:balance}
+a{color:inherit}
+
+/* nav */
+.nav{position:sticky;top:0;z-index:30;padding:14px max(16px,env(safe-area-inset-right,0px)) 14px max(16px,env(safe-area-inset-left,0px));background:linear-gradient(var(--bg) 60%,transparent)}
+.nav .navin{max-width:960px;margin:0 auto;display:flex;align-items:center;gap:12px}
+.mark{font-family:var(--f-display);font-weight:900;font-size:19px;letter-spacing:-.02em;color:var(--ink);text-decoration:none;margin-right:auto;cursor:pointer;background:none;border:0;padding:0}
+.seg{display:flex;padding:4px;border-radius:999px;background:var(--glass);box-shadow:var(--shadow-sm);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+.seg button{all:unset;cursor:pointer;padding:6px 14px;border-radius:999px;font-size:13px;font-weight:600;color:var(--muted)}
+.seg button.on{background:var(--glass-2);color:var(--ink);box-shadow:var(--shadow-sm)}
+.seg button:disabled{cursor:not-allowed;opacity:.5}
+.mode{display:flex;align-items:center;gap:7px;font-size:12.5px;font-weight:600;color:var(--ink-2);padding:6px 12px;border-radius:999px;background:var(--glass);box-shadow:var(--shadow-sm);white-space:nowrap}
+.mode i{width:7px;height:7px;border-radius:50%;background:var(--cream-ink)}
+.mode.live i{background:var(--good);box-shadow:0 0 0 3px var(--good-bg)}
+
+/* buttons */
+.pill{display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:50px;padding:0 28px;border-radius:999px;border:0;cursor:pointer;
+  background:linear-gradient(180deg,var(--pill),var(--pill-2));color:var(--on-pill);font-family:var(--f-display);font-weight:800;font-size:17px;letter-spacing:-.01em;
+  box-shadow:0 1px 0 rgba(255,255,255,.25) inset,0 -2px 0 rgba(0,0,0,.18) inset,0 14px 28px -12px rgba(70,50,45,.55);transition:transform .15s ease,box-shadow .15s ease}
+.pill:hover{transform:translateY(-1px)}
+.pill:active{transform:translateY(1px)}
+.pill:disabled{opacity:.45;cursor:not-allowed;transform:none}
+.pill.sm{min-height:38px;padding:0 18px;font-size:14px}
+.ghost{display:inline-flex;align-items:center;gap:8px;min-height:36px;padding:0 14px;border-radius:999px;border:0;background:var(--glass);box-shadow:var(--shadow-sm);cursor:pointer;font-weight:600;font-size:13.5px;color:var(--ink)}
+.ghost:hover{background:var(--glass-2)}
+.ghost:disabled{opacity:.45;cursor:not-allowed}
+.link{all:unset;cursor:pointer;color:var(--ink-2);font-weight:600;display:inline-flex;align-items:center;gap:8px}
+.link:hover{color:var(--ink)}
+
+main{max-width:960px;margin:0 auto;padding:8px max(16px,env(safe-area-inset-right,0px)) 80px max(16px,env(safe-area-inset-left,0px))}
+.view{display:flex;flex-direction:column;gap:20px;animation:rise .35s ease}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}}
+
+/* home */
+.home{align-items:center;text-align:center;padding:56px 0 40px;gap:26px}
+.stage{position:relative;width:min(640px,100%);aspect-ratio:16/9;max-width:100%;display:grid;place-items:center}
+.word{position:relative;z-index:2;font-family:var(--f-display);font-weight:900;font-size:clamp(64px,13vw,132px);line-height:.86;letter-spacing:-.045em;color:var(--ink);
+  text-shadow:0 1px 0 rgba(255,255,255,.35),0 -1px 0 rgba(0,0,0,.25),0 3px 0 rgba(0,0,0,.08),0 14px 22px rgba(90,60,55,.28)}
+.tile{position:absolute;z-index:1;border-radius:30px;background:var(--glass);border:1px solid var(--rim);box-shadow:var(--shadow);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);display:grid;place-items:center;animation:bob 6s ease-in-out infinite}
+.tile svg{width:44%;height:44%}
+.t1{width:26%;aspect-ratio:1.25;left:7%;top:2%;background:color-mix(in srgb,var(--sage) 75%,transparent)}
+.t2{width:16%;aspect-ratio:.9;right:6%;top:18%;background:color-mix(in srgb,var(--cream) 70%,transparent);animation-delay:-2s}
+.t3{width:16%;aspect-ratio:1.1;left:6%;bottom:16%;background:color-mix(in srgb,var(--sage) 55%,transparent);animation-delay:-4s}
+.t4{width:22%;aspect-ratio:1.2;right:10%;bottom:4%;background:color-mix(in srgb,var(--mist) 70%,transparent);animation-delay:-1s}
+@keyframes bob{50%{transform:translateY(-6px)}}
+.home p.sub{font-size:17px;color:var(--ink-2);max-width:46ch}
+.home .acts{display:flex;flex-direction:column;align-items:center;gap:14px}
+
+/* glass card */
+.card{background:var(--glass);border:1px solid var(--rim);border-radius:var(--r);box-shadow:var(--shadow);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);padding:22px;display:flex;flex-direction:column;gap:16px;min-width:0}
+.vh{display:flex;flex-direction:column;align-items:flex-start;gap:8px;padding:8px 4px 0}
+.vh h1{font-family:var(--f-display);font-weight:900;font-size:clamp(28px,4.4vw,40px);letter-spacing:-.03em;line-height:1.02}
+.vh p{flex-basis:100%;color:var(--ink-2);font-size:15.5px;max-width:62ch}
+.sect{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.sect h2{font-family:var(--f-display);font-weight:800;font-size:19px;letter-spacing:-.015em}
+.sect span{font-size:13px;color:var(--muted)}
+.sect .r{margin-left:auto}
+.lbl{font-size:12px;font-weight:700;color:var(--ink-2);letter-spacing:.02em}
+.field{display:flex;flex-direction:column;gap:6px;min-width:0}
+.in{width:100%;padding:12px 14px;border-radius:var(--r-sm);border:1px solid var(--edge);background:var(--glass-2);box-shadow:0 1px 2px rgba(110,80,72,.06) inset;outline:none}
+.in:focus{border-color:var(--ink-2)}
+textarea.in{resize:vertical;line-height:1.55;min-height:150px}
+.row2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{all:unset;cursor:pointer;font-size:12.5px;font-weight:600;padding:5px 11px;border-radius:999px;background:var(--glass-2);box-shadow:var(--shadow-sm);color:var(--ink-2)}
+.chip:hover{color:var(--ink)}
+.note{font-size:12.5px;color:var(--muted)}
+.banner{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:12px 16px;border-radius:var(--r-sm);background:color-mix(in srgb,var(--cream) 80%,transparent);font-size:13.5px;color:var(--ink-2)}
+.banner b{color:var(--ink)}
+.banner .sp{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+.err{padding:10px 14px;border-radius:var(--r-sm);background:var(--bad-bg);color:var(--bad);font-size:13.5px;font-weight:600}
+
+/* founders */
+.founders{display:flex;flex-direction:column;gap:8px}
+.fadd{display:flex;gap:8px}
+.fadd .in{flex:1}
+.fcard{display:grid;grid-template-columns:40px minmax(0,1fr) auto;gap:12px;align-items:center;padding:10px 12px;border-radius:var(--r-sm);background:var(--glass-2);box-shadow:var(--shadow-sm);animation:rise .25s ease}
+.av{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:var(--mist);color:var(--ink-2);font-family:var(--f-display);font-weight:900}
+.fcard b{display:block;font-size:14px}
+.fcard span{display:block;font-size:12.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.x{all:unset;cursor:pointer;color:var(--muted);padding:4px 8px;border-radius:999px}
+.x:hover{color:var(--ink);background:var(--glass)}
+
+/* data sources */
+.drop{border-radius:var(--r);border:1.5px dashed color-mix(in srgb,var(--ink-2) 30%,transparent);background:color-mix(in srgb,var(--glass) 60%,transparent);padding:22px;display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center;transition:background .15s ease,border-color .15s ease}
+.drop.over{border-color:var(--ink-2);background:var(--glass-2)}
+.drop .ics{display:flex;gap:10px}
+.drop .ics span{width:42px;height:42px;border-radius:14px;display:grid;place-items:center;box-shadow:var(--shadow-sm)}
+.drop .ics svg{width:20px;height:20px}
+.drop b{font-family:var(--f-display);font-weight:800;font-size:17px}
+.drop .acts{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.paste{display:flex;flex-direction:column;gap:8px;padding:14px;border-radius:var(--r-sm);background:var(--glass-2);box-shadow:var(--shadow-sm);animation:rise .2s ease}
+.paste .rowx{display:flex;gap:8px;flex-wrap:wrap}
+.paste .rowx .in{flex:1;min-width:180px}
+.srcs{display:flex;flex-direction:column;gap:8px}
+.src{display:grid;grid-template-columns:40px minmax(0,1fr) auto auto;gap:12px;align-items:center;padding:10px 12px;border-radius:var(--r-sm);background:var(--glass-2);box-shadow:var(--shadow-sm);animation:rise .25s ease}
+.src .ic{width:40px;height:40px;border-radius:12px;display:grid;place-items:center}
+.src .ic svg{width:19px;height:19px}
+.src b{display:block;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.src span.m{display:block;font-size:12.5px;color:var(--muted)}
+.kind{appearance:none;-webkit-appearance:none;border:0;border-radius:999px;padding:6px 28px 6px 12px;font-size:12.5px;font-weight:700;cursor:pointer;color:var(--ink);background:var(--glass) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%239A918D' stroke-width='1.6'/%3E%3C/svg%3E") no-repeat right 11px center;box-shadow:var(--shadow-sm)}
+.src .pv{grid-column:1/-1;font-size:13px;white-space:pre-wrap;max-height:200px;overflow:auto;padding:10px 12px;border-radius:12px;background:var(--glass);color:var(--ink-2)}
+.k-call{background:var(--sage);color:var(--sage-ink)} .k-crm{background:var(--mist);color:var(--mist-ink)} .k-list{background:var(--cream);color:var(--cream-ink)} .k-doc{background:var(--glass);color:var(--muted)}
+.foot{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.status{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--ink-2)}
+.status div{display:flex;gap:8px;align-items:center;animation:rise .2s ease}
+.status .ok{color:var(--good)}
+.status .bad{color:var(--bad)}
+.spin{width:12px;height:12px;border-radius:50%;border:2px solid var(--edge);border-top-color:var(--ink-2);animation:sp .7s linear infinite;flex-shrink:0;display:inline-block}
+@keyframes sp{to{transform:rotate(360deg)}}
+
+/* ICP view */
+.trio{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.trio > div{padding:16px;border-radius:var(--r-sm);background:var(--glass-2);box-shadow:var(--shadow-sm);display:flex;flex-direction:column;gap:8px;font-size:14px;min-width:0}
+.trio > div:nth-child(1){background:color-mix(in srgb,var(--sage) 70%,var(--glass-2))}
+.trio > div:nth-child(3){background:color-mix(in srgb,var(--mist) 70%,var(--glass-2))}
+.q{font-size:14px;padding-left:12px;border-left:2px solid var(--ink-2)}
+.q span{display:block;font-size:12px;color:var(--muted);margin-top:2px}
+.pats{display:flex;flex-direction:column}
+.pat{display:grid;grid-template-columns:minmax(0,1fr) 120px 44px;gap:14px;align-items:center;padding:11px 0;border-top:1px solid var(--edge);font-size:14.5px}
+.pat:first-child{border-top:0}
+.pat small{display:block;font-size:12px;color:var(--muted)}
+.bar{height:8px;border-radius:999px;background:var(--glass-2);box-shadow:0 1px 2px rgba(0,0,0,.06) inset;overflow:hidden}
+.bar i{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,var(--sage-ink),var(--ink-2));transition:width .8s ease}
+.pat .c{font-family:var(--f-mono);font-size:12.5px;text-align:right;color:var(--ink-2)}
+.sigs{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px}
+.sig{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;padding:12px 14px;border-radius:var(--r-sm);background:var(--glass-2);box-shadow:var(--shadow-sm)}
+.sig b{display:block;font-size:14px;outline:none;border-radius:6px}
+.sig b:focus{background:var(--glass)}
+.sig span{font-size:12.5px;color:var(--muted)}
+.icp{border-radius:var(--r);background:var(--glass-2);box-shadow:var(--shadow);overflow:hidden}
+.icp-h{display:flex;gap:10px;align-items:center;padding:12px 18px;background:color-mix(in srgb,var(--cream) 70%,transparent);flex-wrap:wrap}
+.icp-h b{font-family:var(--f-display);font-weight:900;font-size:16px}
+.tag{display:inline-flex;align-items:center;padding:2px 9px;border-radius:999px;font-size:11.5px;font-weight:700;background:var(--glass-2);color:var(--ink-2);white-space:nowrap}
+.tag.hi{background:var(--hi);color:var(--on-hi)}
+.tag.bad{background:var(--bad-bg);color:var(--bad)}
+.tag.good{background:var(--good-bg);color:var(--good)}
+.icp-b{padding:16px 18px;display:flex;flex-direction:column;gap:14px}
+.icp-b p.line{font-size:17px;font-family:var(--f-display);font-weight:800;letter-spacing:-.01em;line-height:1.3}
+.icp-b ul{margin:6px 0 0;padding-left:18px;font-size:14px;display:flex;flex-direction:column;gap:3px}
+.changed{background:var(--hi);color:var(--on-hi);border-radius:5px;padding:0 4px;box-decoration-break:clone;-webkit-box-decoration-break:clone;animation:fade 4s ease forwards}
+@keyframes fade{0%,70%{background:var(--hi)}100%{background:transparent;color:inherit}}
+.steer{display:flex;gap:8px}
+.steer .in{flex:1}
+
+/* targets */
+.learn{padding:16px 18px;border-radius:var(--r);background:color-mix(in srgb,var(--hi) 85%,transparent);color:var(--on-hi);box-shadow:var(--shadow);display:flex;flex-direction:column;gap:6px;animation:rise .35s ease}
+.learn b{font-family:var(--f-display);font-weight:900;font-size:16px}
+.learn ul{margin:0;padding-left:18px;font-size:14px}
+.tlist{display:flex;flex-direction:column;gap:10px}
+.t{display:grid;grid-template-columns:52px minmax(0,1fr) auto;gap:14px;align-items:start;padding:16px;border-radius:var(--r);background:var(--glass-2);box-shadow:var(--shadow-sm);transition:opacity .4s ease}
+.t.new{animation:newin 2.8s ease}
+@keyframes newin{0%{opacity:0;transform:translateY(-6px);background:var(--hi)}15%{opacity:1;transform:none}70%{background:var(--hi)}}
+.t.gone{opacity:.42}
+.t.gone .nm > span:first-child{text-decoration:line-through}
+.score{width:52px;height:52px;border-radius:16px;display:grid;place-items:center;font-family:var(--f-display);font-weight:900;font-size:19px;background:var(--glass);box-shadow:var(--shadow-sm);color:var(--ink-2)}
+.score.top{background:linear-gradient(180deg,var(--pill),var(--pill-2));color:var(--on-pill)}
+.nm{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-weight:700;font-size:15.5px}
+.meta{font-size:12.5px;color:var(--muted)}
+.why{font-size:14px;margin-top:6px;max-width:64ch}
+.acts2{display:flex;gap:6px}
+.fb{all:unset;cursor:pointer;width:38px;height:38px;border-radius:12px;display:grid;place-items:center;background:var(--glass);box-shadow:var(--shadow-sm);font-size:16px}
+.fb:hover{background:var(--glass-2)}
+.fb.up.on{background:var(--good-bg);box-shadow:0 0 0 1.5px var(--good) inset}
+.fb.down.on{background:var(--bad-bg);box-shadow:0 0 0 1.5px var(--bad) inset}
+.reasons{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:10px}
+.reasons span{font-size:12.5px;color:var(--muted)}
+.reasons button{all:unset;cursor:pointer;font-size:12.5px;font-weight:600;padding:4px 11px;border-radius:999px;background:var(--glass);box-shadow:var(--shadow-sm)}
+.reasons button.on,.reasons button:hover{background:var(--bad-bg);color:var(--bad)}
+.reasons input{border:0;border-radius:999px;padding:4px 11px;font-size:12.5px;background:var(--glass);box-shadow:var(--shadow-sm);min-width:0;width:160px;outline:none}
+.more{all:unset;cursor:pointer;margin-top:10px;font-size:13px;font-weight:700;color:var(--ink-2);display:inline-flex;gap:8px;align-items:center}
+.more:hover{color:var(--ink)}
+.deep{margin-top:10px;border-radius:var(--r-sm);background:var(--glass);box-shadow:var(--shadow-sm);overflow:hidden}
+.deep .bh{display:flex;align-items:center;gap:8px;padding:8px 12px;font-size:12px;color:var(--muted);border-bottom:1px solid var(--edge)}
+.deep .bh .dots{display:flex;gap:4px}
+.deep .bh .dots i{width:8px;height:8px;border-radius:50%;background:var(--edge)}
+.deep .bh .url{flex:1;min-width:0;padding:3px 10px;border-radius:999px;background:var(--glass-2);font-family:var(--f-mono);font-size:11.5px;color:var(--ink-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.deep .bl{padding:10px 14px;display:flex;flex-direction:column;gap:5px;font-size:13px}
+.deep .bl div{animation:rise .2s ease}
+.deep .bl small{color:var(--muted);font-family:var(--f-mono);font-size:11px;margin-right:6px}
+.deep .res{padding:12px 14px;border-top:1px solid var(--edge);display:flex;flex-direction:column;gap:6px;font-size:14px;background:var(--glass-2)}
+.empty{padding:28px;text-align:center;color:var(--muted)}
+.caption{position:fixed;left:50%;bottom:calc(22px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:50;padding:11px 20px;border-radius:999px;background:linear-gradient(180deg,var(--pill),var(--pill-2));color:var(--on-pill);font-weight:600;font-size:14.5px;max-width:min(680px,calc(100vw - 32px));text-align:center;box-shadow:0 18px 40px -14px rgba(60,40,35,.6)}
+.ping{animation:ping 1s ease 2}
+@keyframes ping{50%{box-shadow:0 0 0 6px var(--hi)}}
+
+@media (max-width:760px){
+  .row2,.trio,.sigs{grid-template-columns:minmax(0,1fr)}
+  .seg button{padding:6px 10px}
+  .mode span{display:none}
+  .pat{grid-template-columns:minmax(0,1fr) 44px}
+  .pat .bar{display:none}
+  .t{grid-template-columns:44px minmax(0,1fr)}
+  .score{width:44px;height:44px;font-size:16px}
+  .t .acts2{grid-column:2}
+  .src{grid-template-columns:40px minmax(0,1fr) auto}
+  .src .kind{grid-column:2;justify-self:start}
+  .card{padding:16px}
+}
+@media (max-width:480px){.mark{display:none}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* ---- list builder additions ---- */
+textarea.in.sm{min-height:84px}
+.row3{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1fr);gap:14px}
+.help{font-size:12.5px;color:var(--muted)}
+.locs{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.lchip{display:inline-flex;align-items:center;gap:6px;padding:5px 6px 5px 12px;border-radius:999px;background:var(--glass-2);box-shadow:var(--shadow-sm);font-size:12.5px;font-weight:600}
+.lchip button{all:unset;cursor:pointer;color:var(--muted);padding:0 6px}
+.lchip.sug{cursor:pointer;padding-right:12px;color:var(--ink-2)}
+.check{display:flex;gap:8px;align-items:center;font-size:13.5px;cursor:pointer}
+.check input{width:16px;height:16px;accent-color:var(--pill)}
+.meter2{font-family:var(--f-mono);font-size:11.5px;color:var(--muted);white-space:nowrap}
+.resume{display:flex;flex-direction:column;gap:8px;width:min(520px,100%)}
+.resume button{all:unset;cursor:pointer;display:flex;justify-content:space-between;gap:12px;align-items:center;padding:12px 16px;border-radius:var(--r-sm);background:var(--glass-2);box-shadow:var(--shadow-sm);text-align:left}
+.resume button:hover{background:var(--card,var(--glass-2))}
+.resume b{font-size:15px}
+.resume span{font-size:12.5px;color:var(--muted)}
+.rules{display:flex;flex-direction:column;gap:6px}
+.rule{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:start;padding:10px 12px;border-radius:var(--r-sm);background:var(--glass-2);box-shadow:var(--shadow-sm);font-size:14px}
+.rule .k{font-size:11px;font-weight:800;padding:2px 8px;border-radius:999px;white-space:nowrap;margin-top:1px}
+.rule .k.skip{background:var(--bad-bg);color:var(--bad)}
+.rule .k.keep{background:var(--good-bg);color:var(--good)}
+.rule .k.boost{background:var(--hi);color:var(--on-hi)}
+.rule .txt{outline:none;border-radius:6px}
+.rule .txt:focus{background:var(--glass)}
+.rule small{display:block;color:var(--muted);font-size:12px}
+.rule.new{animation:newin 2.6s ease}
+.addrule{display:flex;gap:8px}
+.addrule .in{flex:1}
+.addrule select{flex:0 0 auto}
+
+/* training */
+.train{display:flex;flex-direction:column;gap:16px;align-items:stretch}
+.progress{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.dots{display:flex;gap:6px}
+.dots i{width:28px;height:8px;border-radius:999px;background:var(--glass-2);box-shadow:0 1px 2px rgba(0,0,0,.06) inset}
+.dots i.k{background:var(--good)}
+.dots i.p{background:var(--bad)}
+.dots i.u{background:var(--muted)}
+.dots i.cur{box-shadow:0 0 0 2px var(--ink-2)}
+.tcard{background:var(--glass-2);border:1px solid var(--rim);border-radius:26px;box-shadow:var(--shadow);padding:24px;display:flex;flex-direction:column;gap:14px;animation:rise .3s ease;min-width:0}
+.tcard.out-k{animation:outk .3s ease forwards}
+.tcard.out-p{animation:outp .3s ease forwards}
+@keyframes outk{to{opacity:0;transform:translateX(40px) rotate(2deg)}}
+@keyframes outp{to{opacity:0;transform:translateX(-40px) rotate(-2deg)}}
+.tcard .top{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.tcard h2{font-family:var(--f-display);font-weight:900;font-size:28px;letter-spacing:-.025em;line-height:1.05}
+.tcard .what{font-size:16px}
+.cat{font-size:12px;font-weight:800;padding:3px 10px;border-radius:999px;white-space:nowrap}
+.cat.customer{background:var(--good-bg);color:var(--good)}
+.cat.competitor{background:var(--bad-bg);color:var(--bad)}
+.cat.channel{background:var(--mist);color:var(--ink-2)}
+.cat.irrelevant{background:var(--glass);color:var(--muted)}
+.checks{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px}
+.ck{display:grid;grid-template-columns:22px minmax(0,1fr);gap:8px;align-items:start;padding:9px 11px;border-radius:12px;background:var(--glass);font-size:13.5px}
+.ck .m{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:800}
+.ck .m.y{background:var(--good-bg);color:var(--good)}
+.ck .m.n{background:var(--bad-bg);color:var(--bad)}
+.ck .m.u{background:var(--glass-2);color:var(--muted)}
+.ck small{display:block;color:var(--muted);font-size:12px}
+.ev{font-size:13.5px;padding:10px 12px;border-radius:12px;background:var(--glass)}
+.ev a{color:var(--ink-2)}
+.unsure{font-size:13.5px;color:var(--ink-2)}
+.decide{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.decide .pill kbd,.decide .ghost kbd{font-family:var(--f-mono);font-size:11px;padding:0 6px;border-radius:6px;background:rgba(255,255,255,.18);font-weight:500}
+.decide .ghost kbd{background:var(--glass)}
+.pill.keep{background:linear-gradient(180deg,#4F8F66,#3E7553)}
+.pill.pass{background:linear-gradient(180deg,#B4554C,#97443D)}
+.reveal{font-size:13.5px;padding:10px 14px;border-radius:12px;animation:rise .2s ease}
+.reveal.match{background:var(--good-bg);color:var(--good)}
+.reveal.miss{background:var(--hi);color:var(--on-hi)}
+.people{display:flex;flex-direction:column;gap:4px;font-size:13px}
+.people a{color:var(--ink-2)}
+.summary{display:flex;flex-direction:column;gap:14px}
+.bignum{font-family:var(--f-display);font-weight:900;font-size:44px;letter-spacing:-.03em;line-height:1}
+.statrow{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.statrow div{padding:12px 14px;border-radius:var(--r-sm);background:var(--glass-2);box-shadow:var(--shadow-sm)}
+.statrow b{font-family:var(--f-display);font-weight:900;font-size:24px;display:block;line-height:1.1}
+.statrow span{font-size:12px;color:var(--muted)}
+
+/* list */
+.tabs{display:flex;gap:6px;flex-wrap:wrap}
+.tabs button{all:unset;cursor:pointer;padding:7px 14px;border-radius:999px;font-size:13.5px;font-weight:700;color:var(--ink-2);background:var(--glass);box-shadow:var(--shadow-sm)}
+.tabs button.on{background:linear-gradient(180deg,var(--pill),var(--pill-2));color:var(--on-pill)}
+.tabs button i{font-style:normal;opacity:.7;margin-left:4px}
+.lrow{display:grid;grid-template-columns:48px minmax(0,1fr) auto;gap:12px;align-items:start;padding:14px;border-radius:var(--r);background:var(--glass-2);box-shadow:var(--shadow-sm)}
+.lrow .nm{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.lrow details summary{cursor:pointer;list-style:none;font-size:13px;font-weight:700;color:var(--ink-2);margin-top:8px}
+.lrow details summary::-webkit-details-marker{display:none}
+.lrow details[open] summary{margin-bottom:10px}
+.lrow .detail{display:flex;flex-direction:column;gap:10px}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.toolbar .sp{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+@media (max-width:760px){
+  .row3,.checks,.statrow{grid-template-columns:minmax(0,1fr)}
+  .statrow{grid-template-columns:1fr 1fr}
+  .lrow{grid-template-columns:44px minmax(0,1fr)}
+  .lrow .acts2{grid-column:2}
+  .tcard{padding:18px}
+  .tcard h2{font-size:24px}
+}
+</style>
+</head>
+<body>
+
+<nav class="nav"><div class="navin">
+  <button class="mark" type="button" id="homeBtn">Cracked GTM</button>
+  <div class="seg" id="seg">
+    <button type="button" data-view="intake">Intake</button>
+    <button type="button" data-view="icp" disabled>ICP</button>
+    <button type="button" data-view="train" disabled>Train</button>
+    <button type="button" data-view="list" disabled>List</button>
+  </div>
+  <span class="meter2" id="meter" title="Spend on this client">$0.00 · 0 credits</span>
+</div></nav>
+
+<main>
+  <section class="view home" id="v-home">
+    <div class="stage" aria-hidden="true" style="aspect-ratio:2.2/1">
+      <h1 class="word" style="font-size:clamp(52px,10vw,104px)">List<br>Builder</h1>
+    </div>
+    <p class="sub">Tell it about the client. Train it five companies at a time. Get a list it would take you a week to build.</p>
+    <div class="acts"><button class="pill" type="button" id="newBtn">New client <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button></div>
+    <div class="resume" id="resume"></div>
+    <p class="note" id="statusNote"></p>
+  </section>
+
+  <section class="view" id="v-intake" hidden>
+    <div class="vh"><h1>Tell us about the company</h1><p>Fill in what you know. Anything you leave blank, the engine works out from the calls and the website.</p></div>
+
+    <div class="card">
+      <div class="sect"><h2>Company</h2><button class="link r" type="button" id="kalpaBtn" style="font-size:13px">Fill in Kalpa Labs basics</button></div>
+      <div class="row2">
+        <div class="field"><label class="lbl" for="coName">Company name</label><input class="in" id="coName" placeholder="Kalpa Labs" autocomplete="off"></div>
+        <div class="field"><label class="lbl" for="coSite">Website</label><input class="in" id="coSite" placeholder="kalpalabs.ai" autocomplete="off"></div>
+      </div>
+      <div class="field">
+        <label class="lbl" for="fUrl">Founders on LinkedIn</label>
+        <div class="founders" id="founders"></div>
+        <div class="fadd"><input class="in" id="fUrl" placeholder="linkedin.com/in/founder-name" autocomplete="off"><button class="ghost" id="fAdd" type="button">Add</button></div>
+        <span class="help" id="fNote">Pulls their background and past roles (1 Prospeo credit each).</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="sect"><h2>Who to go after</h2><span>this is what the engine checks every company against</span></div>
+      <div class="field"><label class="lbl" for="comp">Competitors</label>
+        <textarea class="in sm" id="comp" placeholder="Names, plus what a competitor looks like.&#10;e.g. ElevenLabs, Cartesia. Anyone building or training their own voice models."></textarea></div>
+      <div class="row2">
+        <div class="field"><label class="lbl" for="dream">Dream customers</label>
+          <textarea class="in sm" id="dream" placeholder="One per line, name or website.&#10;The engine treats these as perfect examples."></textarea></div>
+        <div class="field"><label class="lbl" for="never">Never target</label>
+          <textarea class="in sm" id="never" placeholder="One per line.&#10;e.g. Big contact centers with long procurement"></textarea></div>
+      </div>
+      <div class="row2">
+        <div class="field"><label class="lbl" for="locIn">Location focus</label>
+          <div class="fadd"><input class="in" id="locIn" placeholder="San Francisco" autocomplete="off"><button class="ghost" id="locFind" type="button">Find</button></div>
+          <div class="locs" id="locs"></div>
+          <label class="check"><input type="checkbox" id="locOnly" checked> Only companies in these places</label></div>
+        <div class="field"><label class="lbl" for="event">Meeting around <span class="opt" style="font-weight:500">optional</span></label>
+          <input class="in" id="event" placeholder="e.g. a conference in SF, Nov 18-19" autocomplete="off">
+          <span class="help">Openers will suggest meeting in person around it.</span></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="sect"><h2>Calls and data</h2><span>Granola notes, transcripts, CRM exports, customer lists</span></div>
+      <div class="drop" id="drop">
+        <b>Drop files here</b>
+        <span class="note">.txt, .md, .vtt, .srt, .csv or .json · we guess the type, you can change it</span>
+        <div class="acts">
+          <label class="ghost" for="fileIn" style="cursor:pointer">Choose files</label>
+          <button class="ghost" type="button" id="pasteBtn">Paste a transcript</button>
+          <button class="ghost" type="button" id="linkBtn">Add from a link</button>
+          <input type="file" id="fileIn" multiple accept=".txt,.md,.vtt,.srt,.csv,.json,.text" hidden>
+        </div>
+      </div>
+      <div id="pasteBox"></div>
+      <div class="srcs" id="srcs"></div>
+    </div>
+
+    <div class="card">
+      <div class="sect"><h2>Everything else you know</h2><span>freeform, the more the better</span></div>
+      <textarea class="in" id="ctx" rows="6" placeholder="What they sell and why it's better. Who their best customers are and why. Deals in flight. Pricing. What the founder said they want."></textarea>
+    </div>
+
+    <div class="foot">
+      <button class="pill" type="button" id="buildBtn">Build the ICP <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+      <div class="status" id="buildStatus"></div>
+    </div>
+  </section>
+
+  <section class="view" id="v-icp" hidden></section>
+  <section class="view" id="v-train" hidden></section>
+  <section class="view" id="v-list" hidden></section>
+</main>
+
+<script>
+/* ================= constants ================= */
+const KINDS = [["call_customer", "Customer call"], ["call_sales", "Sales call"], ["call_lost", "Lost deal"], ["call_internal", "Kickoff / internal"], ["crm", "CRM export"], ["customers", "Customer list"], ["notes", "Notes / doc"]];
+const KIND = Object.fromEntries(KINDS);
+const REASONS = ["Competitor", "Too big", "Too small or too early", "Wrong use case", "Not in our location", "Already a customer"];
+const HEADCOUNT = ["1-10","11-20","21-50","51-100","101-200","201-500","501-1000","1001-2000","2001-5000","5001-10000","10000+"];
+const FUNDING = ["Pre seed","Seed","Series A","Series B","Series C","Angel","Series unknown","Undisclosed"];
+const BATCH = 5;
+const PROSPEO_VOCAB = `- company_keywords: {"include":["voice agents"],"search_everywhere":false}  company category or description keywords (2-6 short phrases)
+- company_website_search: {"include_keywords":["text to speech"],"match_mode":"any"}  phrases on their website
+- company_industry: {"include":["Software Development"]}  coarse; prefer keywords
+- company_headcount_range: ["1-10","11-20","21-50"]  plain array, allowed: ${HEADCOUNT.join(" | ")}
+- company_funding: {"stage":["Seed","Series A"],"funding_date":730}  stage allowed: ${FUNDING.join(" | ")}; funding_date = raised within N days
+- company_job_posting_hiring_for: {"include":["voice AI engineer"],"match_type":"contains"}  currently hiring for
+- company_founded: {"min":2019,"max":2026}`;
+
+/* ================= state ================= */
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const arr = x => Array.isArray(x) ? x : [];
+const domainOf = u => { try { return new URL(/^https?:/.test(u) ? u : "https://" + String(u).trim()).hostname.replace(/^www\./, "").toLowerCase(); } catch { return ""; } };
+const keyOf = (name, site) => (domainOf(site || "") || String(name || "").toLowerCase().replace(/[^a-z0-9]+/g, "-")).replace(/^-|-$/g, "");
+let uid = 0; const nid = p => (p || "x") + (++uid) + Date.now().toString(36);
+const fresh = () => ({id: null, base: null, unlocked: 1, view: "home",
+  intake: {name: "", site: "", founders: [], comp: "", dream: "", never: "", locs: [], locOnly: true, event: "", sources: [], ctx: "", siteText: ""},
+  analysis: null, icp: null, prevIcp: null, checks: [], signals: [], rules: [],
+  pool: {}, round: null, rounds: [], tab: "ready", locFilter: true, usedQueries: [], prospeo: {variants: [], page: 1},
+  spend: {usd: 0, credits: 0}});
+let S = fresh();
+let busy = false, saveTimer = null, status = {};
+
+/* ================= api ================= */
+async function api(path, body, method){
+  const r = await fetch(path, {method: method || (body ? "POST" : "GET"), headers: {"content-type": "application/json"}, body: body ? JSON.stringify(body) : undefined, credentials: "same-origin"});
+  const d = await r.json().catch(() => ({}));
+  if (r.status === 401) throw {error: "You're signed out. Reload the page and sign in.", status: 401};
+  if (!r.ok) throw {error: d.error || ("Request failed (" + r.status + ")"), status: r.status, data: d};
+  if (typeof d.cost === "number") addSpend(d.cost, 0);
+  if (typeof d.credits === "number") addSpend(0, d.credits);
+  return d;
+}
+const claude = (prompt, opts = {}) => api("/api/claude", {prompt, maxTokens: opts.max || 8000, tier: opts.tier || "smart", prefix: opts.prefix || ""}).then(r => r.data);
+function addSpend(usd, credits){ S.spend.usd += usd || 0; S.spend.credits += credits || 0; $("#meter").textContent = `$${S.spend.usd.toFixed(2)} · ${S.spend.credits} credit${S.spend.credits === 1 ? "" : "s"}`; }
+async function pmap(items, n, fn){ let i = 0; const out = []; await Promise.all(Array.from({length: Math.min(n, items.length)}, async () => { while (i < items.length){ const k = i++; try { out[k] = await fn(items[k], k); } catch(e){ out[k] = null; } } })); return out; }
+
+/* ================= status lines ================= */
+function line(el, t, subs){
+  const d = document.createElement("div"); $(el).appendChild(d);
+  const t0 = Date.now();
+  const paint = () => { const sec = Math.round((Date.now() - t0) / 1000); const sub = subs && subs.length ? " · " + subs[Math.floor(sec / 3) % subs.length] : ""; d.innerHTML = `<span class="spin"></span>${esc(t + sub)}${sec >= 3 ? ` <span style="color:var(--muted)">${sec}s</span>` : ""}`; };
+  paint(); const iv = setInterval(paint, 1000);
+  return {done(ok = true, msg){ clearInterval(iv); d.className = ok ? "ok" : "bad"; d.textContent = (ok ? "✓ " : "✕ ") + (msg || t); }};
+}
+
+/* ================= save / load ================= */
+function save(){ clearTimeout(saveTimer); saveTimer = setTimeout(() => saveNow().catch(() => {}), 1200); }
+function compactPool(){ const out = {}; for (const [k, t] of Object.entries(S.pool)) out[k] = {...t, deep: arr(t.deep).slice(0, 8)}; return out; }
+async function saveNow(){
+  if (!S.id) return;
+  readIntake();
+  const I = S.intake;
+  const lb = {v: 1, unlocked: S.unlocked, intake: {...I, sources: I.sources.map(s => ({...s, text: String(s.text || "").slice(0, 40000)})), siteText: String(I.siteText || "").slice(0, 15000)},
+    analysis: S.analysis, icp: S.icp, checks: S.checks, signals: S.signals, rules: S.rules, pool: compactPool(), rounds: S.rounds.slice(-40), usedQueries: S.usedQueries.slice(-80), prospeo: S.prospeo, spend: S.spend};
+  let body = JSON.stringify(lb);
+  if (body.length > 800000){ lb.intake.sources = lb.intake.sources.map(s => ({...s, text: s.text.slice(0, 8000)})); body = JSON.stringify(lb); }
+  const by = k => I.sources.filter(s => s.kind === k).map(s => `## ${s.name}\n${s.text}`).join("\n\n").slice(0, 60000);
+  const base = S.base || {createdAt: new Date().toISOString(), checks: {}, checkedAt: {}, icp: null, history: [], draft: null, autoSharpen: true, email: "", first: ""};
+  const rec = {...base, company: I.name || domainOf(I.site) || "Client", website: domainOf(I.site),
+    inputs: {...(base.inputs || {}), site: I.siteText || base.inputs?.site || "", customers: customerDomains().join("\n"), won: [by("call_customer"), by("call_sales")].filter(Boolean).join("\n\n"), lost: by("call_lost"), founder: by("call_internal"),
+      context: [I.ctx, I.comp && "Competitors: " + I.comp, I.never && "Never target: " + I.never, I.dream && "Dream customers: " + I.dream].filter(Boolean).join("\n\n")},
+    lb};
+  delete rec.id; delete rec.updatedAt;
+  await api("/api/clients/" + S.id, rec, "PUT");
+  S.base = rec;
+}
+async function loadResume(){
+  try {
+    const list = await api("/api/clients");
+    const mine = arr(list).filter(c => c.lb).slice(0, 8);
+    $("#resume").innerHTML = mine.length ? `<span class="lbl" style="text-align:left">Pick up where you left off</span>` + mine.map(c => {
+      const pool = Object.values(c.lb.pool || {}); const kept = pool.filter(t => t.review === "keep").length; const rounds = arr(c.lb.rounds).length;
+      return `<button type="button" data-open="${esc(c.id)}"><span><b>${esc(c.company)}</b><br><span>${rounds ? rounds + " rounds trained · " : ""}${kept} kept · ${pool.length} companies</span></span><span>→</span></button>`;
+    }).join("") : "";
+    document.querySelectorAll("[data-open]").forEach(b => b.onclick = () => openClient(mine.find(c => c.id === b.dataset.open)));
+  } catch(e){ $("#statusNote").textContent = e.error || ""; }
+}
+function openClient(c){
+  S = fresh(); S.id = c.id; S.base = {...c}; delete S.base.id; delete S.base.updatedAt;
+  const lb = c.lb;
+  Object.assign(S, {unlocked: lb.unlocked || 1, analysis: lb.analysis, icp: lb.icp, checks: arr(lb.checks), signals: arr(lb.signals), rules: arr(lb.rules), pool: lb.pool || {}, rounds: arr(lb.rounds), usedQueries: arr(lb.usedQueries), prospeo: lb.prospeo || {variants: [], page: 1}, spend: lb.spend || {usd: 0, credits: 0}});
+  S.intake = {...S.intake, ...lb.intake};
+  addSpend(0, 0); writeIntake();
+  if (S.unlocked >= 2 && S.analysis) renderIcp();
+  if (S.unlocked >= 3) renderTrain();
+  if (S.unlocked >= 4) renderList();
+  show(S.unlocked >= 4 ? "list" : S.unlocked >= 3 ? "train" : S.unlocked >= 2 ? "icp" : "intake");
+}
+
+/* ================= navigation ================= */
+function show(view){
+  S.view = view;
+  ["home", "intake", "icp", "train", "list"].forEach(v => $("#v-" + v).hidden = v !== view);
+  document.querySelectorAll("#seg button").forEach((b, i) => { b.classList.toggle("on", b.dataset.view === view); b.disabled = i + 1 > S.unlocked; });
+  if (view === "list") renderList();
+  window.scrollTo({top: 0, behavior: "smooth"});
+}
+document.querySelectorAll("#seg button").forEach(b => b.onclick = () => show(b.dataset.view));
+$("#homeBtn").onclick = () => { show("home"); loadResume(); };
+$("#newBtn").onclick = () => { S = fresh(); writeIntake(); addSpend(0, 0); show("intake"); };
+
+/* ================= intake ================= */
+const F = {name: "#coName", site: "#coSite", comp: "#comp", dream: "#dream", never: "#never", event: "#event", ctx: "#ctx"};
+function readIntake(){ for (const [k, sel] of Object.entries(F)) S.intake[k] = $(sel).value.trim(); S.intake.locOnly = $("#locOnly").checked; }
+function writeIntake(){ for (const [k, sel] of Object.entries(F)) $(sel).value = S.intake[k] || ""; $("#locOnly").checked = S.intake.locOnly !== false; renderFounders(); renderSources(); renderLocs(); }
+$("#coSite").addEventListener("blur", () => { if (!$("#coName").value.trim() && $("#coSite").value.trim()){ const d = domainOf($("#coSite").value).split(".")[0] || ""; $("#coName").value = d.charAt(0).toUpperCase() + d.slice(1); } });
+$("#kalpaBtn").onclick = () => {
+  if (!$("#coName").value.trim()) $("#coName").value = "Kalpa Labs";
+  if (!$("#coSite").value.trim()) $("#coSite").value = "kalpalabs.ai";
+  if (!$("#comp").value.trim()) $("#comp").value = "ElevenLabs, Cartesia, OpenAI voice. Anyone building or training their own text-to-speech or voice models.";
+  if (!$("#ctx").value.trim()) $("#ctx").value = "Speech API for voice agents. #2 on Design Arena's AudioRealismBench, ahead of ElevenLabs, Cartesia and OpenAI. Around 300ms to first audio. English, Hindi and code-switching (Hinglish) in one model. Pipeline today is mostly slow enterprise deals; the founders want startups and a shorter sales cycle.";
+  if (!S.intake.locs.length) findLoc("San Francisco", true);
+};
+// founders
+function renderFounders(){
+  $("#founders").innerHTML = S.intake.founders.map((f, i) => {
+    const p = f.profile; const nm = p?.name || f.url.replace(/^https?:\/\/(www\.)?linkedin\.com\/in\//i, "").replace(/[\/?].*$/, "").replace(/-/g, " ");
+    const sub = f.loading ? "Pulling profile…" : f.error || (p ? [p.title, arr(p.history).filter(h => !h.current).slice(0, 2).map(h => h.title + " at " + h.company).join(" · ")].filter(Boolean).join(" · ") : "");
+    return `<div class="fcard"><span class="av">${esc((nm[0] || "?").toUpperCase())}</span><div style="min-width:0"><b>${esc(nm)}</b><span>${f.loading ? '<span class="spin"></span> ' : ""}${esc(sub)}</span></div><button class="x" type="button" data-fx="${i}" aria-label="Remove founder">✕</button></div>`;
+  }).join("");
+  document.querySelectorAll("[data-fx]").forEach(b => b.onclick = () => { S.intake.founders.splice(+b.dataset.fx, 1); renderFounders(); save(); });
+}
+function profileOf(p){ p = p || {}; const h = arr(p.job_history); const cur = h.find(x => x.current) || h[0] || {};
+  return {name: p.full_name || [p.first_name, p.last_name].filter(Boolean).join(" "), title: p.current_job_title || cur.title || "", headline: p.headline || "", history: h.slice(0, 6).map(x => ({title: x.title || "", company: x.company_name || "", current: !!x.current}))}; }
+async function addFounder(){
+  let url = $("#fUrl").value.trim(); if (!url) return;
+  if (!/linkedin\.com\/in\//i.test(url)){ $("#fNote").textContent = "Use a LinkedIn profile link like linkedin.com/in/name."; return; }
+  if (!/^https?:/.test(url)) url = "https://" + url;
+  const f = {url, loading: true}; S.intake.founders.push(f); $("#fUrl").value = ""; renderFounders();
+  try { const r = await api("/api/enrich-buyer", {linkedin: url}); f.profile = profileOf(r.person); } catch(e){ f.error = e.error; }
+  f.loading = false; renderFounders(); save();
+}
+$("#fAdd").onclick = addFounder;
+$("#fUrl").onkeydown = e => { if (e.key === "Enter"){ e.preventDefault(); addFounder(); } };
+// locations
+function renderLocs(sug = []){
+  $("#locs").innerHTML = S.intake.locs.map((l, i) => `<span class="lchip">${esc(l)}<button type="button" data-lx="${i}" aria-label="Remove ${esc(l)}">✕</button></span>`).join("") +
+    sug.filter(x => !S.intake.locs.includes(x.name)).slice(0, 6).map(x => `<span class="lchip sug" data-ladd="${esc(x.name)}">+ ${esc(x.name)}</span>`).join("");
+  document.querySelectorAll("[data-lx]").forEach(b => b.onclick = () => { S.intake.locs.splice(+b.dataset.lx, 1); renderLocs(); save(); });
+  document.querySelectorAll("[data-ladd]").forEach(b => b.onclick = () => { S.intake.locs.push(b.dataset.ladd); renderLocs(); save(); });
+}
+async function findLoc(q, auto){
+  q = q || $("#locIn").value.trim(); if (!q) return;
+  try {
+    const r = await api("/api/prospeo/suggest", {location: q}); const sug = arr(r.location_suggestions);
+    const pick = auto ? (sug.find(x => /bay area/i.test(x.name)) || sug.find(x => String(x.type).toUpperCase() === "CITY") || sug[0]) : sug.find(x => x.name.toLowerCase() === q.toLowerCase());
+    if (pick){ S.intake.locs = S.intake.locs.filter(l => sug.some(x => x.name === l) || l === pick.name); if (!S.intake.locs.includes(pick.name)) S.intake.locs.push(pick.name); }
+    else if (!sug.length && !S.intake.locs.includes(q)) S.intake.locs.push(q);
+    renderLocs(sug); $("#locIn").value = ""; save();
+  } catch(e){ if (!S.intake.locs.includes(q)) S.intake.locs.push(q); renderLocs(); }
+}
+$("#locFind").onclick = () => findLoc();
+$("#locIn").onkeydown = e => { if (e.key === "Enter"){ e.preventDefault(); findLoc(); } };
+// sources
+function parseCsv(text){
+  const rows = []; let row = [], cell = "", q = false;
+  for (let i = 0; i < text.length; i++){
+    const ch = text[i];
+    if (q){ if (ch === '"' && text[i + 1] === '"'){ cell += '"'; i++; } else if (ch === '"') q = false; else cell += ch; }
+    else if (ch === '"') q = true; else if (ch === ","){ row.push(cell.trim()); cell = ""; }
+    else if (ch === "\n" || ch === "\r"){ if (cell || row.length){ row.push(cell.trim()); rows.push(row); } row = []; cell = ""; if (ch === "\r" && text[i + 1] === "\n") i++; }
+    else cell += ch;
+  }
+  if (cell || row.length){ row.push(cell.trim()); rows.push(row); }
+  return rows.filter(r => r.some(Boolean));
+}
+function guessKind(name, text, csv){
+  const n = name.toLowerCase();
+  if (csv){ const h = csv[0].join(" ").toLowerCase(); if (/stage|deal|pipeline|amount|owner|close/.test(h)) return "crm"; if (/website|domain|url|company/.test(h)) return "customers"; return "crm"; }
+  if (/lost|churn|post.?mortem/.test(n)) return "call_lost";
+  if (/kickoff|kick-off|internal|standup|sync|founder/.test(n)) return "call_internal";
+  if (/customer|check.?in|qbr|onboarding|user interview/.test(n)) return "call_customer";
+  if (/discovery|demo|sales|intro|prospect/.test(n) || /\.(vtt|srt)$/.test(n) || /^\d{1,2}:\d{2}/m.test(text)) return "call_sales";
+  return "notes";
+}
+function addSource(name, text, meta, kind){
+  const isCsv = /\.csv$/i.test(name);
+  const csv = isCsv ? parseCsv(text) : null;
+  S.intake.sources.push({id: nid("s"), name, text: text.slice(0, 60000), csv: csv ? csv.slice(0, 400) : null, kind: kind || guessKind(name, text, csv), meta: meta || (csv ? `CSV · ${csv.length - 1} rows` : `${text.split(/\s+/).filter(Boolean).length.toLocaleString()} words`)});
+  renderSources(); save();
+}
+function renderSources(){
+  $("#srcs").innerHTML = S.intake.sources.map(s => `<div class="src"><span class="ic ${/^call/.test(s.kind) ? "k-call" : s.kind === "crm" ? "k-crm" : s.kind === "customers" ? "k-list" : "k-doc"}" style="font-family:var(--f-mono);font-size:10px">${/^call/.test(s.kind) ? "CALL" : s.kind === "crm" ? "CRM" : s.kind === "customers" ? "LIST" : "DOC"}</span>
+    <div style="min-width:0"><b>${esc(s.name)}</b><span class="m">${esc(s.meta)} · <button class="link" style="font-size:12.5px" type="button" data-sv="${s.id}">${s.open ? "Hide" : "View"}</button></span></div>
+    <select class="kind" data-sk="${s.id}" aria-label="What is this?">${KINDS.map(x => `<option value="${x[0]}" ${x[0] === s.kind ? "selected" : ""}>${x[1]}</option>`).join("")}</select>
+    <button class="x" type="button" data-sx="${s.id}" aria-label="Remove ${esc(s.name)}">✕</button>
+    ${s.open ? `<div class="pv">${s.csv ? esc(s.csv.slice(0, 8).map(r => r.join("  ·  ")).join("\n")) : esc(s.text.slice(0, 3000))}</div>` : ""}</div>`).join("");
+  document.querySelectorAll("[data-sk]").forEach(el => el.onchange = () => { S.intake.sources.find(s => s.id === el.dataset.sk).kind = el.value; renderSources(); save(); });
+  document.querySelectorAll("[data-sx]").forEach(el => el.onclick = () => { S.intake.sources = S.intake.sources.filter(s => s.id !== el.dataset.sx); renderSources(); save(); });
+  document.querySelectorAll("[data-sv]").forEach(el => el.onclick = () => { const s = S.intake.sources.find(x => x.id === el.dataset.sv); s.open = !s.open; renderSources(); });
+}
+function note(msg){ $("#pasteBox").innerHTML = `<div class="err">${esc(msg)}</div>`; setTimeout(() => { if ($("#pasteBox .err")) $("#pasteBox").innerHTML = ""; }, 6000); }
+function readFiles(files){
+  [...files].forEach(f => {
+    if (/^(audio|video)\//.test(f.type)){ note(`${f.name} is a recording. Export the Granola notes or transcript and add that instead.`); return; }
+    if (f.size > 3e6){ note(`${f.name} is over 3 MB. Trim it or paste the key parts.`); return; }
+    const r = new FileReader(); r.onload = () => addSource(f.name, String(r.result || "")); r.readAsText(f);
+  });
+}
+const drop = $("#drop");
+["dragenter", "dragover"].forEach(e => drop.addEventListener(e, ev => { ev.preventDefault(); drop.classList.add("over"); }));
+["dragleave", "drop"].forEach(e => drop.addEventListener(e, ev => { ev.preventDefault(); drop.classList.remove("over"); }));
+drop.addEventListener("drop", ev => readFiles(ev.dataTransfer.files));
+$("#fileIn").addEventListener("change", ev => { readFiles(ev.target.files); ev.target.value = ""; });
+$("#pasteBtn").onclick = () => {
+  $("#pasteBox").innerHTML = `<div class="paste"><div class="rowx"><input class="in" id="pName" placeholder="Name it, e.g. Discovery call with Acme"><select class="kind" id="pKind">${KINDS.map(x => `<option value="${x[0]}">${x[1]}</option>`).join("")}</select></div>
+    <textarea class="in" id="pText" rows="6" placeholder="Paste Granola notes or a transcript"></textarea><div class="rowx"><button class="pill sm" type="button" id="pSave">Add</button><button class="ghost" type="button" id="pCancel">Cancel</button></div></div>`;
+  $("#pText").focus(); $("#pCancel").onclick = () => $("#pasteBox").innerHTML = "";
+  $("#pSave").onclick = () => { const t = $("#pText").value.trim(); if (!t) return; addSource($("#pName").value.trim() || "Pasted notes", t, null, $("#pKind").value); $("#pasteBox").innerHTML = ""; };
+};
+$("#linkBtn").onclick = () => {
+  $("#pasteBox").innerHTML = `<div class="paste"><div class="rowx"><input class="in" id="lUrl" placeholder="Granola share link, Notion page, public Google Doc…"><select class="kind" id="lKind">${KINDS.map(x => `<option value="${x[0]}" ${x[0] === "call_sales" ? "selected" : ""}>${x[1]}</option>`).join("")}</select></div>
+    <div class="rowx"><button class="pill sm" type="button" id="lSave">Fetch</button><button class="ghost" type="button" id="lCancel">Cancel</button><span class="note" id="lNote">The page has to be public.</span></div></div>`;
+  $("#lUrl").focus(); $("#lCancel").onclick = () => $("#pasteBox").innerHTML = "";
+  $("#lSave").onclick = async () => {
+    const u = $("#lUrl").value.trim(); if (!u) return;
+    $("#lSave").disabled = true; $("#lNote").innerHTML = '<span class="spin"></span> Reading…';
+    try { const r = await api("/api/pull-site", {url: u}); addSource(domainOf(u) + " notes", r.text || "", "From link", $("#lKind").value); $("#pasteBox").innerHTML = ""; }
+    catch(e){ $("#lNote").textContent = e.error + " If it's private, paste the notes instead."; $("#lSave").disabled = false; }
+  };
+};
+["#coName", "#coSite", "#comp", "#dream", "#never", "#event", "#ctx"].forEach(s => $(s).addEventListener("input", save));
+$("#locOnly").addEventListener("change", save);
+
+/* ================= helpers on intake ================= */
+const lines = s => String(s || "").split(/\n|;/).map(x => x.replace(/^[-*•\d.)\s]+/, "").trim()).filter(Boolean);
+function customerDomains(){
+  const out = new Set();
+  S.intake.sources.filter(s => s.kind === "customers").forEach(s => {
+    if (s.csv){ const h = s.csv[0].map(x => x.toLowerCase()); const ci = h.findIndex(x => /website|domain|url/.test(x)); s.csv.slice(1).forEach(r => { const d = domainOf(ci >= 0 ? r[ci] : r.find(c => /\.[a-z]{2,}/i.test(c)) || ""); if (d.includes(".")) out.add(d); }); }
+    else s.text.split(/\s+/).forEach(w => { if (/\.[a-z]{2,}/i.test(w)){ const d = domainOf(w); if (d.includes(".")) out.add(d); } });
+  });
+  return [...out].slice(0, 200);
+}
+const locText = () => S.intake.locs.length ? S.intake.locs.join(", ") : "";
+function seedRules(){
+  const I = S.intake, out = [];
+  if (I.comp) out.push({id: nid("r"), kind: "skip", text: "Competitor: " + I.comp.replace(/\s+/g, " "), from: "intake"});
+  lines(I.never).forEach(n => out.push({id: nid("r"), kind: "skip", text: n, from: "intake"}));
+  if (locText()) out.push({id: nid("r"), kind: I.locOnly ? "skip" : "boost", text: I.locOnly ? `Not based in ${locText()}` : `Prefer companies based in ${locText()}`, from: "intake"});
+  lines(I.dream).slice(0, 8).forEach(d => out.push({id: nid("r"), kind: "keep", text: "Looks like " + d + " (dream customer)", from: "intake"}));
+  return out;
+}
+
+/* ================= build: analysis ================= */
+function analysisPrompt(){
+  const I = S.intake;
+  const block = s => `### [${KIND[s.kind]}] ${s.name}\n${s.csv ? s.csv.slice(0, 60).map(r => r.join(" | ")).join("\n") : s.text.slice(0, 9000)}`;
+  const founders = I.founders.filter(f => f.profile).map(f => { const p = f.profile; return `- ${p.name}, ${p.title}. ${p.headline}. Past: ${p.history.filter(h => !h.current).slice(0, 4).map(h => h.title + " at " + h.company).join("; ")}`; }).join("\n");
+  return `You are a GTM strategist onboarding a new client. Work out who they should sell to, what makes a company a good target, and the buying signals to watch.
+
+CLIENT: ${I.name || "(unnamed)"} · ${I.site}
+WEBSITE TEXT:
+${String(I.siteText || "(not available)").slice(0, 12000)}
+
+FOUNDERS:
+${founders || "(none given)"}
+
+FROM OUR TEAM (strong hints):
+Competitors (never target these or anyone like them): ${I.comp || "(not given)"}
+Dream customers: ${I.dream || "(not given)"}
+Never target: ${I.never || "(not given)"}
+Location focus: ${locText() || "(none)"}${I.locOnly && locText() ? " (only this location)" : ""}
+${I.event ? "Meeting around: " + I.event : ""}
+Other context: ${I.ctx.slice(0, 6000) || "(none)"}
+
+SOURCES, each labeled with its type. Customer calls show why people buy. Lost deals show who not to target. Kickoff and internal calls show what the founders want. CRM exports show deal speed and size. Customer lists are who already pays.
+${I.sources.map(block).join("\n\n").slice(0, 70000) || "(none)"}
+
+Rules:
+- Ground everything in the sources and team hints. Quotes must be real lines or close paraphrases from the sources, with the source name. No sources means no quotes.
+- A pattern needs at least 2 examples, given as a count over what it was checked against.
+- "checks" are 4 or 5 yes/no tests every target company must pass, written so a researcher can answer them from a company's website (e.g. "Not a competitor: does not build its own voice models"). Always include a competitor check when competitors are given${locText() ? " and a location check" : ""}.
+- Signals are public, checkable events that mean a company is likely to buy now. Give each a short web search query that surfaces companies showing it (no site: operators).
+- The ICP must reflect what the founders want, not just who bought.
+
+Reply with only one JSON object:
+{"sells":"one or two sentences","quotes":[{"quote":"","source":""}],"market":"two sentences on the industry and how buyers choose",
+"patterns":[{"finding":"","count":0,"of":0,"examples":"names"}],
+"checks":[{"name":"short label","test":"the yes/no question"}],
+"signals":[{"signal":"","why":"","query":""}],
+"icp":{"line":"one sentence","confidence":0,"go_after":[""],"skip":[""]}}`;
+}
+async function build(){
+  if (busy) return; readIntake(); $("#buildStatus").innerHTML = "";
+  const I = S.intake;
+  if (!I.site && !I.sources.length && !I.ctx){ $("#buildStatus").innerHTML = '<div class="bad">Add a website, at least one call or file, or some context first.</div>'; return; }
+  if (!I.name && I.site){ const d = domainOf(I.site).split(".")[0]; I.name = d.charAt(0).toUpperCase() + d.slice(1); $("#coName").value = I.name; }
+  busy = true; $("#buildBtn").disabled = true;
+  try {
+    if (!S.id){ S.id = (I.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40) || "client") + "-" + Date.now().toString(36); }
+    if (I.site){ const l = line("#buildStatus", "Reading " + I.site); try { I.siteText = (await api("/api/pull-site", {url: I.site})).text || ""; l.done(); } catch(e){ l.done(false, "Couldn't read the site: " + e.error); } }
+    const l2 = line("#buildStatus", I.sources.length ? `Reading ${I.sources.length} source${I.sources.length > 1 ? "s" : ""}` : "Reading what you gave us", ["comparing won and lost deals", "pulling customer quotes", "finding patterns", "writing the checks", "drafting the ICP"]);
+    let a; try { a = await claude(analysisPrompt(), {max: 12000}); } catch(e){ a = await claude(analysisPrompt(), {max: 12000}); }
+    if (!a || !a.icp) throw {error: "The analysis came back incomplete. Press Build again."};
+    a.patterns = arr(a.patterns); a.quotes = arr(a.quotes); a.signals = arr(a.signals).filter(x => x && x.signal); a.checks = arr(a.checks).filter(x => x && x.name);
+    l2.done(true, `Found ${a.patterns.length} patterns, ${a.checks.length} checks and ${a.signals.length} signals`);
+    S.analysis = a; S.icp = a.icp; S.prevIcp = null; S.checks = a.checks; S.signals = a.signals;
+    const learned = S.rules.filter(r => r.from !== "intake"); S.rules = [...seedRules(), ...learned];
+    S.unlocked = Math.max(S.unlocked, 2); renderIcp(); show("icp"); save();
+  } catch(e){ $("#buildStatus").insertAdjacentHTML("beforeend", `<div class="bad">✕ ${esc(e.error || "Something went wrong. Try again.")}</div>`); }
+  busy = false; $("#buildBtn").disabled = false;
+}
+$("#buildBtn").onclick = build;
+
+/* ================= ICP view ================= */
+function diffItem(x, prev){ return prev && !arr(prev).includes(x) ? `<span class="changed">${esc(x)}</span>` : esc(x); }
+function icpHTML(){
+  const i = S.icp, p = S.prevIcp;
+  return `<div class="icp"><div class="icp-h"><b>Ideal customer</b><span class="tag">${esc(i.confidence ?? "?")}% confidence</span>${p ? '<span class="tag hi">Updated from your note</span>' : ""}</div>
+    <div class="icp-b"><p class="line">${p && p.line !== i.line ? `<span class="changed">${esc(i.line)}</span>` : esc(i.line)}</p>
+      <div class="row2"><div><span class="lbl">Go after</span><ul>${arr(i.go_after).map(x => `<li>${diffItem(x, p && p.go_after)}</li>`).join("")}</ul></div><div><span class="lbl">Skip</span><ul>${arr(i.skip).map(x => `<li>${diffItem(x, p && p.skip)}</li>`).join("")}</ul></div></div></div></div>`;
+}
+function rulesHTML(idp){
+  return `<div class="rules">${S.rules.map(r => `<div class="rule ${r.isNew ? "new" : ""}"><span class="k ${r.kind}">${r.kind === "skip" ? "Skip" : r.kind === "keep" ? "Keep" : "Boost"}</span><div><span class="txt" contenteditable="true" spellcheck="false" data-rt="${r.id}">${esc(r.text)}</span>${r.why ? `<small>${esc(r.why)}</small>` : ""}${r.from === "learned" ? "<small>Learned from your reviews</small>" : ""}</div><button class="x" type="button" data-rx="${r.id}" aria-label="Remove rule">✕</button></div>`).join("") || '<span class="note">No rules yet. They appear as you review.</span>'}</div>
+    <div class="addrule"><select class="kind" id="${idp}Kind"><option value="skip">Skip</option><option value="keep">Keep</option><option value="boost">Boost</option></select><input class="in" id="${idp}Text" placeholder="Add a rule in plain words, e.g. companies under 10 people"><button class="ghost" type="button" id="${idp}Add">Add</button></div>`;
+}
+function wireRules(idp, rerender){
+  document.querySelectorAll("[data-rt]").forEach(el => el.onblur = () => { const r = S.rules.find(x => x.id === el.dataset.rt); if (r && el.textContent.trim() !== r.text){ r.text = el.textContent.trim(); S.rulesDirty = true; save(); } });
+  document.querySelectorAll("[data-rx]").forEach(el => el.onclick = () => { S.rules = S.rules.filter(x => x.id !== el.dataset.rx); S.rulesDirty = true; save(); rerender(); });
+  const add = () => { const t = $("#" + idp + "Text").value.trim(); if (!t) return; S.rules.push({id: nid("r"), kind: $("#" + idp + "Kind").value, text: t, from: "you"}); S.rulesDirty = true; save(); rerender(); };
+  const b = $("#" + idp + "Add"); if (b) b.onclick = add;
+  const i = $("#" + idp + "Text"); if (i) i.onkeydown = e => { if (e.key === "Enter") add(); };
+}
+function rerIcpRules(){ const el = $("#icpRules"); if (!el) return; el.innerHTML = rulesHTML("ir"); wireRules("ir", rerIcpRules); }
+function rerTrainRules(){ const el = $("#trainRules"); if (!el) return; el.innerHTML = rulesHTML("tr"); wireRules("tr", rerTrainRules); }
+function renderIcp(){
+  const a = S.analysis;
+  $("#v-icp").innerHTML = `
+    <div class="vh"><h1>Who ${esc(S.intake.name || "they")} should sell to</h1><p>Check it, edit anything, then start training. Rules and checks are what every company gets judged on.</p></div>
+    <div class="trio">
+      <div><span class="lbl">What they sell</span><p>${esc(a.sells)}</p></div>
+      <div><span class="lbl">What customers say</span>${a.quotes.slice(0, 3).map(q => `<div class="q">"${esc(q.quote)}"<span>${esc(q.source)}</span></div>`).join("") || '<p class="note">Add customer calls to see quotes here.</p>'}</div>
+      <div><span class="lbl">Market</span><p>${esc(a.market)}</p></div>
+    </div>
+    <div id="icpWrap">${icpHTML()}</div>
+    <div class="card"><div class="sect"><h2>Steer it</h2><span>tell it who to go after, like you'd tell a teammate</span></div>
+      <div class="steer"><input class="in" id="steerIn" placeholder="e.g. focus on startups that can sign fast, skip big enterprise" autocomplete="off"><button class="ghost" id="steerBtn" type="button">Update</button></div>
+      <div class="status" id="steerStatus"></div></div>
+    <div class="card"><div class="sect"><h2>Checks</h2><span>every company gets a yes, no or unknown on each</span></div>
+      <div class="sigs">${S.checks.map((c, i) => `<div class="sig"><div><b contenteditable="true" spellcheck="false" data-ckn="${i}">${esc(c.name)}</b><span contenteditable="true" spellcheck="false" data-ckt="${i}">${esc(c.test)}</span></div><button class="x" type="button" data-ckx="${i}" aria-label="Remove check">✕</button></div>`).join("")}</div>
+      <button class="link" type="button" id="addCheck" style="font-size:13px">+ Add a check</button></div>
+    <div class="card"><div class="sect"><h2>Rules</h2><span>from your intake now, and from your reviews as you train</span></div><div id="icpRules">${rulesHTML("ir")}</div></div>
+    ${a.patterns.length ? `<div class="card"><div class="sect"><h2>Patterns</h2><span>what their customers and won deals have in common</span></div>
+      <div class="pats">${a.patterns.map(p => `<div class="pat"><div>${esc(p.finding)}<small>${esc(p.examples)}</small></div><div class="bar"><i style="width:${Math.round((p.count || 0) / Math.max(1, p.of || 1) * 100)}%"></i></div><div class="c">${p.count}/${p.of}</div></div>`).join("")}</div></div>` : ""}
+    <div class="card"><div class="sect"><h2>Signals</h2><span>where we look for companies that need this now</span></div>
+      <div class="sigs">${S.signals.map((s, i) => `<div class="sig"><div><b contenteditable="true" spellcheck="false" data-sg="${i}">${esc(s.signal)}</b><span>${esc(s.why)}</span></div><button class="x" type="button" data-sgx="${i}" aria-label="Remove signal">✕</button></div>`).join("")}</div>
+      <button class="link" type="button" id="addSig" style="font-size:13px">+ Add a signal</button></div>
+    <div class="foot"><button class="pill" type="button" id="startTrain">${S.unlocked >= 3 ? "Back to training" : "Start training"} <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button><div class="status" id="startStatus"></div></div>`;
+  document.querySelectorAll("[data-ckn]").forEach(el => el.onblur = () => { S.checks[el.dataset.ckn].name = el.textContent.trim(); S.rulesDirty = true; save(); });
+  document.querySelectorAll("[data-ckt]").forEach(el => el.onblur = () => { S.checks[el.dataset.ckt].test = el.textContent.trim(); S.rulesDirty = true; save(); });
+  document.querySelectorAll("[data-ckx]").forEach(el => el.onclick = () => { S.checks.splice(+el.dataset.ckx, 1); S.rulesDirty = true; save(); renderIcp(); });
+  $("#addCheck").onclick = () => { S.checks.push({name: "New check", test: "What should be true?"}); renderIcp(); };
+  document.querySelectorAll("[data-sg]").forEach(el => el.onblur = () => { const s = S.signals[el.dataset.sg]; if (s.signal !== el.textContent.trim()){ s.signal = el.textContent.trim(); s.query = ""; save(); } });
+  document.querySelectorAll("[data-sgx]").forEach(el => el.onclick = () => { S.signals.splice(+el.dataset.sgx, 1); save(); renderIcp(); });
+  $("#addSig").onclick = () => { S.signals.push({signal: "New signal", why: "", query: ""}); renderIcp(); };
+  wireRules("ir", rerIcpRules);
+  $("#steerBtn").onclick = steer; $("#steerIn").onkeydown = e => { if (e.key === "Enter") steer(); };
+  $("#startTrain").onclick = () => S.unlocked >= 3 ? show("train") : startTraining();
+}
+async function steer(){
+  const note = $("#steerIn").value.trim(); if (!note) return;
+  $("#steerBtn").disabled = true; $("#steerStatus").innerHTML = "";
+  const l = line("#steerStatus", "Rewriting the ICP with your note");
+  try {
+    const r = await claude(`Current ICP for ${S.intake.name}:\n${JSON.stringify(S.icp)}\nWhat they sell: ${S.analysis.sells}\nPatterns: ${S.analysis.patterns.map(p => p.finding + " (" + p.count + "/" + p.of + ")").join("; ")}\nQuotes: ${S.analysis.quotes.map(q => q.quote).join(" | ")}\n\nThe team says: "${note}"\n\nRewrite the ICP to follow the team's direction while staying true to the evidence. Keep items that still hold word for word. Also turn the note into 1-2 short rules a researcher can apply to one company.\nReply with only {"line":"","confidence":0,"go_after":[""],"skip":[""],"note":"one sentence on how the evidence supports or pushes back","rules":[{"kind":"skip|keep|boost","text":""}]}`, {max: 4000});
+    S.prevIcp = S.icp; S.icp = {line: r.line, confidence: r.confidence, go_after: arr(r.go_after), skip: arr(r.skip)};
+    arr(r.rules).filter(x => x && x.text).forEach(x => S.rules.push({id: nid("r"), kind: ["skip", "keep", "boost"].includes(x.kind) ? x.kind : "boost", text: x.text, from: "you", isNew: true}));
+    S.rulesDirty = true;
+    l.done(true, "Updated. " + (r.note || ""));
+    $("#icpWrap").innerHTML = icpHTML(); rerIcpRules();
+    $("#steerIn").value = ""; save();
+  } catch(e){ l.done(false, e.error || "Couldn't update. Try again."); }
+  $("#steerBtn").disabled = false;
+}
+
+/* ================= sourcing ================= */
+function brief(){
+  const kept = Object.values(S.pool).filter(t => t.review === "keep").slice(-6).map(t => t.name + " (" + t.what + ")");
+  return [`Client: ${S.intake.name} (${S.intake.site}). ${S.analysis?.sells || ""}`, `ICP: ${S.icp?.line || ""}`, `Go after: ${arr(S.icp?.go_after).join("; ")}`, `Skip: ${arr(S.icp?.skip).join("; ")}`,
+    `Rules:\n${S.rules.map(r => "- " + r.kind.toUpperCase() + ": " + r.text).join("\n")}`, kept.length ? "Companies the team kept: " + kept.join("; ") : "", locText() ? "Location focus: " + locText() : ""].filter(Boolean).join("\n");
+}
+function exclusions(){ return new Set([...customerDomains(), domainOf(S.intake.site), ...Object.keys(S.pool)].filter(Boolean)); }
+function addCandidate(c){
+  const id = keyOf(c.name, c.site); if (!id || !c.name) return false;
+  const ex = exclusions(); if (ex.has(id) || (c.site && ex.has(domainOf(c.site)))) {
+    const t = S.pool[id]; if (t && c.people?.length && !arr(t.people).length) t.people = c.people;
+    return false;
+  }
+  S.pool[id] = {id, name: c.name, site: domainOf(c.site || ""), what: c.what || "", loc: c.loc || "", size: c.size || "", stage: c.stage || "", sig: c.sig || "", evidence: c.evidence || "", evidenceUrl: c.evidenceUrl || "", src: c.src || "", people: arr(c.people), addedAt: Date.now(), s: null, review: null};
+  return true;
+}
+async function webSearch(queries, limit){
+  let added = 0;
+  await pmap(queries, 2, async q => {
+    if (!q.query && !q.signal) return;
+    const query = q.query || q.signal + " startup";
+    if (S.usedQueries.includes(query)) return; S.usedQueries.push(query);
+    const r = await api("/api/research-source", {source: {name: q.signal, query, signal: q.signal, extract: "company name, website, location if shown, and dated evidence of the signal"}, brief: brief(), exclude: [...exclusions()].slice(0, 150), limit, mode: "fast"});
+    arr(r.companies).forEach(c => { if (addCandidate({name: c.company, site: c.website, what: c.what_they_do, sig: q.signal, evidence: c.evidence, evidenceUrl: c.evidence_url, src: "Web"})) added++; });
+  });
+  return added;
+}
+async function prospeoVariants(){
+  const r = await claude(`${brief()}\nChecks: ${S.checks.map(c => c.name + ": " + c.test).join("; ")}\n\nWrite 3 Prospeo company search variants that would each return a different slice of companies matching this ICP. Use only these filters, exactly in these shapes:\n${PROSPEO_VOCAB}\nRules: keywords are short category phrases a company would use to describe itself (2-6 per variant). Never include competitors' categories. Don't add location or person filters; the tool adds them.\nReply with only {"variants":[{"label":"short name","filters":{}}]}`, {max: 3000});
+  const allowed = ["company_keywords", "company_website_search", "company_industry", "company_headcount_range", "company_funding", "company_job_posting_hiring_for", "company_founded"];
+  return arr(r.variants).map(v => { const f = {}; for (const k of allowed) if (v.filters && v.filters[k]) f[k] = v.filters[k];
+    if (Array.isArray(f.company_headcount_range)) f.company_headcount_range = f.company_headcount_range.filter(x => HEADCOUNT.includes(x));
+    if (f.company_funding?.stage) f.company_funding.stage = arr(f.company_funding.stage).filter(x => FUNDING.includes(x));
+    return {label: v.label || "Variant", filters: f, page: 1, done: false}; }).filter(v => Object.keys(v.filters).length);
+}
+async function prospeoPull(maxPages){
+  if (!status.prospeo) return 0;
+  if (!S.prospeo.variants.length){ try { S.prospeo.variants = await prospeoVariants(); } catch(e){ return 0; } }
+  let added = 0, pages = 0;
+  for (const v of S.prospeo.variants){
+    if (v.done || pages >= maxPages) continue;
+    const filters = {...JSON.parse(JSON.stringify(v.filters)), person_seniority: {include: ["Founder/Owner", "C-Suite"]}};
+    if (S.intake.locs.length) filters.company_location_search = {include: S.intake.locs};
+    const ex = [...customerDomains(), domainOf(S.intake.site)].filter(Boolean).slice(0, 300); if (ex.length) filters.company = {websites: {exclude: ex}};
+    try {
+      const r = await api("/api/prospeo/search", {filters, page: v.page, keep: S.intake.locOnly && S.intake.locs.length ? ["company_location_search"] : []});
+      pages++; v.page = (r.page || v.page) + 1;
+      const res = arr(r.results); if (!res.length || (r.pagination && v.page > (r.pagination.total_page || 99))) v.done = true;
+      const by = {};
+      res.forEach(x => { const p = x.person || {}; const co = x.company || {}; const site = domainOf(co.domain || co.website || ""); if (!site) return;
+        const loc = co.location ? (typeof co.location === "string" ? co.location : [co.location.city, co.location.state, co.location.country].filter(Boolean).join(", ")) : "";
+        const b = by[site] = by[site] || {name: co.name || site, site, what: String(co.description || co.description_ai || co.short_description || co.industry || "").slice(0, 260), loc, size: co.employee_range || co.employee_count || "", stage: co.funding?.last_funding_stage || co.funding?.stage || "", sig: v.label, src: "Prospeo", people: []};
+        b.people.push({name: p.full_name || [p.first_name, p.last_name].filter(Boolean).join(" "), title: p.current_job_title || p.job_title || "", linkedin: p.linkedin_url || "", pid: p.person_id || "", loc: p.location ? [p.location.city, p.location.country].filter(Boolean).join(", ") : ""});
+      });
+      Object.values(by).forEach(c => { if (addCandidate(c)) added++; });
+    } catch(e){ v.done = true; }
+  }
+  return added;
+}
+
+/* ================= scoring ================= */
+function examplesBlock(){
+  const rev = Object.values(S.pool).filter(t => t.review === "keep" || t.review === "pass").sort((a, b) => (b.reviewedAt || 0) - (a.reviewedAt || 0));
+  const fmt = t => `- ${t.name} (${t.site || "no site"}): ${t.what.slice(0, 120)}${t.loc ? " · " + t.loc : ""}${t.reason ? " → reason: " + t.reason : ""}`;
+  const keep = rev.filter(t => t.review === "keep").slice(0, 8), pass = rev.filter(t => t.review === "pass").slice(0, 8);
+  const dream = lines(S.intake.dream).slice(0, 6);
+  return [dream.length ? "DREAM CUSTOMERS (perfect fits): " + dream.join(", ") : "", keep.length ? "THE TEAM KEPT (score companies like these high):\n" + keep.map(fmt).join("\n") : "", pass.length ? "THE TEAM PASSED (score companies like these low, for the same reason):\n" + pass.map(fmt).join("\n") : ""].filter(Boolean).join("\n\n");
+}
+function scorePrefix(){
+  return `You judge target companies for ${S.intake.name}, who sells: ${S.analysis?.sells || ""}
+ICP: ${S.icp?.line || ""}
+Go after: ${arr(S.icp?.go_after).join("; ")}
+Skip: ${arr(S.icp?.skip).join("; ")}
+Competitors (category "competitor", always pass): ${S.intake.comp || "(none given)"}
+${locText() ? `Location focus: ${locText()}${S.intake.locOnly ? " (required)" : " (preferred)"}` : ""}
+
+RULES FROM THE TEAM (these override everything else):
+${S.rules.map((r, i) => `R${i + 1} ${r.kind.toUpperCase()}: ${r.text}`).join("\n") || "(none)"}
+
+CHECKS (answer each with true, false, or null when you can't tell):
+${S.checks.map((c, i) => `C${i + 1} ${c.name}: ${c.test}`).join("\n")}
+
+${examplesBlock()}
+
+For each company row decide:
+- category: customer (would buy from the client), competitor (sells something that competes), channel (a platform or partner that could resell or integrate), irrelevant.
+- verdict: keep or pass. fit 0-100. confidence 0-100 in your verdict (low when key facts are unknown).
+- in_location: true, false, or null if unknown.
+- why: one plain sentence a salesperson can act on. unsure: what you'd need to know to be sure, or "".
+Use only the row plus well-known public facts about the company. Never invent details.
+Reply with only a JSON array in row order: [{"i":0,"category":"","verdict":"","fit":0,"confidence":0,"in_location":null,"checks":[true,false,null],"why":"","unsure":""}]`;
+}
+const rowText = (t, n) => `#${n} ${t.name} | ${t.site || "?"} | ${t.what || "?"} | location: ${t.loc || "?"} | size: ${t.size || "?"} | stage: ${t.stage || "?"} | signal: ${t.sig || "?"}${t.evidence ? " (" + t.evidence.slice(0, 160) + ")" : ""}${t.people?.length ? " | people: " + t.people.slice(0, 2).map(p => p.title).join(", ") : ""}`;
+async function scoreAll(ids, onProgress){
+  const prefix = scorePrefix(); const chunks = [];
+  for (let i = 0; i < ids.length; i += 12) chunks.push(ids.slice(i, i + 12));
+  let done = 0;
+  await pmap(chunks, 3, async ch => {
+    const ts = ch.map(id => S.pool[id]).filter(Boolean);
+    try {
+      const out = await claude("Rows:\n" + ts.map(rowText).join("\n"), {tier: "fast", prefix, max: 5000});
+      const list = Array.isArray(out) ? out : arr(out?.results || out?.rows);
+      ts.forEach((t, n) => { const r = list.find(x => Number(x.i) === n) || list[n]; if (!r) return;
+        t.s = {category: ["customer", "competitor", "channel", "irrelevant"].includes(r.category) ? r.category : "customer", verdict: r.verdict === "pass" ? "pass" : "keep", fit: Math.max(0, Math.min(100, Math.round(Number(r.fit) || 0))), conf: Math.max(0, Math.min(100, Math.round(Number(r.confidence) || 50))), inLoc: r.in_location === true ? true : r.in_location === false ? false : null, checks: arr(r.checks).slice(0, S.checks.length), why: String(r.why || ""), unsure: String(r.unsure || "")};
+        if (t.s.category === "competitor"){ t.s.verdict = "pass"; t.s.fit = Math.min(t.s.fit, 15); }
+      });
+    } catch(e){}
+    done += ch.length; onProgress && onProgress(done, ids.length);
+  });
+}
+const unscored = () => Object.values(S.pool).filter(t => !t.s && !t.review).map(t => t.id);
+const open_ = () => Object.values(S.pool).filter(t => t.s && !t.review);
+
+/* ================= training ================= */
+async function startTraining(){
+  if (busy) return; busy = true; $("#startTrain").disabled = true; $("#startStatus").innerHTML = "";
+  try {
+    await refill("#startStatus", 30);
+    if (!open_().length) throw {error: "No companies came back. Make a signal more specific, or loosen the location, and try again."};
+    S.unlocked = Math.max(S.unlocked, 3); newRound(); renderTrain(); show("train"); save();
+  } catch(e){ $("#startStatus").insertAdjacentHTML("beforeend", `<div class="bad">✕ ${esc(e.error || "Something went wrong")}</div>`); }
+  busy = false; const b = $("#startTrain"); if (b) b.disabled = false;
+}
+async function refill(el, target){
+  const before = Object.keys(S.pool).length;
+  const sigs = S.signals.filter(s => String(s.signal || "").trim());
+  const fresh = sigs.filter(s => !S.usedQueries.includes(s.query || s.signal + " startup")).slice(0, 4);
+  if (fresh.length){ const l = line(el, `Searching the web for ${fresh.length} signal${fresh.length > 1 ? "s" : ""}`, fresh.map(s => s.signal.toLowerCase())); const n = await webSearch(fresh, 10); l.done(true, `Web: ${n} new companies`); }
+  if (status.prospeo && Object.keys(S.pool).length - before < target){ const l = line(el, `Searching Prospeo${locText() ? " in " + locText() : ""}`, ["turning the ICP into filters", "pulling founders and CEOs"]); const n = await prospeoPull(2); l.done(true, `Prospeo: ${n} new companies`); }
+  if (Object.keys(S.pool).length - before < 8){
+    const l = line(el, "Widening the search", ["writing broader searches", "looking for lookalikes"]);
+    try { const q = await claude(`${brief()}\nCurrent customers: ${customerDomains().join(", ") || "unknown"}\nAlready searched: ${S.usedQueries.slice(-12).join(" | ")}\nWrite 4 new web search queries that surface lists of companies matching this ICP (directories, funding news, accelerator batches, job posts, launch posts). Plain queries, no site: operators.\nReply with only {"queries":[{"signal":"short label","query":""}]}`, {tier: "fast", max: 1500});
+      const n = await webSearch(arr(q.queries).slice(0, 4), 10); l.done(true, `${n} more companies`); } catch(e){ l.done(false, "Couldn't widen the search"); }
+  }
+  const ids = unscored();
+  if (ids.length){ const l = line(el, `Judging ${ids.length} companies against the checks`); await scoreAll(ids, (d, n) => {}); l.done(true, `Judged ${ids.length} companies`); }
+}
+function pickBatch(){
+  const pool = open_(); if (!pool.length) return [];
+  const used = new Set(); const take = t => { if (t && !used.has(t.id)){ used.add(t.id); return true; } return false; };
+  const byFit = pool.slice().sort((a, b) => b.s.fit - a.s.fit);
+  const unsure = pool.slice().sort((a, b) => (a.s.conf + Math.abs(a.s.fit - 60) * 0.6) - (b.s.conf + Math.abs(b.s.fit - 60) * 0.6));
+  const out = [];
+  if (take(byFit[0])) out.push(byFit[0]);
+  for (const t of unsure){ if (out.length >= BATCH - 1) break; if (take(t)) out.push(t); }
+  const low = byFit.slice().reverse().find(t => !used.has(t.id) && t.s.fit < 50); if (low && take(low)) out.push(low);
+  for (const t of byFit){ if (out.length >= BATCH) break; if (take(t)) out.push(t); }
+  return out.slice(0, BATCH).map(t => t.id);
+}
+function newRound(ids){ S.round = {n: S.rounds.length + 1, ids: ids || pickBatch(), at: 0, results: []}; }
+const roundDone = () => S.round && S.round.at >= S.round.ids.length;
+function renderTrain(){
+  const R = S.round; const v = $("#v-train");
+  if (!R){ newRound(); return renderTrain(); }
+  if (!R.ids.length){ v.innerHTML = `<div class="vh"><h1>Nothing left to review</h1><p>Find more companies to keep training.</p></div><div class="foot"><button class="pill" type="button" id="moreBtn">Find more companies</button><button class="ghost" type="button" data-go="list">See the list</button><div class="status" id="moreStatus"></div></div>`; wireTrainFoot(); return; }
+  if (roundDone()) return renderSummary();
+  const t = S.pool[R.ids[R.at]]; const s = t.s || {checks: []};
+  const dots = R.ids.map((id, i) => { const res = R.results[i]; return `<i class="${res ? (res.call === "keep" ? "k" : res.call === "pass" ? "p" : "u") : ""} ${i === R.at ? "cur" : ""}"></i>`; }).join("");
+  const last = S.rounds[S.rounds.length - 1];
+  v.innerHTML = `
+    <div class="progress"><div class="vh" style="padding:0"><h1 style="font-size:28px">Round ${R.n}</h1></div><div class="dots">${dots}</div><span class="note">${R.at + 1} of ${R.ids.length}${last ? ` · last round the engine called ${last.agree} of ${last.total} your way` : " · tell it what you think, it learns after every 5"}</span></div>
+    <div class="tcard" id="tcard">
+      <div class="top"><span class="cat ${s.category || "irrelevant"}">${esc(s.category === "customer" ? "Possible customer" : s.category === "competitor" ? "Competitor" : s.category === "channel" ? "Channel / partner" : "Unclear fit")}</span>${t.sig ? `<span class="tag">${esc(t.sig)}</span>` : ""}<span class="tag">${esc(t.src)}</span></div>
+      <div><h2>${esc(t.name)}</h2><p class="meta">${esc([t.site, t.loc, t.size && t.size + " people", t.stage].filter(Boolean).join(" · "))}${t.site ? ` · <a href="https://${esc(t.site)}" target="_blank" rel="noopener">open site ↗</a>` : ""}</p></div>
+      <p class="what">${esc(t.what || "No description found.")}</p>
+      ${t.evidence ? `<div class="ev"><b>Signal:</b> ${esc(t.evidence)}${t.evidenceUrl ? ` · <a href="${esc(t.evidenceUrl)}" target="_blank" rel="noopener">source ↗</a>` : ""}</div>` : ""}
+      ${S.checks.length ? `<div class="checks">${S.checks.map((c, i) => { const v2 = s.checks?.[i]; return `<div class="ck"><span class="m ${v2 === true ? "y" : v2 === false ? "n" : "u"}">${v2 === true ? "✓" : v2 === false ? "✕" : "?"}</span><div>${esc(c.name)}<small>${esc(c.test)}</small></div></div>`; }).join("")}</div>` : ""}
+      ${t.people?.length ? `<div class="people"><span class="lbl">People</span>${t.people.slice(0, 3).map(p => `<span>${p.linkedin ? `<a href="${esc(p.linkedin)}" target="_blank" rel="noopener">${esc(p.name)}</a>` : esc(p.name)} · ${esc(p.title)}</span>`).join("")}</div>` : ""}
+      <div id="decideBox" class="decide">
+        <button class="pill keep" type="button" data-call="keep">Keep <kbd>K</kbd></button>
+        <button class="pill pass" type="button" data-call="pass">Pass <kbd>P</kbd></button>
+        <button class="ghost" type="button" data-call="unsure">Not sure <kbd>S</kbd></button>
+      </div>
+    </div>
+    <div class="foot"><button class="link" type="button" data-go="list" style="font-size:13px">See the list so far →</button></div>`;
+  v.querySelectorAll("[data-call]").forEach(b => b.onclick = () => decide(b.dataset.call));
+  wireTrainFoot();
+}
+function decide(call, reason){
+  const R = S.round; if (!R || roundDone()) return;
+  const t = S.pool[R.ids[R.at]];
+  if (call === "pass" && reason === undefined){
+    $("#decideBox").innerHTML = `<span class="lbl" style="flex-basis:100%">Why pass?</span>${REASONS.map((r, i) => `<button class="ghost" type="button" data-why="${esc(r)}">${esc(r)} <kbd>${i + 1}</kbd></button>`).join("")}<input class="in" id="whyIn" placeholder="or type it ↵" style="max-width:240px;min-height:36px;padding:6px 12px;border-radius:999px"><button class="link" type="button" data-why="">Skip</button>`;
+    $("#decideBox").querySelectorAll("[data-why]").forEach(b => b.onclick = () => decide("pass", b.dataset.why));
+    $("#whyIn").onkeydown = e => { if (e.key === "Enter") decide("pass", $("#whyIn").value.trim()); };
+    S.awaitWhy = true; return;
+  }
+  S.awaitWhy = false;
+  const guess = t.s ? t.s.verdict : null;
+  t.review = call === "unsure" ? null : call; t.reason = reason || ""; t.reviewedAt = Date.now(); t.round = R.n;
+  if (call === "unsure") t.skipped = true;
+  R.results[R.at] = {id: t.id, call, guess, reason: reason || ""};
+  const match = call !== "unsure" && guess === call;
+  const card = $("#tcard");
+  const rev = document.createElement("div"); rev.className = "reveal " + (call === "unsure" ? "" : match ? "match" : "miss");
+  rev.textContent = call === "unsure" ? "Skipped. It won't count toward learning." : match ? `The engine guessed ${guess} too.` : `The engine guessed ${guess || "nothing"}. It'll learn from this.`;
+  $("#decideBox").replaceWith(rev);
+  pushMemory(t, call, reason);
+  save();
+  setTimeout(() => { card.classList.add(call === "pass" ? "out-p" : "out-k"); setTimeout(() => { R.at++; renderTrain(); }, 260); }, 700);
+}
+function pushMemory(t, call, reason){
+  if (!S.id || call === "unsure") return;
+  api("/api/memory/" + S.id, {addFeedback: [{id: "lb-" + t.id, scope: "company", label: call === "keep" ? "kept" : "removed", company: t.name, domain: t.site, desc: t.what.slice(0, 160), why: reason || "", at: new Date().toISOString()}]}).catch(() => {});
+}
+document.addEventListener("keydown", e => {
+  if (S.view !== "train" || e.target.closest("input,textarea,[contenteditable]") || e.metaKey || e.ctrlKey) return;
+  if (S.awaitWhy){ const n = Number(e.key); if (n >= 1 && n <= REASONS.length){ e.preventDefault(); decide("pass", REASONS[n - 1]); } return; }
+  if (!$("#decideBox")) return;
+  const k = e.key.toLowerCase();
+  if (k === "k" || e.key === "ArrowRight"){ e.preventDefault(); decide("keep"); }
+  else if (k === "p" || e.key === "ArrowLeft"){ e.preventDefault(); decide("pass"); }
+  else if (k === "s"){ e.preventDefault(); decide("unsure"); }
+});
+function renderSummary(){
+  const R = S.round; const v = $("#v-train");
+  const counted = R.results.filter(r => r.call !== "unsure"); const agree = counted.filter(r => r.call === r.guess).length;
+  if (!R.learned){
+    v.innerHTML = `<div class="vh"><h1>Round ${R.n} done</h1><p>Learning from your calls…</p></div><div class="card"><div class="status" id="learnStatus"></div></div>`;
+    learn(R, agree, counted.length).catch(e => { $("#learnStatus").insertAdjacentHTML("beforeend", `<div class="bad">✕ ${esc(e.error || "Couldn't learn from this round")}</div>`); R.learned = {summary: "", changes: []}; setTimeout(renderSummary, 1200); });
+    return;
+  }
+  const L = R.learned; const recent = S.rounds.slice(-2); const trusted = recent.length >= 2 && recent.every(x => x.total && x.agree / x.total >= .8);
+  const B = buckets();
+  v.innerHTML = `
+    <div class="vh"><h1>Round ${R.n} done</h1><p>${esc(L.summary || "Your calls are saved and the list was re-judged.")}</p></div>
+    <div class="statrow">
+      <div><b>${agree}/${counted.length}</b><span>the engine called your way</span></div>
+      <div><b>${B.kept.length}</b><span>you kept</span></div>
+      <div><b>${B.ready.length}</b><span>ready, engine is confident</span></div>
+      <div><b>${B.needs.length}</b><span>still need you</span></div>
+    </div>
+    ${L.changes.length ? `<div class="card"><div class="sect"><h2>What it learned</h2><span>already applied · remove any that are wrong</span></div><div id="trainRules">${rulesHTML("tr")}</div></div>` : `<div class="card"><div class="sect"><h2>Rules</h2><span>nothing new this round, your calls matched the rules</span></div><div id="trainRules">${rulesHTML("tr")}</div></div>`}
+    ${trusted ? `<div class="banner"><span><b>It's calling it your way.</b> Two rounds in a row at 80% or better. The ready list is worth trusting now.</span></div>` : ""}
+    <div class="foot">
+      <button class="pill" type="button" id="nextRound">Next ${BATCH} <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+      <button class="${trusted ? "pill" : "ghost"}" type="button" data-go="list">See the list (${B.kept.length + B.ready.length})</button>
+      <div class="status" id="moreStatus"></div>
+    </div>`;
+  wireRules("tr", rerTrainRules);
+  $("#nextRound").onclick = nextRound;
+  wireTrainFoot();
+}
+async function learn(R, agree, total){
+  const l = line("#learnStatus", "Comparing your calls with the engine's guesses", ["looking for what you care about", "updating the rules"]);
+  const decided = R.results.filter(r => r.call !== "unsure").map(r => { const t = S.pool[r.id]; return `${r.call.toUpperCase()} (engine guessed ${r.guess || "?"}): ${t.name} | ${t.site} | ${t.what.slice(0, 140)} | ${t.loc || "?"} | ${t.size || "?"}${r.reason ? " | reason: " + r.reason : ""}`; });
+  const earlier = Object.values(S.pool).filter(t => t.review && t.round && t.round < R.n).slice(-20).map(t => `${t.review.toUpperCase()}: ${t.name} (${t.what.slice(0, 80)})${t.reason ? " because " + t.reason : ""}`);
+  let out = {summary: "", rule_changes: [], queries: []};
+  if (decided.length){
+    out = await claude(`${brief()}\n\nCURRENT RULES (with ids):\n${S.rules.map(r => r.id + " " + r.kind.toUpperCase() + ": " + r.text).join("\n") || "(none)"}\n\nTHIS ROUND, the team's calls:\n${decided.join("\n")}\n\nEARLIER CALLS:\n${earlier.join("\n") || "(none)"}\n\nLearn the team's taste. Only change rules when the calls show something the rules miss or get wrong. Rules must generalize to a kind of company (not one name) and be checkable from a company's website. Prefer editing a rule over adding a near-duplicate. At most 3 changes.\nThen write 2 web search queries that would find more companies like the ones they kept.\nReply with only {"summary":"one plain sentence on what you learned about their taste","rule_changes":[{"op":"add|edit|remove","id":"for edit/remove","kind":"skip|keep|boost","text":"","why":"short, cite the companies"}],"queries":[{"signal":"short label","query":""}]}`, {max: 4000});
+  }
+  const changes = [];
+  S.rules.forEach(r => delete r.isNew);
+  arr(out.rule_changes).forEach(c => {
+    const kind = ["skip", "keep", "boost"].includes(c.kind) ? c.kind : "boost";
+    if (c.op === "remove"){ const r = S.rules.find(x => x.id === c.id); if (r){ S.rules = S.rules.filter(x => x.id !== c.id); changes.push(c); } }
+    else if (c.op === "edit"){ const r = S.rules.find(x => x.id === c.id); if (r && c.text){ r.text = c.text; r.kind = kind; r.why = c.why || ""; r.from = "learned"; r.isNew = true; changes.push(c); } }
+    else if (c.text){ S.rules.push({id: nid("r"), kind, text: c.text, why: c.why || "", from: "learned", isNew: true}); changes.push(c); }
+  });
+  l.done(true, changes.length ? `${changes.length} rule${changes.length > 1 ? "s" : ""} updated` : "Rules still hold");
+  S.rounds.push({n: R.n, agree, total, at: Date.now()});
+  const ids = open_().map(t => t.id);
+  if (ids.length){ const l2 = line("#learnStatus", `Re-judging ${ids.length} companies with what it learned`); await scoreAll(ids); l2.done(true, `Re-judged ${ids.length} companies`); }
+  S.rulesDirty = false;
+  if (open_().length < 15){
+    const l3 = line("#learnStatus", "Finding more companies like the ones you kept", ["searching the web", "searching Prospeo"]);
+    const a = await webSearch(arr(out.queries).slice(0, 2), 10).catch(() => 0);
+    const b = await prospeoPull(1).catch(() => 0);
+    const ids2 = unscored(); if (ids2.length) await scoreAll(ids2);
+    l3.done(true, `${a + b} new companies`);
+  }
+  R.learned = {summary: out.summary || "", changes};
+  save(); renderSummary();
+}
+async function nextRound(){
+  const b = $("#nextRound"); if (b) b.disabled = true;
+  if (S.rulesDirty){ const ids = open_().map(t => t.id); if (ids.length){ $("#moreStatus").innerHTML = ""; const l = line("#moreStatus", "Re-judging with your rule edits"); await scoreAll(ids); l.done(); } S.rulesDirty = false; }
+  newRound(); renderTrain(); save(); window.scrollTo({top: 0, behavior: "smooth"});
+}
+function wireTrainFoot(){
+  document.querySelectorAll("#v-train [data-go]").forEach(b => b.onclick = () => { S.unlocked = Math.max(S.unlocked, 4); show(b.dataset.go); save(); });
+  const m = $("#moreBtn"); if (m) m.onclick = async () => { m.disabled = true; try { await refill("#moreStatus", 25); } catch(e){} newRound(); renderTrain(); save(); };
+}
+
+/* ================= list ================= */
+function buckets(){
+  const all = Object.values(S.pool);
+  const locOk = t => !(S.locFilter && S.intake.locOnly && S.intake.locs.length && t.s && t.s.inLoc === false);
+  const kept = all.filter(t => t.review === "keep");
+  const passed = all.filter(t => t.review === "pass");
+  const scored = all.filter(t => !t.review && t.s);
+  const ready = scored.filter(t => t.s.verdict === "keep" && t.s.conf >= 70 && t.s.fit >= 65 && t.s.category !== "competitor" && locOk(t)).sort((a, b) => b.s.fit - a.s.fit);
+  const out = scored.filter(t => !ready.includes(t) && (t.s.category === "competitor" || (t.s.verdict === "pass" && t.s.conf >= 65) || !locOk(t)));
+  const needs = scored.filter(t => !ready.includes(t) && !out.includes(t)).sort((a, b) => b.s.fit - a.s.fit);
+  return {kept: kept.sort((a, b) => (b.s?.fit || 0) - (a.s?.fit || 0)), ready, needs, out: [...out, ...passed]};
+}
+function renderList(){
+  if (!S.analysis) return;
+  const keepMsg = $("#listStatus") ? $("#listStatus").innerHTML.replace(/<span class="spin"><\/span>/g, "") : "";
+  const B = buckets(); const tab = S.tab in B ? S.tab : "ready";
+  const rows = B[tab];
+  const labels = {kept: "You kept", ready: "Ready", needs: "Needs you", out: "Filtered out"};
+  $("#v-list").innerHTML = `
+    <div class="vh"><h1>${esc(S.intake.name)} target list</h1><p>Kept plus Ready is the list. Ready means the engine is confident it matches your calls. Train more to grow it.</p></div>
+    <div class="toolbar">
+      <div class="tabs">${Object.keys(labels).map(k => `<button type="button" class="${k === tab ? "on" : ""}" data-tab="${k}">${labels[k]}<i>${B[k].length}</i></button>`).join("")}</div>
+      <span class="sp">
+        ${S.intake.locs.length && S.intake.locOnly ? `<label class="check"><input type="checkbox" id="locFilter" ${S.locFilter ? "checked" : ""}> Only ${esc(S.intake.locs[0])}${S.intake.locs.length > 1 ? " +" + (S.intake.locs.length - 1) : ""}</label>` : ""}
+      </span>
+    </div>
+    <div class="toolbar">
+      <button class="pill sm" type="button" id="trainMore">${B.needs.length ? `Train on the next ${Math.min(BATCH, B.needs.length)}` : "Train another round"}</button>
+      <button class="ghost" type="button" id="findMore">Find 50 more</button>
+      <button class="ghost" type="button" id="peopleBtn">Find founders</button>
+      <button class="ghost" type="button" id="emailBtn">Get emails</button>
+      <button class="ghost" type="button" id="csvBtn">Download CSV</button>
+    </div>
+    <div class="status" id="listStatus">${keepMsg}</div>
+    <div class="tlist">${rows.map(rowHTML).join("") || `<div class="empty">${tab === "ready" ? "Nothing ready yet. Train a round or two and the engine starts sorting companies here." : "Nothing here."}</div>`}</div>`;
+  document.querySelectorAll("[data-tab]").forEach(b => b.onclick = () => { S.tab = b.dataset.tab; renderList(); });
+  const lf = $("#locFilter"); if (lf) lf.onchange = () => { S.locFilter = lf.checked; renderList(); };
+  $("#trainMore").onclick = () => { const ids = buckets().needs.slice(0, BATCH).map(t => t.id); newRound(ids.length ? ids : undefined); renderTrain(); show("train"); };
+  $("#findMore").onclick = findMore; $("#peopleBtn").onclick = findPeople; $("#emailBtn").onclick = getEmails; $("#csvBtn").onclick = downloadCsv;
+  document.querySelectorAll("[data-lfb]").forEach(b => b.onclick = () => listReview(b.dataset.lfb, b.dataset.v));
+  document.querySelectorAll("[data-deep]").forEach(b => b.onclick = () => deepResearch(b.dataset.deep));
+}
+function rowHTML(t){
+  const s = t.s || {}; const sc = s.fit ?? "–";
+  return `<div class="lrow" id="r-${esc(t.id)}">
+    <div class="score ${s.fit >= 80 ? "top" : ""}">${sc}</div>
+    <div style="min-width:0">
+      <div class="nm"><b>${esc(t.name)}</b>${s.category ? `<span class="cat ${s.category}">${esc(s.category)}</span>` : ""}${t.review === "keep" ? '<span class="tag good">You kept</span>' : t.review === "pass" ? `<span class="tag bad">You passed${t.reason ? ": " + esc(t.reason) : ""}</span>` : ""}${t.sig ? `<span class="tag">${esc(t.sig)}</span>` : ""}</div>
+      <div class="meta">${esc([t.site, t.loc, t.size && t.size + " people", t.stage].filter(Boolean).join(" · "))}</div>
+      <p class="why">${esc(s.why || t.what)}</p>
+      <details><summary>Details${t.people?.length ? " · " + t.people.length + (t.people.length === 1 ? " person" : " people") : ""}${t.opener ? " · opener" : ""}</summary><div class="detail">
+        <p>${esc(t.what)}</p>
+        ${t.evidence ? `<div class="ev"><b>Signal:</b> ${esc(t.evidence)}${t.evidenceUrl ? ` · <a href="${esc(t.evidenceUrl)}" target="_blank" rel="noopener">source ↗</a>` : ""}</div>` : ""}
+        ${S.checks.length && s.checks ? `<div class="checks">${S.checks.map((c, i) => { const v = s.checks[i]; return `<div class="ck"><span class="m ${v === true ? "y" : v === false ? "n" : "u"}">${v === true ? "✓" : v === false ? "✕" : "?"}</span><div>${esc(c.name)}</div></div>`; }).join("")}</div>` : ""}
+        ${s.unsure ? `<p class="unsure"><b>Not sure about:</b> ${esc(s.unsure)}</p>` : ""}
+        ${t.people?.length ? `<div class="people">${t.people.map(p => `<span>${p.linkedin ? `<a href="${esc(p.linkedin)}" target="_blank" rel="noopener">${esc(p.name)}</a>` : esc(p.name)} · ${esc(p.title)}${p.email ? " · " + esc(p.email) : ""}</span>`).join("")}</div>` : ""}
+        <div id="deep-${esc(t.id)}">${t.deep ? deepHTML(t) : ""}</div>
+        ${t.deep ? "" : `<button class="more" type="button" data-deep="${esc(t.id)}">${t.deepRunning ? '<span class="spin"></span> Researching…' : "Research with the browser agent →"}</button>`}
+      </div></details>
+    </div>
+    <div class="acts2"><button class="fb up ${t.review === "keep" ? "on" : ""}" type="button" data-lfb="${esc(t.id)}" data-v="keep" aria-label="Keep">👍</button><button class="fb down ${t.review === "pass" ? "on" : ""}" type="button" data-lfb="${esc(t.id)}" data-v="pass" aria-label="Pass">👎</button></div>
+  </div>`;
+}
+function listReview(id, v){
+  const t = S.pool[id]; if (!t) return;
+  if (t.review === v){ t.review = null; t.reason = ""; } else { t.review = v; t.reviewedAt = Date.now(); t.round = (S.rounds.length || 0) + 1; pushMemory(t, v, ""); }
+  S.rulesDirty = true; save(); renderList();
+}
+function deepHTML(t){
+  return `<div class="deep"><div class="bh"><span class="dots"><i></i><i></i><i></i></span><span class="url">${esc(t.site || t.name)}</span><span>agent</span></div>
+    <div class="bl">${arr(t.deep).map(d => `<div>✓ <small>${esc(d[0])}</small>${esc(d[1])}</div>`).join("") || "<div>Nothing found.</div>"}</div>
+    ${t.opener ? `<div class="res"><span class="lbl">Suggested opener</span><p>${esc(t.opener)}</p></div>` : ""}</div>`;
+}
+async function deepResearch(id){
+  const t = S.pool[id]; if (!t || t.deepRunning) return;
+  t.deepRunning = true; renderListKeepOpen(id);
+  try {
+    const ev = S.intake.event ? `\nThe client will be at: ${S.intake.event}. If the target is nearby, the opener can suggest meeting in person there.` : "";
+    const r = await api("/api/deep-company", {company: t.name, website: t.site, brief: brief() + ev, client: S.intake.name});
+    t.deep = arr(r.findings).map(f => [f.where || t.site, f.what]); t.opener = r.opener || ""; if (r.why_now && t.s) t.s.why = r.why_now;
+  } catch(e){ t.deep = [[t.site || t.name, "Research failed: " + (e.error || "try again")]]; }
+  t.deepRunning = false; save(); renderListKeepOpen(id);
+}
+function renderListKeepOpen(id){ renderList(); const d = document.querySelector(`#r-${CSS.escape(id)} details`); if (d) d.open = true; }
+async function findMore(){
+  const b = $("#findMore"); b.disabled = true; $("#listStatus").innerHTML = "";
+  try {
+    const kept = Object.values(S.pool).filter(t => t.review === "keep");
+    let qs = [];
+    try { const q = await claude(`${brief()}\nThe team kept: ${kept.slice(-10).map(t => t.name + " (" + t.what.slice(0, 80) + ")").join("; ") || "none yet"}\nAlready searched: ${S.usedQueries.slice(-15).join(" | ")}\nWrite 5 new web search queries that surface companies like the ones they kept (directories, funding news, accelerator batches, job posts, launch posts${locText() ? ", in " + locText() : ""}). Plain queries, no site: operators.\nReply with only {"queries":[{"signal":"short label","query":""}]}`, {tier: "fast", max: 1500}); qs = arr(q.queries); } catch(e){}
+    const l1 = line("#listStatus", "Searching the web for lookalikes", qs.map(x => x.signal)); const a = await webSearch(qs.slice(0, 5), 12); l1.done(true, `Web: ${a} new`);
+    let p = 0; if (status.prospeo){ const l2 = line("#listStatus", "Searching Prospeo"); p = await prospeoPull(3); l2.done(true, `Prospeo: ${p} new`); }
+    const ids = unscored(); if (ids.length){ const l3 = line("#listStatus", `Judging ${ids.length} new companies`); await scoreAll(ids); l3.done(); }
+    save(); renderList(); $("#listStatus").innerHTML = `<div class="ok">✓ Added ${a + p} companies. New ones that need you are in "Needs you".</div>`;
+  } catch(e){ $("#listStatus").innerHTML = `<div class="bad">✕ ${esc(e.error || "Couldn't find more")}</div>`; }
+}
+async function findPeople(){
+  const B = buckets(); const todo = [...B.kept, ...B.ready].filter(t => t.site && !arr(t.people).length).slice(0, 60);
+  $("#listStatus").innerHTML = ""; if (!todo.length){ $("#listStatus").innerHTML = '<div class="ok">✓ Everyone on the list already has people.</div>'; return; }
+  const l = line("#listStatus", `Finding founders and CEOs at ${todo.length} companies`);
+  try {
+    for (let i = 0; i < todo.length; i += 25){
+      const ch = todo.slice(i, i + 25);
+      const r = await api("/api/prospeo/people-at", {websites: ch.map(t => t.site), seniority: ["Founder/Owner", "C-Suite"], page: 1});
+      arr(r.results).forEach(x => { const p = x.person || {}; const co = x.company || {}; const site = domainOf(co.domain || co.website || ""); const t = ch.find(c => c.site === site || (site && site.endsWith(c.site))); if (!t) return;
+        t.people = t.people || []; if (t.people.length < 4) t.people.push({name: p.full_name || [p.first_name, p.last_name].filter(Boolean).join(" "), title: p.current_job_title || "", linkedin: p.linkedin_url || "", pid: p.person_id || ""}); });
+    }
+    l.done(true, `Found people at ${todo.filter(t => t.people?.length).length} of ${todo.length} companies`); save(); renderList();
+  } catch(e){ l.done(false, e.error); }
+}
+async function getEmails(){
+  const B = buckets(); const ppl = [];
+  [...B.kept, ...B.ready].forEach(t => arr(t.people).forEach((p, i) => { if (!p.email && !p.noEmail) ppl.push({id: t.id + "|" + i, pid: p.pid, linkedin: p.linkedin, name: p.name, domain: t.site}); }));
+  $("#listStatus").innerHTML = ""; if (!ppl.length){ $("#listStatus").innerHTML = '<div class="ok">✓ Nothing to look up. Run Find founders first.</div>'; return; }
+  const l = line("#listStatus", `Looking up verified emails for ${ppl.length} people`);
+  try {
+    const r = await api("/api/prospeo/emails", {people: ppl.slice(0, 200)});
+    let n = 0; Object.entries(r.emails || {}).forEach(([k, v]) => { const [id, i] = k.split("|"); const p = S.pool[id]?.people?.[+i]; if (!p) return; if (v.email){ p.email = v.email; n++; } else p.noEmail = true; });
+    l.done(true, `${n} verified emails`); save(); renderList();
+  } catch(e){ l.done(false, e.error); }
+}
+function downloadCsv(){
+  const B = buckets(); const q = v => '"' + String(v ?? "").replace(/"/g, '""') + '"';
+  const rows = [["Status", "Fit", "Company", "Website", "Location", "Size", "What they do", "Why reach out", "Signal", "Evidence", "Opener", "Person", "Title", "LinkedIn", "Email"]];
+  [...B.kept.map(t => ["Kept", t]), ...B.ready.map(t => ["Ready", t])].forEach(([st, t]) => {
+    const base = [st, t.s?.fit ?? "", t.name, t.site, t.loc, t.size, t.what, t.s?.why || "", t.sig, t.evidence, t.opener || ""];
+    const ps = arr(t.people).length ? t.people : [{}];
+    ps.forEach(p => rows.push([...base, p.name || "", p.title || "", p.linkedin || "", p.email || ""]));
+  });
+  const blob = new Blob([rows.map(r => r.map(q).join(",")).join("\n")], {type: "text/csv"});
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
+  a.download = (S.intake.name || "client").toLowerCase().replace(/[^a-z0-9]+/g, "-") + "-target-list.csv"; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
+
+/* ================= boot ================= */
+(async () => {
+  try { status = await api("/api/status"); $("#statusNote").textContent = status.claude ? (status.prospeo ? "" : "Prospeo isn't connected, so lists come from web search only.") : "Claude isn't connected on the Worker yet."; } catch(e){ $("#statusNote").textContent = e.error || ""; }
+  loadResume(); show("home");
+})();
+</script>
+</body>
+</html>

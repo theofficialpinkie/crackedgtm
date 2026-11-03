@@ -443,7 +443,24 @@ export default {
           if (body.length > 900_000) return fail(413, "Client record is too large. Trim the pasted inputs.");
           return json(await s.put("client", m[1], JSON.parse(body)));
         }
-        if (req.method === "DELETE") { await s.delKind("sent:" + m[1]); await s.delKind("block:" + m[1]); await s.delKind("learn:" + m[1]); return json({ ok: await s.del("client", m[1]) }); }
+        if (req.method === "DELETE") { await s.delKind("sent:" + m[1]); await s.delKind("block:" + m[1]); await s.delKind("learn:" + m[1]); await s.delKind("lbpool:" + m[1]); return json({ ok: await s.del("client", m[1]) }); }
+      }
+      // List builder: every company for a client stored as its own row, so lists of thousands save in small pieces
+      const lp = path.match(/^\/api\/lbpool\/([^/]+)$/);
+      if (lp) {
+        if (!safeId(lp[1])) return fail(400, "Bad client id");
+        const k = "lbpool:" + lp[1];
+        if (req.method === "GET") return json(await s.list(k));
+        if (req.method === "POST") {
+          const text = await req.text();
+          if (text.length > 900_000) return fail(413, "Too much at once. Save in smaller pieces.");
+          const b = JSON.parse(text);
+          const rows = arr2(b.put).slice(0, 600).filter(x => x && typeof x.id === "string" && x.id.length > 0 && x.id.length <= 200);
+          const del = arr2(b.del).slice(0, 2000).map(String).filter(x => x && x.length <= 200);
+          if (rows.length) await s.putMany(k, rows);
+          if (del.length) await s.delMany(k, del);
+          return json({ ok: true, put: rows.length, del: del.length });
+        }
       }
       // Per-client memory: who we've contacted (so we never contact them twice) and companies marked "not a fit" (so they never come back)
       const mm = path.match(/^\/api\/memory\/([^/]+)$/);

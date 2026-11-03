@@ -349,6 +349,22 @@ textarea.in.sm{min-height:84px}
 .li .big{font-family:var(--f-display);font-weight:900;font-size:17px}
 #rsWrap:empty{display:none}
 .segs{display:flex;flex-direction:column;gap:10px}
+.mlist{display:flex;flex-direction:column;border-top:1px solid var(--edge)}
+.mrow{display:grid;grid-template-columns:auto 40px minmax(0,1fr) auto;gap:12px;align-items:start;padding:12px 4px;border-bottom:1px solid var(--edge)}
+.mrow input[type=checkbox]{width:16px;height:16px;margin-top:12px;accent-color:var(--pill)}
+.mrow.open{background:var(--glass);border-radius:var(--r-sm)}
+.mrow .nm{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.nmb{all:unset;cursor:pointer;font-weight:700;font-size:15px}
+.nmb:hover{text-decoration:underline}
+.mwhat{font-size:13.5px;color:var(--ink-2);margin-top:2px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.mrow.open .mwhat{-webkit-line-clamp:unset}
+.tablewrap2{overflow-x:auto}
+.ctable{width:100%;border-collapse:collapse;font-size:13.5px}
+.ctable th{text-align:left;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);padding:8px 10px;border-bottom:1px solid var(--edge);white-space:nowrap}
+.ctable td{padding:9px 10px;border-bottom:1px solid var(--edge);vertical-align:top}
+.ctable a{color:var(--ink-2);font-weight:600}
+select.in{appearance:auto}
+@media (max-width:760px){.mrow{grid-template-columns:auto minmax(0,1fr)}.mrow .score{display:none}.mrow .acts2{grid-column:2}}
 .seg2{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:start;padding:14px 16px;border-radius:var(--r-sm);background:var(--glass-2);box-shadow:var(--shadow-sm)}
 .seg2 h3{font-family:var(--f-display);font-weight:800;font-size:16px}
 .seg2 .counts{display:flex;gap:14px;flex-wrap:wrap;align-items:baseline;margin-top:6px}
@@ -378,7 +394,7 @@ textarea.in.sm{min-height:84px}
     <button type="button" data-view="icp" data-need="2" disabled>ICP</button>
     <button type="button" data-view="train" data-need="3" disabled>Train</button>
     <button type="button" data-view="market" data-need="2" disabled>Market</button>
-    <button type="button" data-view="list" data-need="3" disabled>List</button>
+    <button type="button" data-view="contacts" data-need="3" disabled>Contacts</button>
   </div>
   <span class="meter2" id="meter" title="Spend on this client">$0.00 · 0 credits</span>
 </div></nav>
@@ -465,6 +481,7 @@ textarea.in.sm{min-height:84px}
   <section class="view" id="v-train" hidden></section>
   <section class="view" id="v-market" hidden></section>
   <section class="view" id="v-list" hidden></section>
+  <section class="view" id="v-contacts" hidden></section>
 </main>
 
 <script>
@@ -529,7 +546,7 @@ async function saveNow(){
   readIntake();
   const I = S.intake;
   const lb = {v: 1, unlocked: S.unlocked, intake: {...I, sources: I.sources.map(s => ({...s, text: String(s.text || "").slice(0, 40000)})), siteText: String(I.siteText || "").slice(0, 15000)},
-    analysis: S.analysis, icp: S.icp, checks: S.checks, signals: S.signals, rules: S.rules, pool: compactPool(), rounds: S.rounds.slice(-40), usedQueries: S.usedQueries.slice(-80), prospeo: S.prospeo, market: S.market, spend: S.spend};
+    analysis: S.analysis, icp: S.icp, checks: S.checks, signals: S.signals, rules: S.rules, stats: poolStats(), rounds: S.rounds.slice(-40), usedQueries: S.usedQueries.slice(-80), prospeo: S.prospeo, market: S.market, spend: S.spend};
   let body = JSON.stringify(lb);
   if (body.length > 800000){ lb.intake.sources = lb.intake.sources.map(s => ({...s, text: s.text.slice(0, 8000)})); body = JSON.stringify(lb); }
   const by = k => I.sources.filter(s => s.kind === k).map(s => `## ${s.name}\n${s.text}`).join("\n\n").slice(0, 60000);
@@ -541,15 +558,32 @@ async function saveNow(){
   delete rec.id; delete rec.updatedAt;
   await api("/api/clients/" + S.id, rec, "PUT");
   S.base = rec;
+  await flushPool();
 }
+let poolSaved = {};
+const compactT = t => { const {deepRunning, isNew, ...rest} = t; return {...rest, what: String(t.what || "").slice(0, 320), evidence: String(t.evidence || "").slice(0, 320), deep: arr(t.deep).slice(0, 8), people: arr(t.people).slice(0, 4)}; };
+async function flushPool(){
+  if (!S.id) return;
+  const put = [], cur = new Set(Object.keys(S.pool));
+  for (const [id, t] of Object.entries(S.pool)){ const c = compactT(t); const j = JSON.stringify(c); if (poolSaved[id] !== j){ put.push([c, j]); } }
+  const del = Object.keys(poolSaved).filter(id => !cur.has(id));
+  for (let i = 0; i < put.length || (i === 0 && del.length); i += 200){
+    const chunk = put.slice(i, i + 200);
+    await api("/api/lbpool/" + S.id, {put: chunk.map(x => x[0]), del: i === 0 ? del : []});
+    chunk.forEach(([c, j]) => poolSaved[c.id] = j);
+    if (i === 0) del.forEach(id => delete poolSaved[id]);
+    if (!put.length) break;
+  }
+}
+function poolStats(){ const all = Object.values(S.pool); return {companies: all.length, kept: all.filter(t => t.review === "keep").length, fits: all.filter(t => cls(t) === "fit").length, yc: all.filter(t => t.yc && cls(t) === "fit").length, contacts: all.reduce((a, t) => a + arr(t.people).length, 0)}; }
 async function loadResume(){
   try {
     const list = await api("/api/clients");
     const mine = arr(list).filter(c => c.lb || c.intake).slice(0, 10);
     $("#resume").innerHTML = mine.length ? `<span class="lbl" style="text-align:left">Pick up where you left off</span>` + mine.map(c => {
       if (!c.lb){ const n = splitSections(c.inputs?.won).length + splitSections(c.inputs?.lost).length + splitSections(c.inputs?.founder).length; return `<button type="button" data-open="${esc(c.id)}"><span><b>${esc(c.company)}</b><br><span>From the demo · ${n} call${n === 1 ? "" : "s"}${c.inputs?.customers ? " · customer list" : ""}. Add targeting and train.</span></span><span>→</span></button>`; }
-      const pool = Object.values(c.lb.pool || {}); const kept = pool.filter(t => t.review === "keep").length; const rounds = arr(c.lb.rounds).length;
-      return `<button type="button" data-open="${esc(c.id)}"><span><b>${esc(c.company)}</b><br><span>${rounds ? rounds + " rounds trained · " : ""}${kept} kept · ${pool.length} companies</span></span><span>→</span></button>`;
+      const st = c.lb.stats || (() => { const pool = Object.values(c.lb.pool || {}); return {companies: pool.length, kept: pool.filter(t => t.review === "keep").length}; })(); const rounds = arr(c.lb.rounds).length;
+      return `<button type="button" data-open="${esc(c.id)}"><span><b>${esc(c.company)}</b><br><span>${rounds ? rounds + " rounds trained · " : ""}${st.fits != null ? fmtN(st.fits) + " fit the ICP · " : ""}${fmtN(st.companies)} companies${st.contacts ? " · " + fmtN(st.contacts) + " contacts" : ""}</span></span><span>→</span></button>`;
     }).join("") : "";
     document.querySelectorAll("[data-open]").forEach(b => b.onclick = () => { const c = mine.find(x => x.id === b.dataset.open); c.lb ? openClient(c) : importDemo(c); });
   } catch(e){ $("#statusNote").textContent = e.error || ""; }
@@ -562,7 +596,7 @@ function splitSections(text){
   return parts.map(x => { const i = x.indexOf("\n"); return i < 0 ? {name: x.replace(/^## /, ""), text: ""} : {name: x.slice(0, i).replace(/^## /, "").trim(), text: x.slice(i + 1).trim()}; }).filter(x => x.text);
 }
 function importDemo(c){
-  S = fresh(); S.id = c.id; S.base = {...c}; delete S.base.id; delete S.base.updatedAt;
+  S = fresh(); S.id = c.id; S.base = {...c}; delete S.base.id; delete S.base.updatedAt; poolSaved = {};
   const I = S.intake; const inp = c.inputs || {};
   I.name = c.company || ""; I.site = c.website || ""; I.siteText = inp.site || "";
   I.founders = arr(c.intake?.founders).map(f => ({url: f.url, profile: f.profile || null}));
@@ -583,31 +617,38 @@ function importDemo(c){
   $("#buildStatus").innerHTML = `<div class="ok">✓ Brought over ${I.sources.length} source${I.sources.length === 1 ? "" : "s"}${I.founders.length ? ", " + I.founders.length + " founder" + (I.founders.length > 1 ? "s" : "") : ""} and your notes from the demo. Fill in "Who to go after", then Build.</div>`;
   setTimeout(() => $("#comp").scrollIntoView({behavior: "smooth", block: "center"}), 300);
 }
-function openClient(c){
-  S = fresh(); S.id = c.id; S.base = {...c}; delete S.base.id; delete S.base.updatedAt;
+async function openClient(c){
+  S = fresh(); S.id = c.id; S.base = {...c}; delete S.base.id; delete S.base.updatedAt; poolSaved = {};
   const lb = c.lb;
-  Object.assign(S, {unlocked: lb.unlocked || 1, analysis: lb.analysis, icp: lb.icp, checks: arr(lb.checks), signals: arr(lb.signals), rules: arr(lb.rules), pool: lb.pool || {}, rounds: arr(lb.rounds), usedQueries: arr(lb.usedQueries), prospeo: lb.prospeo || {variants: [], page: 1}, market: lb.market || {segments: [], yc: null}, spend: lb.spend || {usd: 0, credits: 0}});
+  $("#statusNote").innerHTML = '<span class="spin"></span> Opening…';
+  let pool = {};
+  try { const rows = await api("/api/lbpool/" + c.id); arr(rows).forEach(r => { const {updatedAt, ...t} = r; pool[t.id] = t; poolSaved[t.id] = JSON.stringify(compactT(t)); }); } catch(e){}
+  if (!Object.keys(pool).length && lb.pool) pool = lb.pool;  // older saves kept companies inside the client record; they move over on the next save
+  delete S.base.lb?.pool;
+  $("#statusNote").innerHTML = "";
+  Object.assign(S, {unlocked: lb.unlocked || 1, analysis: lb.analysis, icp: lb.icp, checks: arr(lb.checks), signals: arr(lb.signals), rules: arr(lb.rules), pool, rounds: arr(lb.rounds), usedQueries: arr(lb.usedQueries), prospeo: lb.prospeo || {variants: [], page: 1}, market: lb.market || {segments: [], yc: null}, spend: lb.spend || {usd: 0, credits: 0}});
   S.intake = {...S.intake, ...lb.intake};
   addSpend(0, 0); writeIntake();
   if (S.unlocked >= 2 && S.analysis) renderIcp();
   if (S.unlocked >= 3){ renderTrain(); if (S.round) prepRound(); }
-  if (S.unlocked >= 4) renderList();
-  show(S.unlocked >= 3 && Object.values(S.pool).some(t => t.review) ? "list" : S.unlocked >= 3 ? "train" : S.unlocked >= 2 ? "icp" : "intake");
+  show(Object.values(S.pool).some(t => cls(t) === "fit") && S.unlocked >= 3 ? "market" : S.unlocked >= 3 ? "train" : S.unlocked >= 2 ? "icp" : "intake");
+  if (Object.keys(S.pool).length) save();
 }
 
 /* ================= navigation ================= */
 function show(view){
   S.view = view;
-  ["home", "intake", "icp", "train", "market", "list"].forEach(v => $("#v-" + v).hidden = v !== view);
-  $("#rsWrap").hidden = !(view === "train" || view === "list" || view === "market");
+  ["home", "intake", "icp", "train", "market", "list", "contacts"].forEach(v => $("#v-" + v).hidden = v !== view);
+  $("#rsWrap").hidden = !(view === "train" || view === "market");
   document.querySelectorAll("#seg button").forEach(b => { b.classList.toggle("on", b.dataset.view === view); b.disabled = Number(b.dataset.need) > S.unlocked; });
   if (view === "list") renderList();
   if (view === "market") renderMarket();
+  if (view === "contacts") renderContacts();
   window.scrollTo({top: 0, behavior: "smooth"});
 }
 document.querySelectorAll("#seg button").forEach(b => b.onclick = () => show(b.dataset.view));
 $("#homeBtn").onclick = () => { show("home"); loadResume(); };
-$("#newBtn").onclick = () => { S = fresh(); writeIntake(); addSpend(0, 0); show("intake"); };
+$("#newBtn").onclick = () => { S = fresh(); poolSaved = {}; writeIntake(); addSpend(0, 0); show("intake"); };
 
 /* ================= intake ================= */
 const F = {name: "#coName", site: "#coSite", comp: "#comp", dream: "#dream", never: "#never", event: "#event", ctx: "#ctx"};
@@ -1082,7 +1123,7 @@ const roundDone = () => S.round && S.round.at >= S.round.ids.length;
 function renderTrain(){
   const R = S.round; const v = $("#v-train");
   if (!R){ newRound(); return renderTrain(); }
-  if (!R.ids.length){ v.innerHTML = `<div class="vh"><h1>Nothing left to review</h1><p>Find more companies to keep training.</p></div><div class="foot"><button class="pill" type="button" id="moreBtn">Find more companies</button><button class="ghost" type="button" data-go="list">See the list</button><div class="status" id="moreStatus"></div></div>`; wireTrainFoot(); return; }
+  if (!R.ids.length){ v.innerHTML = `<div class="vh"><h1>Nothing left to review</h1><p>Find more companies to keep training.</p></div><div class="foot"><button class="pill" type="button" id="moreBtn">Find more companies</button><button class="ghost" type="button" data-go="market">See the list</button><div class="status" id="moreStatus"></div></div>`; wireTrainFoot(); return; }
   if (roundDone()) return renderSummary();
   const t = S.pool[R.ids[R.at]]; const s = t.s || {checks: []};
   const dots = R.ids.map((id, i) => { const res = R.results[i]; return `<i class="${res ? (res.call === "keep" ? "k" : res.call === "pass" ? "p" : "u") : ""} ${i === R.at ? "cur" : ""}"></i>`; }).join("");
@@ -1103,7 +1144,7 @@ function renderTrain(){
         <button class="ghost" type="button" data-call="unsure">Not sure <kbd>S</kbd></button>
       </div>
     </div>
-    <div class="foot"><button class="link" type="button" data-go="list" style="font-size:13px">See the list so far →</button></div>`;
+    <div class="foot"><button class="link" type="button" data-go="market" style="font-size:13px">See the list so far →</button></div>`;
   v.querySelectorAll("[data-call]").forEach(b => b.onclick = () => decide(b.dataset.call));
   wireTrainFoot();
 }
@@ -1130,10 +1171,14 @@ function decide(call, reason){
   save();
   setTimeout(() => { card.classList.add(call === "pass" ? "out-p" : "out-k"); setTimeout(() => { R.at++; renderTrain(); }, 260); }, 700);
 }
+// review decisions also feed the main engine's memory; batched so bulk removals send one request
+let memQ = [], memT = null;
 function pushMemory(t, call, reason){
   if (!S.id || call === "unsure") return;
-  api("/api/memory/" + S.id, {addFeedback: [{id: "lb-" + t.id, scope: "company", label: call === "keep" ? "kept" : "removed", company: t.name, domain: t.site, desc: t.what.slice(0, 160), why: reason || "", at: new Date().toISOString()}]}).catch(() => {});
+  memQ.push({id: "lb-" + t.id, scope: "company", label: call === "keep" ? "kept" : "removed", company: t.name, domain: t.site, desc: String(t.what || "").slice(0, 160), why: reason || "", at: new Date().toISOString()});
+  clearTimeout(memT); memT = setTimeout(() => { const rows = memQ.splice(0, 400); if (rows.length) api("/api/memory/" + S.id, {addFeedback: rows}).catch(() => {}); if (memQ.length) pushMemory.flush(); }, 600);
 }
+pushMemory.flush = () => { const rows = memQ.splice(0, 400); if (rows.length) api("/api/memory/" + S.id, {addFeedback: rows}).catch(() => {}); };
 document.addEventListener("keydown", e => {
   if (S.view !== "train" || e.target.closest("input,textarea,[contenteditable]") || e.metaKey || e.ctrlKey) return;
   if (S.awaitWhy){ const n = Number(e.key); if (n >= 1 && n <= REASONS.length){ e.preventDefault(); decide("pass", REASONS[n - 1]); } return; }
@@ -1165,8 +1210,7 @@ function renderSummary(){
     ${trusted ? `<div class="banner"><span><b>It's calling it your way.</b> Two rounds in a row at 80% or better. The ready list is worth trusting now.</span></div>` : ""}
     <div class="foot">
       <button class="pill" type="button" id="nextRound">Next ${BATCH} <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
-      <button class="ghost" type="button" data-go="market">Map the market</button>
-      <button class="${trusted ? "pill" : "ghost"}" type="button" data-go="list">See the list (${B.kept.length + B.ready.length})</button>
+      <button class="${trusted ? "pill" : "ghost"}" type="button" data-go="market">See the full list</button>
       <div class="status" id="moreStatus"></div>
     </div>`;
   wireRules("tr", rerTrainRules);
@@ -1214,6 +1258,21 @@ function wireTrainFoot(){
   const m = $("#moreBtn"); if (m) m.onclick = async () => { m.disabled = true; try { await refill("#moreStatus", 25); } catch(e){} newRound(); renderTrain(); save(); };
 }
 
+/* ================= what's on the list ================= */
+// fit = on the list · unsure = the engine can't tell · out = removed, passed, competitor or clearly not a fit
+function cls(t){
+  if (t.removed || t.review === "pass") return "out";
+  if (t.review === "keep") return "fit";
+  const s = t.s; if (!s) return "unsure";
+  if (s.category === "competitor" || s.category === "irrelevant") return "out";
+  if (S.intake.locOnly && S.intake.locs.length && s.inLoc === false) return "out";
+  if (arr(s.checks).includes(false)) return "out";
+  if (s.verdict === "pass" && s.conf >= 60) return "out";
+  if (s.verdict === "keep" && s.fit >= 60) return "fit";
+  return "unsure";
+}
+const fitsCount = () => Object.values(S.pool).reduce((a, t) => a + (cls(t) === "fit" ? 1 : 0), 0);
+
 /* ================= market map (TAM) ================= */
 const fmtN = n => n == null ? "–" : Number(n).toLocaleString();
 function companyFromSearch(co, label){
@@ -1239,52 +1298,96 @@ async function countSegment(seg){
   } catch(e){ seg.err = e.error || "Prospeo couldn't search this segment"; }
   seg.counting = false; renderMarket(); save();
 }
-async function mapMarket(){
-  const b = $("#mapBtn"); if (b) b.disabled = true; $("#mkStatus").innerHTML = "";
-  const l = line("#mkStatus", "Splitting the market into segments", ["reading the ICP", "using what you kept and passed", "writing Prospeo filters"]);
-  try {
-    const kept = Object.values(S.pool).filter(t => t.review === "keep").slice(-8).map(t => t.name + " (" + t.what.slice(0, 70) + ")");
-    const r = await claude(`${brief()}\nKept so far: ${kept.join("; ") || "none"}\n\nMap the total addressable market for ${S.intake.name} as 5 to 7 distinct segments of companies that could buy (not competitors). Each segment is a group a seller would recognise (e.g. "Voice agents for healthcare scheduling"), described in one line, and expressed as a Prospeo company search using only these filters, exactly in these shapes:\n${PROSPEO_VOCAB}\nRules: make segments as non-overlapping as you can. keywords are short category phrases companies use about themselves (2-6 per segment). No location filters; the tool adds them.\nReply with only {"segments":[{"label":"","why":"one line on why they buy","filters":{}}]}`, {max: 4000});
-    const allowed = ["company_keywords", "company_website_search", "company_industry", "company_headcount_range", "company_funding", "company_job_posting_hiring_for", "company_founded"];
-    const segs = arr(r.segments).map(x => { const f = {}; for (const k of allowed) if (x.filters && x.filters[k]) f[k] = x.filters[k];
-      if (Array.isArray(f.company_headcount_range)) f.company_headcount_range = f.company_headcount_range.filter(v => HEADCOUNT.includes(v));
-      if (f.company_funding?.stage) f.company_funding.stage = arr(f.company_funding.stage).filter(v => FUNDING.includes(v));
-      return {id: nid("g"), label: x.label || "Segment", why: x.why || "", filters: f, page: 1, pulled: 0}; }).filter(x => Object.keys(x.filters).length);
-    if (!segs.length) throw {error: "No segments came back. Try again."};
-    S.market.segments = segs; l.done(true, `${segs.length} segments`);
-    renderMarket();
-    const l2 = line("#mkStatus", "Counting companies in each segment with Prospeo");
-    await pmap(segs, 2, countSegment); l2.done(true, "Counted");
-    save(); renderMarket();
-    const st = $("#mkStatus"); if (st) st.innerHTML = `<div class="ok">✓ Mapped ${segs.length} segments. Add the ones you want to your list.</div>`;
-  } catch(e){ l.done(false, e.error || "Couldn't map the market"); }
-  const b2 = $("#mapBtn"); if (b2) b2.disabled = false;
+const SEG_FILTERS = ["company_keywords", "company_website_search", "company_industry", "company_headcount_range", "company_funding", "company_job_posting_hiring_for", "company_founded"];
+function cleanSeg(x){
+  const f = {}; for (const k of SEG_FILTERS) if (x.filters && x.filters[k]) f[k] = x.filters[k];
+  if (Array.isArray(f.company_headcount_range)) f.company_headcount_range = f.company_headcount_range.filter(v => HEADCOUNT.includes(v));
+  if (f.company_funding?.stage) f.company_funding.stage = arr(f.company_funding.stage).filter(v => FUNDING.includes(v));
+  return {id: nid("g"), label: x.label || "Segment", why: x.why || "", filters: f, page: 1, pulled: 0, added: 0};
+}
+async function newSegments(n, st){
+  const have = S.market.segments.map(g => `${g.label}${g.pulled != null ? " (" + g.pulled + " companies)" : ""}`);
+  const kept = Object.values(S.pool).filter(t => t.review === "keep").slice(-10).map(t => t.name + " (" + String(t.what).slice(0, 70) + ")");
+  const removed = Object.values(S.pool).filter(t => t.removed || t.review === "pass").slice(-10).map(t => t.name + (t.reason || t.removed ? " → " + (t.reason || t.removed) : ""));
+  const l = line(st, have.length ? `Finding ${n} more segments of the market` : "Splitting the market into segments", ["reading the ICP", "using what you kept and removed", "writing Prospeo filters"]);
+  const r = await claude(`${brief()}\nKept: ${kept.join("; ") || "none"}\nRemoved or passed: ${removed.join("; ") || "none"}\n${have.length ? "Segments already searched (don't repeat them): " + have.join("; ") + "\n" : ""}\nMap the total addressable market for ${S.intake.name}: give ${n} distinct segments of companies that could buy (never competitors). Each is a group a seller would recognise, described in one line, and expressed as a Prospeo company search using only these filters, exactly in these shapes:\n${PROSPEO_VOCAB}\nRules: segments should not overlap. keywords are short category phrases companies use about themselves (2-6 per segment). Think broadly across every industry where a company would buy this. No location filters; the tool adds them.\nReply with only {"segments":[{"label":"","why":"one line on why they buy","filters":{}}]}`, {max: 4000});
+  const segs = arr(r.segments).map(cleanSeg).filter(x => Object.keys(x.filters).length);
+  l.done(true, `${segs.length} new segment${segs.length === 1 ? "" : "s"}: ${segs.map(g => g.label).join(", ")}`);
+  S.market.segments.push(...segs); return segs.length;
 }
 async function addSegment(text){
-  $("#mkStatus").innerHTML = ""; const l = line("#mkStatus", "Turning that into a search");
+  const st = "#bdStatus"; const l = line(st, "Turning that into a search");
   try {
     const r = await claude(`${brief()}\nThe team wants this market segment: "${text}"\nExpress it as a Prospeo company search using only these filters, exactly in these shapes:\n${PROSPEO_VOCAB}\nNo location filters.\nReply with only {"label":"","why":"","filters":{}}`, {max: 1500, tier: "fast"});
-    const seg = {id: nid("g"), label: r.label || text, why: r.why || "", filters: r.filters || {}, page: 1, pulled: 0};
-    S.market.segments.push(seg); l.done(true, "Added"); await countSegment(seg);
-    const st = $("#mkStatus"); if (st) st.innerHTML = `<div class="ok">✓ Added "${esc(seg.label)}"</div>`;
+    const seg = cleanSeg({...r, label: r.label || text}); S.market.segments.push(seg); l.done(true, `Added "${seg.label}". Build the list to pull it.`); save(); renderMarket();
   } catch(e){ l.done(false, e.error); }
 }
-async function pullSegment(id, maxPages){
-  const seg = S.market.segments.find(x => x.id === id); if (!seg || seg.pulling) return;
-  seg.pulling = true; renderMarket();
-  const local = S.intake.locOnly && S.intake.locs.length > 0;
-  let added = 0, pages = 0; const newIds = [];
-  try {
-    while (pages < maxPages && !seg.done){
-      const r = await segSearch(seg, local, seg.page); pages++; seg.page++;
-      const res = arr(r.results); if (!res.length || seg.page > (r.pagination?.total_page || 1)) seg.done = true;
-      res.forEach(x => { const c = companyFromSearch(x.company || {}, seg.label); if (addCandidate(c)){ added++; const t = S.pool[keyOf(c.name, c.site)]; if (t){ t.li = c.li; newIds.push(t.id); } } });
-      seg.pulled += res.length; seg.status = `Pulling… ${seg.pulled} so far`; renderMarket();
+let building = false, stopBuild = false, scoringJobs = [];
+async function pullSegmentAll(seg, local, target){
+  const maxPages = local ? 40 : 20;
+  seg.pulling = true; renderSegs();
+  while (!seg.done && !stopBuild && seg.page <= maxPages && fitsCount() < target){
+    let r;
+    try { r = await segSearch(seg, local, seg.page); } catch(e){ seg.err = e.error || "Prospeo error"; seg.done = true; break; }
+    const loosened = arr(r.attempts).map(a => a.dropped).filter(Boolean);
+    if (loosened.some(x => /company_keywords|company_website_search/.test(x))){ seg.err = "Prospeo didn't accept this segment's keywords, so it was skipped"; seg.done = true; break; }
+    if (seg.page === 1) seg.total = r.pagination?.total_count ?? arr(r.results).length;
+    seg.page++;
+    const res = arr(r.results); if (!res.length || seg.page > (r.pagination?.total_page || 1)) seg.done = true;
+    const newIds = [];
+    res.forEach(x => { const c = companyFromSearch(x.company || {}, seg.label); if (addCandidate(c)){ seg.added++; const t = S.pool[keyOf(c.name, c.site)]; if (t){ t.li = c.li; newIds.push(t.id); } } });
+    seg.pulled += res.length; S.market.checked = (S.market.checked || 0) + res.length;
+    if (newIds.length){
+      const job = scoreAll(newIds).then(() => { newIds.forEach(id => { const t = S.pool[id]; if (t?.s && t.loc){ const f = inFocus(t.loc); if (f !== null) t.s.inLoc = f; } }); updateProgress(); });
+      scoringJobs.push(job); job.finally(() => { scoringJobs = scoringJobs.filter(j => j !== job); });
+      while (scoringJobs.length >= 3) await Promise.race(scoringJobs);
     }
-    if (newIds.length){ seg.status = `Judging ${newIds.length} companies`; renderMarket(); await scoreAll(newIds); newIds.forEach(id => { const t = S.pool[id]; if (t?.s && t.loc){ const f = inFocus(t.loc); if (f !== null) t.s.inLoc = f; } }); }
-    seg.status = `Added ${added} new companies to your list` + (seg.done ? " (that's everyone in this segment)" : "");
-  } catch(e){ seg.status = e.error || "Couldn't pull this segment"; }
-  seg.pulling = false; S.unlocked = Math.max(S.unlocked, 3); save(); renderMarket();
+    updateProgress(); renderSegs();
+  }
+  seg.pulling = false; renderSegs();
+}
+async function buildFullList(){
+  if (building) return;
+  const target = Math.max(25, Number($("#tgtIn")?.value) || S.market.target || 500); S.market.target = target;
+  building = true; stopBuild = false; S.market.lastMsg = ""; renderMarket();
+  const st = "#bdStatus"; $(st).innerHTML = "";
+  const local = S.intake.locOnly && S.intake.locs.length > 0;
+  try {
+    if (!S.market.segments.length) await newSegments(7, st);
+    let rounds = 0;
+    while (!stopBuild){
+      const todo = S.market.segments.filter(g => !g.done);
+      if (todo.length){
+        const l = line(st, `Pulling every company in ${todo.length} segment${todo.length === 1 ? "" : "s"}${local ? " in " + S.intake.locs[0] : ""} and checking each against the ICP`);
+        for (const seg of todo){ if (stopBuild || fitsCount() >= target) break; await pullSegmentAll(seg, local, target); }
+        await Promise.all(scoringJobs); l.done(true, `${fmtN(fitsCount())} companies fit so far`);
+      }
+      if (S.market.includeYc !== false && !S.market.ycDoneAt && !stopBuild){ await pullYc(st); S.market.ycDoneAt = Date.now(); }
+      save();
+      if (stopBuild || fitsCount() >= target || rounds >= 3) break;
+      rounds++;
+      const n = await newSegments(5, st); if (!n) break;
+    }
+    await Promise.all(scoringJobs);
+    const fits = fitsCount();
+    S.market.lastMsg = stopBuild ? `Stopped. ${fmtN(fits)} companies fit the ICP.` : fits >= target ? `Done. ${fmtN(fits)} companies fit the ICP.` :
+      `${fmtN(fits)} companies fit the ICP${local ? " in " + S.intake.locs[0] : ""}. That's everything Prospeo and YC have that matches right now.${local ? " Widen the location to get more." : ""}`;
+  } catch(e){ S.market.lastMsg = (e.error || "Something went wrong") + ". What's already on the list is saved."; }
+  building = false; save(); renderMarket();
+}
+function updateProgress(){
+  const el = $("#bdProg"); if (!el) return; const fits = fitsCount(); const target = S.market.target || 500;
+  el.innerHTML = `<div class="bignum">${fmtN(fits)} <span style="font-size:18px;color:var(--muted);font-weight:700">of ${fmtN(target)} fit</span></div>
+    <div class="bar" style="height:10px"><i style="width:${Math.min(100, Math.round(fits / target * 100))}%"></i></div>
+    <span class="note">${fmtN(S.market.checked || Object.keys(S.pool).length)} companies checked · ${fmtN(S.spend.credits)} Prospeo credits so far</span>`;
+  const n = $("#mkCount"); if (n) n.textContent = fmtN(fits);
+}
+function renderSegs(){
+  const el = $("#segList"); if (!el) return;
+  el.innerHTML = S.market.segments.map(g => `<div class="seg2" style="padding:10px 14px"><div style="min-width:0"><h3 style="font-size:14.5px">${esc(g.label)}</h3>
+      <div class="sample">${g.pulling ? '<span class="spin"></span> pulling · ' : g.done ? "✓ " : ""}${g.total != null ? fmtN(g.total) + " in Prospeo" + (S.intake.locOnly && S.intake.locs.length ? " in " + esc(S.intake.locs[0]) : "") + " · " : ""}${fmtN(g.pulled || 0)} checked · ${fmtN(g.added || 0)} new${g.err ? ` · <span style="color:var(--bad)">${esc(g.err)}</span>` : ""}</div></div>
+      <div class="acts"><button class="x" type="button" data-segx="${g.id}" aria-label="Remove segment">✕</button></div></div>`).join("") || '<div class="note">Segments appear when you build the list.</div>';
+  el.querySelectorAll("[data-segx]").forEach(b => b.onclick = () => { S.market.segments = S.market.segments.filter(x => x.id !== b.dataset.segx); save(); renderSegs(); });
 }
 
 /* ================= YC directory ================= */
@@ -1313,8 +1416,8 @@ function readYcCrit(){
 // ICP fit for a YC company already on the list: the hard criteria, then the engine's judgment
 function ycFits(t){
   const c = ycCrit();
-  if (t.review === "keep") return true;
-  if (t.review === "pass" || !t.s) return false;
+  if (t.review === "keep" && !t.removed) return true;
+  if (cls(t) !== "fit") return false;
   if (c.maxTeam && t.ycTeam != null && t.ycTeam > c.maxTeam) return false;
   if (c.minYear && ycYear(t.yc) && ycYear(t.yc) < c.minYear) return false;
   if (S.locFilter && S.intake.locOnly && S.intake.locs.length && t.s.inLoc === false) return false;
@@ -1363,52 +1466,269 @@ async function pullYc(statusSel){
   } catch(e){ if ($(st)) $(st).insertAdjacentHTML("beforeend", `<div class="bad">✕ ${esc(e.error || "Couldn't pull YC companies")}</div>`); }
   document.querySelectorAll("[data-ycpull]").forEach(b => b.disabled = false);
 }
-function marketStatsHTML(){
-  const segs = S.market.segments; const world = segs.reduce((a, x) => a + (x.world || 0), 0); const local = segs.reduce((a, x) => a + (x.local || 0), 0);
-  const B = buckets(); const yc = Object.values(S.pool).filter(t => t.yc).length;
-  return `<div><b>${fmtN(world)}</b><span>companies worldwide${segs.length > 1 ? " (segments can overlap)" : ""}</span></div>
-    <div><b>${S.intake.locs.length ? fmtN(local) : "–"}</b><span>in ${esc(S.intake.locs[0] || "your location")}</span></div>
-    <div><b>${fmtN(B.kept.length + B.ready.length)}</b><span>on your list now</span></div>
-    <div><b>${fmtN(yc)}</b><span>YC companies on your list</span></div>`;
+function marketRows(tab){
+  const all = Object.values(S.pool);
+  let rows = tab === "yc" ? all.filter(t => t.yc && ycFits(t)) : all.filter(t => cls(t) === (tab === "removed" ? "out" : tab));
+  const q = (S.mkSearch || "").toLowerCase().trim();
+  if (q) rows = rows.filter(t => [t.name, t.site, t.what, t.loc, t.sig].join(" ").toLowerCase().includes(q));
+  return rows.sort((a, b) => (b.review === "keep") - (a.review === "keep") || (b.s?.fit || 0) - (a.s?.fit || 0));
 }
-function renderMarketStats(){ const el = $("#mkStats"); if (el) el.innerHTML = marketStatsHTML(); }
+function renderMarketStats(){ updateProgress(); }
+function mkRow(t){
+  const s = t.s || {}; const open = S.openRow === t.id; const sel = S.sel?.has(t.id);
+  const size = t.li?.employees != null ? fmtN(t.li.employees) + " employees" : t.size ? (/^\d+$/.test(t.size) ? t.size + " employees" : t.size + " people") : "";
+  return `<div class="mrow ${open ? "open" : ""}" id="r-${esc(t.id)}">
+    <input type="checkbox" data-sel="${esc(t.id)}" ${sel ? "checked" : ""} aria-label="Select ${esc(t.name)}">
+    <div class="score ${s.fit >= 80 ? "top" : ""}" style="width:40px;height:40px;font-size:15px;border-radius:12px">${s.fit ?? "–"}</div>
+    <div style="min-width:0">
+      <div class="nm"><button class="nmb" type="button" data-row="${esc(t.id)}">${esc(t.name)}</button>${t.yc ? `<span class="tag hi">YC ${esc(String(t.yc).replace(/^YC /, ""))}</span>` : ""}${t.review === "keep" ? '<span class="tag good">Kept</span>' : ""}${t.removed ? `<span class="tag bad">${esc(t.removed === true ? "Removed" : t.removed)}</span>` : t.review === "pass" ? `<span class="tag bad">Passed${t.reason ? ": " + esc(t.reason) : ""}</span>` : ""}${arr(t.people).length ? `<span class="tag">${t.people.length} contact${t.people.length > 1 ? "s" : ""}</span>` : ""}</div>
+      <div class="meta">${esc([t.site, t.loc, size].filter(Boolean).join(" · "))}</div>
+      <p class="mwhat">${esc(s.why || t.what)}</p>
+      ${open ? `<div class="detail" style="display:flex;flex-direction:column;gap:10px;margin-top:10px">
+        <p>${esc(t.what)}</p>${t.li && !t.li.none ? liHTML(t) : ""}
+        ${t.evidence ? `<div class="ev"><b>Signal:</b> ${esc(t.evidence)}${t.evidenceUrl ? ` · <a href="${esc(t.evidenceUrl)}" target="_blank" rel="noopener">source ↗</a>` : ""}</div>` : ""}
+        ${S.checks.length && s.checks ? `<div class="checks">${S.checks.map((c, i) => { const v = s.checks[i]; return `<div class="ck"><span class="m ${v === true ? "y" : v === false ? "n" : "u"}">${v === true ? "✓" : v === false ? "✕" : "?"}</span><div>${esc(c.name)}</div></div>`; }).join("")}</div>` : ""}
+        ${s.unsure ? `<p class="unsure"><b>Not sure about:</b> ${esc(s.unsure)}</p>` : ""}
+        ${arr(t.people).length ? `<div class="people">${t.people.map(p => `<span>${p.linkedin ? `<a href="${esc(p.linkedin)}" target="_blank" rel="noopener">${esc(p.name)}</a>` : esc(p.name)} · ${esc(p.title)}${p.email ? " · " + esc(p.email) : ""}</span>`).join("")}</div>` : ""}
+        <div id="deep-${esc(t.id)}">${t.deep ? deepHTML(t) : ""}</div>
+        ${t.deep ? "" : `<button class="more" type="button" data-deep="${esc(t.id)}">${t.deepRunning ? '<span class="spin"></span> Researching…' : "Research with the browser agent →"}</button>`}
+        ${t.site ? `<a class="more" href="https://${esc(t.site)}" target="_blank" rel="noopener">Open their site ↗</a>` : ""}
+      </div>` : ""}
+    </div>
+    <div class="acts2">${t.removed || t.review === "pass" ? `<button class="ghost sm" type="button" data-restore="${esc(t.id)}">Restore</button>` : `<button class="fb up ${t.review === "keep" ? "on" : ""}" type="button" data-mfb="${esc(t.id)}" data-v="keep" aria-label="Keep">👍</button><button class="fb down" type="button" data-mfb="${esc(t.id)}" data-v="pass" aria-label="Remove">👎</button>`}</div>
+  </div>`;
+}
 function renderMarket(){
   if (S.view !== "market") return;
-  const segs = S.market.segments; const max = Math.max(1, ...segs.map(x => x.world || 0)); const loc = S.intake.locs[0] || "";
-  const local = S.intake.locOnly && S.intake.locs.length;
-  const keepMsg = $("#mkStatus") ? $("#mkStatus").innerHTML.replace(/<span class="spin"><\/span>/g, "") : "";
+  const tab = ["fit", "yc", "unsure", "removed"].includes(S.mkTab) ? S.mkTab : "fit";
+  const counts = {fit: 0, unsure: 0, removed: 0, yc: 0};
+  Object.values(S.pool).forEach(t => { const c = cls(t); counts[c === "out" ? "removed" : c]++; if (t.yc && ycFits(t)) counts.yc++; });
+  const rows = marketRows(tab); const shown = rows.slice(0, S.mkShow || 100);
+  S.sel = S.sel || new Set();
+  const loc = S.intake.locOnly && S.intake.locs.length ? S.intake.locs[0] : "";
+  const keepSt = $("#bdStatus") ? $("#bdStatus").innerHTML.replace(/<span class="spin"><\/span>/g, building ? '<span class="spin"></span>' : "") : "";
+  const pv = S.rmPreview;
   $("#v-market").innerHTML = `
-    <div class="vh"><h1>Market map</h1><p>How many companies could buy, split into segments. Add a segment to pull every company in it; each one gets judged with the rules you trained, so the list stays clean.</p></div>
-    <div class="statrow" id="mkStats">${marketStatsHTML()}</div>
+    <div class="vh"><h1>Target market</h1><p>Every company that fits the ICP, from Prospeo and YC, checked one by one with the rules you trained. Skim it, remove what doesn't belong, then find contacts.</p></div>
     <div class="card">
-      <div class="sect"><h2>Segments</h2><span>counted with Prospeo's company search · about 1 credit per count</span><button class="ghost r" type="button" id="mapBtn">${segs.length ? "Re-map the market" : "Map the market"}</button></div>
-      <div class="status" id="mkStatus">${keepMsg}</div>
-      <div class="segs">${segs.map(g => `<div class="seg2">
-        <div style="min-width:0"><h3>${esc(g.label)}</h3>${g.why ? `<div class="note">${esc(g.why)}</div>` : ""}
-          <div class="counts">${g.counting ? '<span><span class="spin"></span> Counting…</span>' : g.err ? `<span style="color:var(--bad)">${esc(g.err)}</span>` : `<b>${fmtN(g.world)}</b><span>worldwide</span>${S.intake.locs.length ? `<b>${fmtN(g.local)}</b><span>in ${esc(loc)}</span>` : ""}`}</div>
-          ${g.world ? `<div class="bar"><i style="width:${Math.round(g.world / max * 100)}%"></i></div>` : ""}
-          ${g.sample?.length ? `<div class="sample">e.g. ${g.sample.map(esc).join(", ")}</div>` : ""}
-          ${g.loosened?.length ? `<div class="sample">Prospeo didn't accept: ${esc(g.loosened.join(", "))}, so the count is broader</div>` : ""}
-          ${g.status ? `<div class="sample">${g.pulling ? '<span class="spin"></span> ' : "✓ "}${esc(g.status)}</div>` : ""}</div>
-        <div class="acts">
-          ${g.done ? '<span class="tag good">All added</span>' : `<button class="pill sm" type="button" data-pull="${g.id}" data-pages="1" ${g.pulling ? "disabled" : ""}>Add 25</button>
-          <button class="ghost" type="button" data-pull="${g.id}" data-pages="10" ${g.pulling ? "disabled" : ""}>Add up to 250${local ? " in " + esc(loc.split(",")[0]) : ""}</button>`}
-          <button class="x" type="button" data-segx="${g.id}" aria-label="Remove segment">✕</button></div>
-      </div>`).join("") || '<div class="empty">Map the market to see how big it is.</div>'}</div>
-      <div class="addrule"><input class="in" id="segIn" placeholder="Add a segment in plain words, e.g. AI receptionists for dental clinics" autocomplete="off"><button class="ghost" type="button" id="segAdd">Add</button></div>
+      <div class="sect"><h2>Build the full list</h2><span>${loc ? "in " + esc(loc) + " · " : ""}change the location on the intake page</span></div>
+      <div class="foot">
+        <label class="lbl" for="tgtIn" style="gap:8px">Target <input class="in" id="tgtIn" type="number" min="25" step="25" value="${S.market.target || 500}" style="width:110px;padding:8px 10px"></label>
+        <label class="check"><input type="checkbox" id="ycInc" ${S.market.includeYc !== false ? "checked" : ""}> Include YC companies</label>
+        ${building ? `<button class="ghost" type="button" id="stopBtn">Stop</button>` : `<button class="pill" type="button" id="buildFull">${counts.fit ? "Keep building" : "Build the full list"}</button>`}
+        ${loc && !building && counts.fit < (S.market.target || 500) && S.market.lastMsg ? `<button class="ghost" type="button" id="widenBtn">Widen to United States</button>` : ""}
+      </div>
+      <div id="bdProg"></div>
+      ${S.market.lastMsg && !building ? `<div class="banner"><span>${esc(S.market.lastMsg)}</span></div>` : ""}
+      <div class="status" id="bdStatus">${keepSt}</div>
+      <details ${S.segOpen ? "open" : ""} id="segDet"><summary class="lbl" style="cursor:pointer">Segments searched (${S.market.segments.length})</summary>
+        <div class="segs" id="segList" style="margin-top:10px"></div>
+        <div class="addrule" style="margin-top:10px"><input class="in" id="segIn" placeholder="Add a segment in plain words, e.g. AI receptionists for dental clinics" autocomplete="off"><button class="ghost" type="button" id="segAdd">Add</button></div>
+      </details>
     </div>
     <div class="card">
-      <div class="sect"><h2>YC companies</h2><span>every active YC company that fits, from YC's public directory (updated daily)</span></div>
-      <div class="foot"><button class="pill sm" type="button" id="ycBtn" data-ycpull>Pull YC companies that fit</button>${S.market.yc ? `<span class="note">Last pull: ${fmtN(S.market.yc.matched)} matched. They're in the YC tab on the list.</span>` : ""}<button class="link" type="button" id="goYc" style="font-size:13px">Open the YC list →</button></div>
-      <div class="status" id="ycStatus"></div>
-    </div>`;
-  $("#mapBtn").onclick = () => mapMarket();
+      <div class="toolbar">
+        <div class="tabs">${[["fit", "Fits the ICP"], ["yc", "YC"], ["unsure", "Unsure"], ["removed", "Removed"]].map(([k, l]) => `<button type="button" class="${k === tab ? "on" : ""}" data-mtab="${k}">${l}<i>${fmtN(counts[k])}</i></button>`).join("")}</div>
+        <span class="sp"><button class="pill sm" type="button" id="mkCsv">Download ${tab === "yc" ? "YC " : ""}CSV</button></span>
+      </div>
+      <div class="toolbar">
+        <input class="in" id="mkSearch" placeholder="Search the list" value="${esc(S.mkSearch || "")}" style="max-width:260px;padding:9px 12px" autocomplete="off">
+        ${tab === "unsure" && counts.unsure ? `<button class="ghost" type="button" id="quickCheck">Check 5 of these</button>` : ""}
+        ${tab === "yc" ? `<button class="ghost" type="button" id="ycAgain" data-ycpull>Pull YC companies again</button>` : ""}
+        ${S.sel.size ? `<span class="sp"><b style="font-size:13.5px">${S.sel.size} selected</b><button class="ghost sm" type="button" id="selRemove">Remove</button><button class="ghost sm" type="button" id="selKeep">Keep</button><button class="link" type="button" id="selClear" style="font-size:12.5px">Clear</button></span>` : `<span class="sp"><label class="check" style="font-size:12.5px"><input type="checkbox" id="selAll"> Select all ${fmtN(Math.min(rows.length, S.mkShow || 100))} shown</label></span>`}
+      </div>
+      ${tab !== "removed" ? `<div class="addrule"><input class="in" id="rmText" placeholder="Remove companies like… e.g. 'anything in dental billing, Acme and Foo, agencies'" value="${esc(pv?.q || "")}" autocomplete="off"><button class="ghost" type="button" id="rmGo">Find them</button></div>` : ""}
+      <div class="status" id="rmStatus"></div>
+      ${pv ? `<div class="banner" style="flex-direction:column;align-items:flex-start;gap:8px"><span><b>${pv.ids.length} compan${pv.ids.length === 1 ? "y matches" : "ies match"} "${esc(pv.q)}"</b>${pv.ids.length ? ": " + esc(pv.ids.slice(0, 25).map(id => S.pool[id]?.name).filter(Boolean).join(", ")) + (pv.ids.length > 25 ? " and " + (pv.ids.length - 25) + " more" : "") : ""}</span>
+        ${pv.rule ? `<label class="check"><input type="checkbox" id="rmRule" checked> Also add as a rule so they never come back: "${esc(pv.rule)}"</label>` : ""}
+        <span style="display:flex;gap:8px">${pv.ids.length ? `<button class="pill sm" type="button" id="rmConfirm">Remove ${pv.ids.length}</button>` : ""}<button class="ghost sm" type="button" id="rmCancel">Cancel</button></span></div>` : ""}
+      <div class="mlist">${shown.map(mkRow).join("") || `<div class="empty">${tab === "fit" ? "Nothing yet. Build the full list above." : tab === "yc" ? "No YC companies fit yet. They're pulled when you build the list." : "Nothing here."}</div>`}</div>
+      ${rows.length > shown.length ? `<button class="ghost" type="button" id="mkMore">Show ${fmtN(Math.min(100, rows.length - shown.length))} more of ${fmtN(rows.length - shown.length)}</button>` : ""}
+    </div>
+    <div class="foot"><button class="pill" type="button" id="toContacts">Next: find contacts <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button></div>`;
+  updateProgress(); renderSegs();
+  $("#segDet").ontoggle = () => { S.segOpen = $("#segDet").open; };
+  $("#tgtIn").onchange = () => { S.market.target = Math.max(25, Number($("#tgtIn").value) || 500); save(); updateProgress(); };
+  $("#ycInc").onchange = () => { S.market.includeYc = $("#ycInc").checked; if (S.market.includeYc) S.market.ycDoneAt = null; save(); };
+  const bf = $("#buildFull"); if (bf) bf.onclick = buildFullList;
+  const sb = $("#stopBtn"); if (sb) sb.onclick = () => { stopBuild = true; sb.disabled = true; sb.textContent = "Stopping…"; };
+  const wb = $("#widenBtn"); if (wb) wb.onclick = () => { if (!S.intake.locs.includes("United States")) S.intake.locs.push("United States"); S.market.segments.forEach(g => { g.done = false; g.page = 1; }); S.market.ycDoneAt = null; renderLocs(); save(); buildFullList(); };
   $("#segAdd").onclick = () => { const v = $("#segIn").value.trim(); if (v){ $("#segIn").value = ""; addSegment(v); } };
   $("#segIn").onkeydown = e => { if (e.key === "Enter") $("#segAdd").click(); };
-  document.querySelectorAll("[data-pull]").forEach(b => b.onclick = () => pullSegment(b.dataset.pull, Number(b.dataset.pages)));
-  document.querySelectorAll("[data-segx]").forEach(b => b.onclick = () => { S.market.segments = S.market.segments.filter(x => x.id !== b.dataset.segx); save(); renderMarket(); });
-  $("#ycBtn").onclick = () => pullYc("#ycStatus");
-  $("#goYc").onclick = () => { S.unlocked = Math.max(S.unlocked, 3); S.tab = "yc"; show("list"); };
+  document.querySelectorAll("[data-mtab]").forEach(b => b.onclick = () => { S.mkTab = b.dataset.mtab; S.mkShow = 100; S.sel = new Set(); S.rmPreview = null; renderMarket(); });
+  $("#mkSearch").oninput = () => { S.mkSearch = $("#mkSearch").value; clearTimeout(S._srch); S._srch = setTimeout(() => { renderMarket(); const i = $("#mkSearch"); i.focus(); i.selectionStart = i.selectionEnd = i.value.length; }, 250); };
+  $("#mkCsv").onclick = () => downloadMarketCsv(tab);
+  const qc = $("#quickCheck"); if (qc) qc.onclick = () => { const ids = marketRows("unsure").filter(t => t.s).sort((a, b) => a.s.conf - b.s.conf).slice(0, BATCH).map(t => t.id); newRound(ids); renderTrain(); show("train"); };
+  const ya = $("#ycAgain"); if (ya) ya.onclick = () => pullYc("#bdStatus").then(renderMarket);
+  const mm = $("#mkMore"); if (mm) mm.onclick = () => { S.mkShow = (S.mkShow || 100) + 100; renderMarket(); };
+  document.querySelectorAll("[data-sel]").forEach(c => c.onchange = () => { c.checked ? S.sel.add(c.dataset.sel) : S.sel.delete(c.dataset.sel); renderMarket(); });
+  const sa = $("#selAll"); if (sa) sa.onchange = () => { shown.forEach(t => S.sel.add(t.id)); renderMarket(); };
+  const sr = $("#selRemove"); if (sr) sr.onclick = () => { S.sel.forEach(id => { const t = S.pool[id]; if (t){ t.removed = "Removed by you"; pushMemory(t, "pass", "Removed while skimming"); } }); S.sel = new Set(); save(); renderMarket(); };
+  const sk = $("#selKeep"); if (sk) sk.onclick = () => { S.sel.forEach(id => { const t = S.pool[id]; if (t){ t.review = "keep"; t.removed = null; t.reviewedAt = Date.now(); pushMemory(t, "keep", ""); } }); S.sel = new Set(); save(); renderMarket(); };
+  const sc = $("#selClear"); if (sc) sc.onclick = () => { S.sel = new Set(); renderMarket(); };
+  const rg = $("#rmGo"); if (rg){ rg.onclick = previewRemove; $("#rmText").onkeydown = e => { if (e.key === "Enter") previewRemove(); }; }
+  const rc = $("#rmConfirm"); if (rc) rc.onclick = confirmRemove;
+  const rx = $("#rmCancel"); if (rx) rx.onclick = () => { S.rmPreview = null; renderMarket(); };
+  document.querySelectorAll("#v-market [data-row]").forEach(b => b.onclick = () => { S.openRow = S.openRow === b.dataset.row ? null : b.dataset.row; renderMarket(); });
+  document.querySelectorAll("[data-mfb]").forEach(b => b.onclick = () => { const t = S.pool[b.dataset.mfb]; if (!t) return;
+    if (b.dataset.v === "keep"){ t.review = t.review === "keep" ? null : "keep"; t.reviewedAt = Date.now(); if (t.review) pushMemory(t, "keep", ""); }
+    else { t.removed = "Removed by you"; t.reviewedAt = Date.now(); pushMemory(t, "pass", "Removed while skimming"); }
+    S.rulesDirty = true; save(); renderMarket(); });
+  document.querySelectorAll("[data-restore]").forEach(b => b.onclick = () => { const t = S.pool[b.dataset.restore]; if (!t) return; t.removed = null; t.review = "keep"; t.reason = ""; save(); renderMarket(); });
+  document.querySelectorAll("[data-deep]").forEach(b => b.onclick = () => deepResearch(b.dataset.deep));
+  $("#toContacts").onclick = () => { S.unlocked = Math.max(S.unlocked, 3); show("contacts"); };
+}
+async function previewRemove(){
+  const q = $("#rmText").value.trim(); if (!q) return;
+  $("#rmGo").disabled = true; $("#rmStatus").innerHTML = "";
+  const rows = Object.values(S.pool).filter(t => cls(t) !== "out");
+  const l = line("#rmStatus", `Looking through ${fmtN(rows.length)} companies`);
+  try {
+    const chunks = []; for (let i = 0; i < rows.length; i += 150) chunks.push(rows.slice(i, i + 150));
+    const ids = new Set(); let rule = "";
+    await pmap(chunks, 3, async ch => {
+      const r = await claude(`The team is cleaning a target list for ${S.intake.name}. Their instruction: "${q}"\nRows (id | name | what they do | location | employees | signal):\n${ch.map(t => `${t.id} | ${t.name} | ${String(t.what).slice(0, 140)} | ${t.loc || "?"} | ${t.li?.employees ?? t.size ?? "?"} | ${t.sig || ""}`).join("\n")}\n\nReturn the ids of rows the instruction says to remove. Only rows that clearly match; company names in the instruction match by name.\nReply with only {"remove":[""],"rule":"one short general rule capturing the instruction, or empty if it only names specific companies"}`, {tier: "fast", max: 4000});
+      arr(r.remove).forEach(id => { if (S.pool[id]) ids.add(id); }); if (r.rule && !rule) rule = r.rule;
+    });
+    l.done(true, `${ids.size} match`);
+    S.rmPreview = {q, ids: [...ids], rule};
+  } catch(e){ l.done(false, e.error || "Couldn't read that. Try again."); }
+  renderMarket();
+}
+function confirmRemove(){
+  const pv = S.rmPreview; if (!pv) return;
+  pv.ids.forEach(id => { const t = S.pool[id]; if (t){ t.removed = "Removed: " + pv.q.slice(0, 60); pushMemory(t, "pass", pv.q); } });
+  if (pv.rule && $("#rmRule")?.checked){ S.rules.push({id: nid("r"), kind: "skip", text: pv.rule, from: "you"}); S.rulesDirty = true; }
+  S.rmPreview = null; save(); renderMarket();
+  $("#rmStatus").innerHTML = `<div class="ok">✓ Removed ${pv.ids.length}. They're in the Removed tab if you want any back.</div>`;
+}
+function csvDownload(rows, name){
+  const q = v => '"' + String(v ?? "").replace(/"/g, '""') + '"';
+  const blob = new Blob([rows.map(r => r.map(q).join(",")).join("\n")], {type: "text/csv"});
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
+const slug = () => (S.intake.name || "client").toLowerCase().replace(/[^a-z0-9]+/g, "-");
+function downloadMarketCsv(tab){
+  const rows = [["Fit", "Company", "Website", "Company LinkedIn", "Location", "Employees", "Funding", "YC batch", "What they do", "Why it fits", "Signal", "Status", "Contacts"]];
+  marketRows(tab).forEach(t => rows.push([t.s?.fit ?? "", t.name, t.site, t.li?.linkedin || "", t.loc, t.li?.employees ?? t.size ?? "", t.stage || "", t.yc || "", t.what, t.s?.why || "", t.evidence || t.sig || "", t.review === "keep" ? "Kept" : t.removed ? "Removed" : cls(t) === "fit" ? "Fits" : "Unsure", arr(t.people).map(p => p.name + " (" + p.title + ")").join("; ")]));
+  csvDownload(rows, `${slug()}-${tab === "yc" ? "yc-companies" : tab === "fit" ? "target-market" : tab}.csv`);
+}
+
+/* ================= contacts ================= */
+function ct(){ return S.market.contacts || (S.market.contacts = {titles: "", exclude: "Founder in Residence, Advisor, Investor, Board Member", per: 2, scope: "fit"}); }
+const ctTitles = () => ct().titles.split(/,|\n/).map(x => x.trim()).filter(x => x.length >= 2);
+function ctCompanies(){ const scope = ct().scope; return Object.values(S.pool).filter(t => scope === "yc" ? t.yc && ycFits(t) : cls(t) === "fit").sort((a, b) => (b.s?.fit || 0) - (a.s?.fit || 0)); }
+let findingContacts = false, stopContacts = false;
+function renderContacts(){
+  if (S.view !== "contacts") return;
+  const C = ct(); const comps = ctCompanies(); const withP = comps.filter(t => arr(t.people).length); const ppl = withP.reduce((a, t) => a + t.people.length, 0);
+  const todo = comps.filter(t => t.site && t.contactsKey !== ctKey()).length;
+  const keepSt = $("#ctStatus") ? $("#ctStatus").innerHTML.replace(/<span class="spin"><\/span>/g, findingContacts ? '<span class="spin"></span>' : "") : "";
+  const shown = withP.slice(0, S.ctShow || 150);
+  $("#v-contacts").innerHTML = `
+    <div class="vh"><h1>Contacts</h1><p>Who to reach at each company. Give it the titles you want, it finds names and LinkedIn profiles at every company on your list.</p></div>
+    <div class="card">
+      <div class="sect"><h2>Who to find</h2><button class="link r" type="button" id="ctSuggest" style="font-size:13px">Suggest titles from the ICP</button></div>
+      <div class="field"><label class="lbl" for="ctTitles">Titles, most important first</label>
+        <input class="in" id="ctTitles" value="${esc(C.titles)}" placeholder="e.g. Founder, Co-founder, CEO, CTO, Head of Engineering" autocomplete="off"></div>
+      <div class="row3">
+        <div class="field"><label class="lbl" for="ctPer">People per company</label><select class="in" id="ctPer">${[1, 2, 3].map(n => `<option ${C.per === n ? "selected" : ""}>${n}</option>`).join("")}</select></div>
+        <div class="field"><label class="lbl" for="ctScope">Companies</label><select class="in" id="ctScope"><option value="fit" ${C.scope !== "yc" ? "selected" : ""}>Everyone that fits (${fmtN(Object.values(S.pool).filter(t => cls(t) === "fit").length)})</option><option value="yc" ${C.scope === "yc" ? "selected" : ""}>YC only (${fmtN(Object.values(S.pool).filter(t => t.yc && ycFits(t)).length)})</option></select></div>
+        <div class="field"><label class="lbl" for="ctEx">Skip titles</label><input class="in" id="ctEx" value="${esc(C.exclude)}" autocomplete="off"></div>
+      </div>
+      <div class="foot">
+        ${findingContacts ? `<button class="ghost" type="button" id="ctStop">Stop</button>` : `<button class="pill" type="button" id="ctGo" ${ctTitles().length ? "" : "disabled"}>${todo ? `Find contacts at ${fmtN(todo)} companies` : "Find contacts again"}</button>`}
+        <span class="note">${todo ? `About ${fmtN(Math.ceil(todo / 10) * 1.5 | 0)} Prospeo credits` : ""}</span>
+      </div>
+      <div class="status" id="ctStatus">${keepSt}</div>
+    </div>
+    <div class="card">
+      <div class="toolbar"><div class="sect"><h2>${fmtN(ppl)} contacts at ${fmtN(withP.length)} companies</h2>${comps.length - withP.length && withP.length ? `<span>${fmtN(comps.filter(t => t.contactsKey === ctKey() && !arr(t.people).length).length)} companies had no match</span>` : ""}</div>
+        <span class="sp"><button class="ghost" type="button" id="ctEmails" ${ppl ? "" : "disabled"}>Get verified emails</button><button class="pill sm" type="button" id="ctCsv" ${ppl ? "" : "disabled"}>Download contacts CSV</button></span></div>
+      <div class="tablewrap2"><table class="ctable"><thead><tr><th>Company</th><th>Name</th><th>Title</th><th>LinkedIn</th><th>Email</th><th></th></tr></thead><tbody>
+        ${shown.map(t => t.people.map((p, i) => `<tr>${i === 0 ? `<td rowspan="${t.people.length}"><b>${esc(t.name)}</b>${t.yc ? ` <span class="tag hi">YC</span>` : ""}<div class="note">${esc([t.site, t.li?.employees != null ? t.li.employees + " employees" : ""].filter(Boolean).join(" · "))}</div></td>` : ""}
+          <td>${esc(p.name)}</td><td>${esc(p.title)}</td><td>${p.linkedin ? `<a href="${esc(p.linkedin)}" target="_blank" rel="noopener">Profile ↗</a>` : ""}</td><td>${esc(p.email || "")}</td>
+          <td><button class="x" type="button" data-px="${esc(t.id)}" data-pi="${i}" aria-label="Remove ${esc(p.name)}">✕</button></td></tr>`).join("")).join("") || `<tr><td colspan="6" class="note" style="padding:18px">No contacts yet. Add titles above and find them.</td></tr>`}
+      </tbody></table></div>
+      ${withP.length > shown.length ? `<button class="ghost" type="button" id="ctMore">Show more</button>` : ""}
+    </div>`;
+  const saveC = () => { C.titles = $("#ctTitles").value; C.per = Number($("#ctPer").value) || 2; C.scope = $("#ctScope").value; C.exclude = $("#ctEx").value; save(); };
+  $("#ctTitles").onchange = () => { saveC(); renderContacts(); };
+  ["#ctPer", "#ctScope", "#ctEx"].forEach(sel => $(sel).onchange = () => { saveC(); renderContacts(); });
+  $("#ctSuggest").onclick = suggestTitles;
+  const go = $("#ctGo"); if (go) go.onclick = () => { saveC(); findContacts(); };
+  const stp = $("#ctStop"); if (stp) stp.onclick = () => { stopContacts = true; stp.disabled = true; stp.textContent = "Stopping…"; };
+  $("#ctCsv").onclick = downloadContactsCsv;
+  $("#ctEmails").onclick = contactEmails;
+  const mo = $("#ctMore"); if (mo) mo.onclick = () => { S.ctShow = (S.ctShow || 150) + 150; renderContacts(); };
+  document.querySelectorAll("[data-px]").forEach(b => b.onclick = () => { const t = S.pool[b.dataset.px]; if (!t) return; t.people.splice(+b.dataset.pi, 1); save(); renderContacts(); });
+}
+const ctKey = () => { const C = ct(); return [ctTitles().join("|").toLowerCase(), C.per, C.exclude.toLowerCase()].join("#"); };
+async function suggestTitles(){
+  const b = $("#ctSuggest"); b.disabled = true; b.textContent = "Thinking…";
+  try {
+    const r = await claude(`${brief()}\nCustomer evidence: ${S.analysis?.quotes?.map(q => q.quote + " (" + q.source + ")").join(" | ") || "none"}\nWho at a target company decides to buy from ${S.intake.name}? Give 4-7 job titles, most likely buyer first, as people write them on LinkedIn (full phrases, no bare acronyms except CEO and CTO).\nReply with only {"titles":[""]}`, {tier: "fast", max: 600});
+    ct().titles = arr(r.titles).join(", "); save();
+  } catch(e){}
+  renderContacts();
+}
+async function findContacts(){
+  if (findingContacts) return;
+  const C = ct(); const titles = ctTitles(); if (!titles.length) return;
+  const key = ctKey(); const per = C.per || 2;
+  const ex = C.exclude.split(",").map(x => x.trim()).filter(x => x.length >= 3);
+  const comps = ctCompanies().filter(t => t.site && t.contactsKey !== key);
+  findingContacts = true; stopContacts = false; renderContacts();
+  const st = "#ctStatus"; $(st).innerHTML = "";
+  const l = line(st, `Finding ${titles.slice(0, 3).join(", ")}${titles.length > 3 ? "…" : ""} at ${fmtN(comps.length)} companies`);
+  let done = 0, found = 0, none = 0;
+  const rank = p => { const tt = String(p.title || "").toLowerCase(); const i = titles.findIndex(x => tt.includes(x.toLowerCase())); return i < 0 ? 99 : i; };
+  try {
+    for (let i = 0; i < comps.length && !stopContacts; i += 10){
+      const ch = comps.slice(i, i + 10); const got = {};
+      for (let page = 1; page <= 3; page++){
+        let r; try { r = await api("/api/prospeo/people-at", {websites: ch.map(t => t.site), titles, excludeTitles: ex, page}); } catch(e){ if (/INSUFFICIENT_CREDITS/.test(e.error || "")) throw e; break; }
+        const res = arr(r.results);
+        res.forEach(x => { const p = x.person || {}; const co = x.company || {}; const d = domainOf(co.domain || co.website || "");
+          const t = ch.find(c => c.site === d || (d && (d.endsWith("." + c.site) || c.site.endsWith("." + d)))); if (!t) return;
+          (got[t.id] = got[t.id] || []).push({name: p.full_name || [p.first_name, p.last_name].filter(Boolean).join(" "), title: p.current_job_title || p.job_title || "", linkedin: p.linkedin_url || "", pid: p.person_id || ""}); });
+        if (res.length < 25 || ch.every(t => (got[t.id] || []).length >= per)) break;
+      }
+      ch.forEach(t => {
+        const list = (got[t.id] || []).filter((p, k, a) => p.name && a.findIndex(q => q.name === p.name) === k).sort((a, b) => rank(a) - rank(b)).slice(0, per);
+        const old = arr(t.people).filter(p => p.email); // keep any emails already found for the same people
+        t.people = list.map(p => ({...p, email: old.find(o => o.name === p.name)?.email || ""}));
+        t.contactsKey = key; if (list.length) found += list.length; else none++;
+      });
+      done += ch.length;
+      $(st).querySelector("div").innerHTML = `<span class="spin"></span>Searched ${fmtN(done)} of ${fmtN(comps.length)} companies · ${fmtN(found)} people found`;
+      if (done % 50 === 0) save();
+    }
+    l.done(true, `${stopContacts ? "Stopped. " : ""}Searched ${fmtN(done)} companies · ${fmtN(found)} people found${none ? " · no match at " + fmtN(none) : ""}`);
+  } catch(e){ l.done(false, (e.error || "Prospeo error") + `. Found ${fmtN(found)} before it stopped.`); }
+  findingContacts = false; save(); renderContacts();
+}
+async function contactEmails(){
+  const b = $("#ctEmails"); b.disabled = true;
+  const ppl = []; ctCompanies().forEach(t => arr(t.people).forEach((p, i) => { if (!p.email && !p.noEmail) ppl.push({id: t.id + "|" + i, pid: p.pid, linkedin: p.linkedin, name: p.name, domain: t.site}); }));
+  const st = "#ctStatus"; $(st).innerHTML = "";
+  if (!ppl.length){ $(st).innerHTML = '<div class="ok">✓ Everyone already has an email or none was found.</div>'; return; }
+  const l = line(st, `Looking up verified emails for ${fmtN(ppl.length)} people (1 credit per verified email)`);
+  let n = 0;
+  try {
+    for (let i = 0; i < ppl.length; i += 200){
+      const r = await api("/api/prospeo/emails", {people: ppl.slice(i, i + 200)});
+      Object.entries(r.emails || {}).forEach(([k, v]) => { const [id, j] = k.split("|"); const p = S.pool[id]?.people?.[+j]; if (!p) return; if (v.email){ p.email = v.email; n++; } else p.noEmail = true; });
+    }
+    l.done(true, `${fmtN(n)} verified emails`);
+  } catch(e){ l.done(false, e.error); }
+  save(); renderContacts();
+}
+function downloadContactsCsv(){
+  const rows = [["Company", "Website", "Company LinkedIn", "Location", "Employees", "YC batch", "Fit", "Why it fits", "Name", "Title", "LinkedIn", "Email"]];
+  ctCompanies().forEach(t => arr(t.people).forEach(p => rows.push([t.name, t.site, t.li?.linkedin || "", t.loc, t.li?.employees ?? t.size ?? "", t.yc || "", t.s?.fit ?? "", t.s?.why || "", p.name, p.title, p.linkedin, p.email || ""])));
+  csvDownload(rows, `${slug()}-${ct().scope === "yc" ? "yc-" : ""}contacts.csv`);
 }
 
 /* ================= research you found ================= */
@@ -1469,6 +1789,7 @@ Reply with only {"source_label":"short name for this source","signal":{"signal":
   $("#rsGo").outerHTML = queue.length ? `<button class="pill sm" type="button" id="rsReview">Review ${Math.min(BATCH, queue.length)} now</button>` : "";
   const rv = $("#rsReview"); if (rv) rv.onclick = () => { $("#rsWrap").innerHTML = ""; newRound(queue.slice(0, BATCH)); renderTrain(); show("train"); save(); };
   if (S.view === "list") renderList();
+  if (S.view === "market") renderMarket();
 }
 
 /* ================= list ================= */
@@ -1582,7 +1903,7 @@ async function deepResearch(id){
   } catch(e){ t.deep = [[t.site || t.name, "Research failed: " + (e.error || "try again")]]; }
   t.deepRunning = false; save(); renderListKeepOpen(id);
 }
-function renderListKeepOpen(id){ renderList(); const d = document.querySelector(`#r-${CSS.escape(id)} details`); if (d) d.open = true; }
+function renderListKeepOpen(id){ if (S.view === "market"){ S.openRow = id; renderMarket(); return; } renderList(); const d = document.querySelector(`#r-${CSS.escape(id)} details`); if (d) d.open = true; }
 async function findMore(){
   const b = $("#findMore"); b.disabled = true; $("#listStatus").innerHTML = "";
   try {

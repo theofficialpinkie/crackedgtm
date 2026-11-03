@@ -403,9 +403,16 @@ export default {
       // Public, read-only demo of the engine (fictional data, no API calls): crackedgtm.ai/onboarding/demo
       if (path === "/onboarding/demo") return Response.redirect(url.origin + "/onboarding/demo/", 301);
       if (path.startsWith("/onboarding/demo/")) {
+        // Signed in: the demo URL opens the real list builder (add ?public to see what visitors see). Signed out: the public Kalpa demo.
+        if ((path === "/onboarding/demo/" || path === "/onboarding/demo/index.html") && !url.searchParams.has("public") && await validSession(req, env)) {
+          const lb = await env.ASSETS.fetch(new Request(url.origin + "/onboarding/lists/", req));
+          const out = new Response(lb.body, lb);
+          out.headers.set("cache-control", "no-store"); out.headers.set("x-robots-tag", "noindex");
+          return out;
+        }
         const res = await env.ASSETS.fetch(req);
         const out = new Response(res.body, res);
-        out.headers.set("cache-control", "public, max-age=300"); out.headers.set("x-robots-tag", "noindex");
+        out.headers.set("cache-control", "no-store"); out.headers.set("vary", "Cookie"); out.headers.set("x-robots-tag", "noindex");
         return out;
       }
 

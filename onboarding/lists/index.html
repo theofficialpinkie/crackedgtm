@@ -374,6 +374,7 @@ textarea.in.sm{min-height:84px}
     <div class="acts"><button class="pill" type="button" id="newBtn">New client <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button></div>
     <div class="resume" id="resume"></div>
     <p class="note" id="statusNote"></p>
+    <a class="link" href="/onboarding/demo/?public" style="font-size:13px;color:var(--muted)">See the public demo →</a>
   </section>
 
   <section class="view" id="v-intake" hidden>
@@ -524,13 +525,43 @@ async function saveNow(){
 async function loadResume(){
   try {
     const list = await api("/api/clients");
-    const mine = arr(list).filter(c => c.lb).slice(0, 8);
+    const mine = arr(list).filter(c => c.lb || c.intake).slice(0, 10);
     $("#resume").innerHTML = mine.length ? `<span class="lbl" style="text-align:left">Pick up where you left off</span>` + mine.map(c => {
+      if (!c.lb){ const n = splitSections(c.inputs?.won).length + splitSections(c.inputs?.lost).length + splitSections(c.inputs?.founder).length; return `<button type="button" data-open="${esc(c.id)}"><span><b>${esc(c.company)}</b><br><span>From the demo · ${n} call${n === 1 ? "" : "s"}${c.inputs?.customers ? " · customer list" : ""}. Add targeting and train.</span></span><span>→</span></button>`; }
       const pool = Object.values(c.lb.pool || {}); const kept = pool.filter(t => t.review === "keep").length; const rounds = arr(c.lb.rounds).length;
       return `<button type="button" data-open="${esc(c.id)}"><span><b>${esc(c.company)}</b><br><span>${rounds ? rounds + " rounds trained · " : ""}${kept} kept · ${pool.length} companies</span></span><span>→</span></button>`;
     }).join("") : "";
-    document.querySelectorAll("[data-open]").forEach(b => b.onclick = () => openClient(mine.find(c => c.id === b.dataset.open)));
+    document.querySelectorAll("[data-open]").forEach(b => b.onclick = () => { const c = mine.find(x => x.id === b.dataset.open); c.lb ? openClient(c) : importDemo(c); });
   } catch(e){ $("#statusNote").textContent = e.error || ""; }
+}
+// "## Name\ntext" blocks, the way the demo and the main engine store calls
+function splitSections(text){
+  const t = String(text || "").trim(); if (!t) return [];
+  const parts = t.split(/\n?^## /m).map(x => x.trim()).filter(Boolean);
+  if (parts.length === 1 && !/^## /.test(t)) return [{name: "", text: t}];
+  return parts.map(x => { const i = x.indexOf("\n"); return i < 0 ? {name: x.replace(/^## /, ""), text: ""} : {name: x.slice(0, i).replace(/^## /, "").trim(), text: x.slice(i + 1).trim()}; }).filter(x => x.text);
+}
+function importDemo(c){
+  S = fresh(); S.id = c.id; S.base = {...c}; delete S.base.id; delete S.base.updatedAt;
+  const I = S.intake; const inp = c.inputs || {};
+  I.name = c.company || ""; I.site = c.website || ""; I.siteText = inp.site || "";
+  I.founders = arr(c.intake?.founders).map(f => ({url: f.url, profile: f.profile || null}));
+  const add = (name, text, kind) => { const csv = kind === "crm" && /,/.test(text.split("\n")[0] || "") ? parseCsv(text) : null; I.sources.push({id: nid("s"), name: name || KIND[kind], text: text.slice(0, 60000), csv, kind, meta: csv ? `CSV · ${csv.length - 1} rows` : `${text.split(/\s+/).filter(Boolean).length.toLocaleString()} words · from the demo`}); };
+  splitSections(inp.won).forEach(x => add(x.name, x.text, guessKind(x.name, x.text, null) === "call_sales" ? "call_sales" : "call_customer"));
+  splitSections(inp.lost).forEach(x => add(x.name, x.text, "call_lost"));
+  splitSections(inp.founder).forEach(x => add(x.name, x.text, "call_internal"));
+  // context = freeform text, then (optionally) "CRM export:" and any notes, each as "## name" blocks
+  const ctx = String(inp.context || ""); let head = ctx, tail = "";
+  const crmAt = ctx.indexOf("CRM export:\n");
+  if (crmAt >= 0){ head = ctx.slice(0, crmAt); tail = ctx.slice(crmAt + 12); }
+  else { const m = ctx.search(/(^|\n\n)## /); if (m >= 0){ head = ctx.slice(0, m); tail = ctx.slice(m); } }
+  I.ctx = head.trim();
+  splitSections(tail).forEach(x => add(x.name, x.text, /,.*,/.test(x.text.split("\n")[0] || "") ? "crm" : "notes"));
+  const cust = String(inp.customers || "").split(/\s+/).filter(Boolean);
+  if (cust.length) add("Customer list", cust.join("\n"), "customers");
+  writeIntake(); show("intake");
+  $("#buildStatus").innerHTML = `<div class="ok">✓ Brought over ${I.sources.length} source${I.sources.length === 1 ? "" : "s"}${I.founders.length ? ", " + I.founders.length + " founder" + (I.founders.length > 1 ? "s" : "") : ""} and your notes from the demo. Fill in "Who to go after", then Build.</div>`;
+  setTimeout(() => $("#comp").scrollIntoView({behavior: "smooth", block: "center"}), 300);
 }
 function openClient(c){
   S = fresh(); S.id = c.id; S.base = {...c}; delete S.base.id; delete S.base.updatedAt;

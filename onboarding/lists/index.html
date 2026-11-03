@@ -495,13 +495,21 @@ const REASONS = ["Competitor", "Too big", "Too small or too early", "Wrong use c
 const HEADCOUNT = ["1-10","11-20","21-50","51-100","101-200","201-500","501-1000","1001-2000","2001-5000","5001-10000","10000+"];
 const FUNDING = ["Pre seed","Seed","Series A","Series B","Series C","Angel","Series unknown","Undisclosed"];
 const BATCH = 5;
-const PROSPEO_VOCAB = `- company_keywords: {"include":["voice agents"],"search_everywhere":false}  company category or description keywords (2-6 short phrases)
-- company_website_search: {"include_keywords":["text to speech"],"match_mode":"any"}  phrases on their website
-- company_industry: {"include":["Software Development"]}  coarse; prefer keywords
-- company_headcount_range: ["1-10","11-20","21-50"]  plain array, allowed: ${HEADCOUNT.join(" | ")}
-- company_funding: {"stage":["Seed","Series A"],"funding_date":730}  stage allowed: ${FUNDING.join(" | ")}; funding_date = raised within N days
-- company_job_posting_hiring_for: {"include":["voice AI engineer"],"match_type":"contains"}  currently hiring for
-- company_founded: {"min":2019,"max":2026}`;
+const PROSPEO_VOCAB = `- company_keywords: {"include":["voice agent","conversational ai"]}  REQUIRED. 3-10 short phrases (each 3+ characters) companies use to describe themselves; any one matching is enough
+- company_headcount_range: ["1-10","11-20","21-50"]  optional, plain array, allowed: ${HEADCOUNT.join(" | ")}
+- company_industry: {"include":["Software Development"]}  optional and coarse; usually leave it out
+- company_founded: {"min":2018,"max":2026}  optional`;
+// Shape every company filter the way Prospeo's docs require, and drop anything that needs a higher plan
+function cleanFilters(f){
+  f = f || {}; const out = {};
+  const kw = list => arr(list).map(x => String(x).trim()).filter(x => x.length >= 3 && x.length <= 100).slice(0, 20);
+  const inc = kw(f.company_keywords?.include || (Array.isArray(f.company_keywords) ? f.company_keywords : []));
+  if (inc.length){ out.company_keywords = {include: inc}; const ex = kw(f.company_keywords?.exclude); if (ex.length) out.company_keywords.exclude = ex; }
+  if (Array.isArray(f.company_headcount_range)){ const h = f.company_headcount_range.filter(v => HEADCOUNT.includes(v)); if (h.length) out.company_headcount_range = h; }
+  if (f.company_industry?.include?.length) out.company_industry = {include: arr(f.company_industry.include).slice(0, 20)};
+  if (f.company_founded && (f.company_founded.min || f.company_founded.max)){ const y = new Date().getFullYear(); out.company_founded = {min: Math.max(1900, Math.min(y, Number(f.company_founded.min) || 1900)), max: Math.min(y, Number(f.company_founded.max) || y), include_unknown_founded: true}; }
+  return out;
+}
 
 /* ================= state ================= */
 const $ = s => document.querySelector(s);
@@ -634,6 +642,7 @@ async function openClient(c){
   addSpend(0, 0); writeIntake();
   if (S.unlocked >= 2 && S.analysis) renderIcp();
   if (S.unlocked >= 3){ renderTrain(); if (S.round) prepRound(); }
+  if (migrateSegments()) save();
   show(Object.values(S.pool).some(t => cls(t) === "fit") && S.unlocked >= 3 ? "market" : S.unlocked >= 3 ? "train" : S.unlocked >= 2 ? "icp" : "intake");
   if (Object.keys(S.pool).length) save();
 }
@@ -958,11 +967,7 @@ async function webSearch(queries, limit){
 }
 async function prospeoVariants(){
   const r = await claude(`${brief()}\nChecks: ${S.checks.map(c => c.name + ": " + c.test).join("; ")}\n\nWrite 3 Prospeo company search variants that would each return a different slice of companies matching this ICP. Use only these filters, exactly in these shapes:\n${PROSPEO_VOCAB}\nRules: keywords are short category phrases a company would use to describe itself (2-6 per variant). Never include competitors' categories. Don't add location or person filters; the tool adds them.\nReply with only {"variants":[{"label":"short name","filters":{}}]}`, {max: 3000});
-  const allowed = ["company_keywords", "company_website_search", "company_industry", "company_headcount_range", "company_funding", "company_job_posting_hiring_for", "company_founded"];
-  return arr(r.variants).map(v => { const f = {}; for (const k of allowed) if (v.filters && v.filters[k]) f[k] = v.filters[k];
-    if (Array.isArray(f.company_headcount_range)) f.company_headcount_range = f.company_headcount_range.filter(x => HEADCOUNT.includes(x));
-    if (f.company_funding?.stage) f.company_funding.stage = arr(f.company_funding.stage).filter(x => FUNDING.includes(x));
-    return {label: v.label || "Variant", filters: f, page: 1, done: false}; }).filter(v => Object.keys(v.filters).length);
+  return arr(r.variants).map(v => ({label: v.label || "Variant", filters: cleanFilters(v.filters), page: 1, done: false})).filter(v => v.filters.company_keywords);
 }
 async function prospeoPull(maxPages){
   if (!status.prospeo) return 0;
@@ -1303,19 +1308,29 @@ async function countSegment(seg){
   seg.counting = false; renderMarket(); save();
 }
 const SEG_FILTERS = ["company_keywords", "company_website_search", "company_industry", "company_headcount_range", "company_funding", "company_job_posting_hiring_for", "company_founded"];
-function cleanSeg(x){
-  const f = {}; for (const k of SEG_FILTERS) if (x.filters && x.filters[k]) f[k] = x.filters[k];
-  if (Array.isArray(f.company_headcount_range)) f.company_headcount_range = f.company_headcount_range.filter(v => HEADCOUNT.includes(v));
-  if (f.company_funding?.stage) f.company_funding.stage = arr(f.company_funding.stage).filter(v => FUNDING.includes(v));
-  return {id: nid("g"), label: x.label || "Segment", why: x.why || "", filters: f, page: 1, pulled: 0, added: 0};
+function cleanSeg(x){ return {id: nid("g"), v: 2, label: x.label || "Segment", why: x.why || "", filters: cleanFilters(x.filters), page: 1, pulled: 0, added: 0}; }
+// Segments saved before the filter fix never returned anything: clean them and search them again
+function migrateSegments(){
+  let changed = false;
+  S.market.segments = S.market.segments.filter(g => {
+    if (g.v === 2) return true;
+    g.filters = cleanFilters(g.filters); g.v = 2; changed = true;
+    if (!g.added){ g.done = false; g.page = 1; g.err = ""; g.pulled = 0; g.total = null; }
+    return !!g.filters.company_keywords;
+  });
+  // the same segment written several times while nothing came back
+  const seen = new Set(); S.market.segments = S.market.segments.filter(g => { const k = g.label.toLowerCase(); if (seen.has(k)) return false; seen.add(k); return true; });
+  if (changed){ S.market.exhaustedAt = null; S.prospeo.variants = []; }
+  return changed;
 }
 async function newSegments(n, st){
   const have = S.market.segments.map(g => `${g.label}${g.pulled != null ? " (" + g.pulled + " companies)" : ""}`);
   const kept = Object.values(S.pool).filter(t => t.review === "keep").slice(-10).map(t => t.name + " (" + String(t.what).slice(0, 70) + ")");
   const removed = Object.values(S.pool).filter(t => t.removed || t.review === "pass").slice(-10).map(t => t.name + (t.reason || t.removed ? " → " + (t.reason || t.removed) : ""));
   const l = line(st, have.length ? `Finding ${n} more segments of the market` : "Splitting the market into segments", ["reading the ICP", "using what you kept and removed", "writing Prospeo filters"]);
-  const r = await claude(`${brief()}\nKept: ${kept.join("; ") || "none"}\nRemoved or passed: ${removed.join("; ") || "none"}\n${have.length ? "Segments already searched (don't repeat them): " + have.join("; ") + "\n" : ""}\nMap the total addressable market for ${S.intake.name}: give ${n} distinct segments of companies that could buy (never competitors). Each is a group a seller would recognise, described in one line, and expressed as a Prospeo company search using only these filters, exactly in these shapes:\n${PROSPEO_VOCAB}\nRules: segments should not overlap. keywords are short category phrases companies use about themselves (2-6 per segment). Think broadly across every industry where a company would buy this. No location filters; the tool adds them.\nReply with only {"segments":[{"label":"","why":"one line on why they buy","filters":{}}]}`, {max: 4000});
-  const segs = arr(r.segments).map(cleanSeg).filter(x => Object.keys(x.filters).length);
+  const r = await claude(`${brief()}\nKept: ${kept.join("; ") || "none"}\nRemoved or passed: ${removed.join("; ") || "none"}\n${have.length ? "Segments already searched (don't repeat them): " + have.join("; ") + "\n" : ""}\nMap the total addressable market for ${S.intake.name}: give ${n} distinct segments of companies that could buy (never competitors). Each is a group a seller would recognise, described in one line, and expressed as a Prospeo company search using only these filters, exactly in these shapes:\n${PROSPEO_VOCAB}\nRules: segments should not overlap. company_keywords is required: 3-10 short phrases companies use about themselves (e.g. "voice agent", "ai receptionist", "conversational ai"), any one matching is enough, so include synonyms. Add at most one other filter, usually company_headcount_range. Each segment should be broad enough to return hundreds of companies worldwide. Think across every industry where a company would buy this. No location filters; the tool adds them.\nReply with only {"segments":[{"label":"","why":"one line on why they buy","filters":{}}]}`, {max: 4000});
+  const have2 = new Set(S.market.segments.map(g => g.label.toLowerCase()));
+  const segs = arr(r.segments).map(cleanSeg).filter(x => x.filters.company_keywords && !have2.has(x.label.toLowerCase()));
   l.done(true, `${segs.length} new segment${segs.length === 1 ? "" : "s"}: ${segs.map(g => g.label).join(", ")}`);
   S.market.segments.push(...segs); return segs.length;
 }
@@ -1323,7 +1338,7 @@ async function addSegment(text){
   const st = "#bdStatus"; const l = line(st, "Turning that into a search");
   try {
     const r = await claude(`${brief()}\nThe team wants this market segment: "${text}"\nExpress it as a Prospeo company search using only these filters, exactly in these shapes:\n${PROSPEO_VOCAB}\nNo location filters.\nReply with only {"label":"","why":"","filters":{}}`, {max: 1500, tier: "fast"});
-    const seg = cleanSeg({...r, label: r.label || text}); S.market.segments.push(seg); l.done(true, `Added "${seg.label}". Build the list to pull it.`); save(); renderMarket();
+    const seg = cleanSeg({...r, label: r.label || text}); if (!seg.filters.company_keywords) seg.filters.company_keywords = {include: [text.slice(0, 100)]}; S.market.segments.push(seg); l.done(true, `Added "${seg.label}". Build the list to pull it.`); save(); renderMarket();
   } catch(e){ l.done(false, e.error); }
 }
 let building = false, stopBuild = false, scoringJobs = [];
@@ -1334,7 +1349,10 @@ async function pullSegmentAll(seg, local, target){
     let r;
     try { r = await segSearch(seg, local, seg.page); } catch(e){ seg.err = e.error || "Prospeo error"; seg.done = true; break; }
     const loosened = arr(r.attempts).map(a => a.dropped).filter(Boolean);
-    if (loosened.some(x => /company_keywords|company_website_search/.test(x))){ seg.err = "Prospeo didn't accept this segment's keywords, so it was skipped"; seg.done = true; break; }
+    if (loosened.some(x => /^company_keywords$/.test(x))){ seg.err = "Prospeo didn't accept this segment's keywords: " + (arr(r.attempts).find(a => a.filter_error)?.filter_error || "no detail"); seg.done = true; break; }
+    if (seg.page === 1 && !arr(r.results).length && Object.keys(seg.filters).length > 1 && !seg.broadened){
+      seg.filters = {company_keywords: seg.filters.company_keywords}; seg.broadened = true; continue;  // too narrow: try the keywords alone
+    }
     if (seg.page === 1) seg.total = r.pagination?.total_count ?? arr(r.results).length;
     seg.page++;
     const res = arr(r.results); if (!res.length || seg.page > (r.pagination?.total_page || 1)) seg.done = true;
@@ -1363,6 +1381,7 @@ async function buildFullList(){
   const st = "#bdStatus"; $(st).innerHTML = "";
   const local = S.intake.locOnly && S.intake.locs.length > 0;
   try {
+    if (migrateSegments()) line(st, "Fixed the saved segments' Prospeo filters, searching them again").done(true);
     if (!S.market.segments.length) await newSegments(7, st);
     let rounds = 0;
     while (!stopBuild){
@@ -1370,7 +1389,10 @@ async function buildFullList(){
       if (todo.length){
         const l = line(st, `Pulling every company in ${todo.length} segment${todo.length === 1 ? "" : "s"}${local ? " in " + S.intake.locs[0] : ""} and checking each against the ICP`);
         for (const seg of todo){ if (stopBuild || fitsCount() >= target) break; await pullSegmentAll(seg, local, target); }
-        await Promise.all(scoringJobs); l.done(true, `${fmtN(fitsCount())} companies fit so far`);
+        await Promise.all(scoringJobs);
+        const pulledNow = todo.reduce((a, g) => a + (g.pulled || 0), 0); const errs = todo.filter(g => g.err);
+        l.done(true, `${fmtN(fitsCount())} companies fit so far · Prospeo returned ${fmtN(pulledNow)} companies from these segments`);
+        if (errs.length) errs.slice(0, 4).forEach(g => line(st, `${g.label}: ${g.err}`).done(false));
       }
       if (S.market.includeYc !== false && !S.market.ycDoneAt && !stopBuild){ await pullYc(st); S.market.ycDoneAt = Date.now(); }
       save();
@@ -1382,7 +1404,8 @@ async function buildFullList(){
     const fits = fitsCount();
     if (!stopBuild && fits < target) S.market.exhaustedAt = Date.now();
     S.market.lastMsg = stopBuild ? `Stopped. ${fmtN(fits)} companies fit the ICP.` : fits >= target ? `Done. ${fmtN(fits)} companies fit the ICP.` :
-      `${fmtN(fits)} companies fit the ICP${local ? " in " + S.intake.locs[0] : ""}. That's everything Prospeo and YC have that matches right now.${local ? " Widen the location to get more." : ""}`;
+      (S.market.segments.length && S.market.segments.every(g => !g.pulled) ? `Prospeo returned no companies for any segment${S.market.segments.find(g => g.err) ? ": " + S.market.segments.find(g => g.err).err : ""}. Nothing is wrong with your ICP; send this message to Claude to fix the search.` :
+      `${fmtN(fits)} companies fit the ICP${local ? " in " + S.intake.locs[0] : ""} from ${fmtN(S.market.segments.reduce((a, g) => a + (g.pulled || 0), 0))} Prospeo companies checked.${local ? " Widen the location to get more." : ""}`);
   } catch(e){ S.market.lastMsg = (e.error || "Something went wrong") + ". What's already on the list is saved."; if (/api.key|x-api-key|401/i.test(e.error || "")){ status.claudeOk = false; status.claudeError = "The Claude API key is invalid or was revoked."; keyBanner(); } }
   building = false; save(); renderMarket();
 }

@@ -858,6 +858,11 @@ Reply with only: {"findings":[{"where":"page or url","what":"one plain sentence"
           // and report what was dropped. body.strict = stop here instead.
           if (d.error_code === "NO_RESULTS") { if (body.strict) return json({ results: [], pagination: { total_count: 0 }, attempts }); sawEmpty = true; if ((body.page || 1) > 1) restart = true; /* past the end of this search: the wider search starts again at page 1 */ k++; continue; }
           if (["INVALID_API_KEY", "INSUFFICIENT_CREDITS"].includes(d.error_code) || r.status === 429 || /rate limit/i.test(d.error_code || "")) break;
+          // A filter needs a higher Prospeo plan: drop exactly the filters it names and retry
+          if (d.error_code === "PLAN_REQUIRED") {
+            const named = Object.keys(filters).filter(k => JSON.stringify(d.filter_error || d.message || "").includes(k) && !arr2(body.keep).includes(k));
+            if (named.length) { named.forEach(k => delete filters[k]); attempts[attempts.length - 1].dropped = (drop ? drop + " + " : "") + named.join(", ") + " (needs a higher Prospeo plan)"; continue; }
+          }
           // A bad website in the include/exclude list: remove just that site and retry, keep every other filter
           const bad = /website format:\s*(\S+)/i.exec(d.filter_error || "");
           if (bad && filters.company?.websites && badSiteFixes < 5) {

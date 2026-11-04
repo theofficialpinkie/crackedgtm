@@ -130,6 +130,49 @@ async function isViewer(req, st) {
 }
 const cookieAttrs = `Path=${BASE}; HttpOnly; Secure; SameSite=Lax`;
 
+/* ---------------- admin ---------------- */
+// Spreadsheet-safe CSV: quote every cell; neutralise text that a spreadsheet would run as a formula.
+function cell(v) {
+  let t = v == null ? "" : String(v);
+  if (/^[=+\-@\t\r]/.test(t) && !/^\+\d{8,15}$/.test(t)) t = "'" + t;
+  return '"' + t.replace(/"/g, '""') + '"';
+}
+function toCsv(rows) {
+  const head = ["Name", "Phone", "Follow-up OK", "Source", "Question", "Reading", "Date (UTC)"];
+  const lines = rows.map((r) =>
+    [r.name, r.phone, r.followUp ? "Yes" : "No", r.mode === "phone" ? "Booth phone" : "Web demo",
+     r.question, r.fortune?.text, String(r.created || "").replace("T", " ").slice(0, 16)].map(cell).join(","));
+  return "\uFEFF" + [head.map(cell).join(","), ...lines].join("\r\n") + "\r\n";
+}
+const adminPage = ({ error = "", report = null } = {}) => `<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow">
+<title>Fortune Phone Admin</title><link rel="icon" href="/favicon.svg">
+<style>
+:root{--bg:#0f0d0c;--fg:#f4ede4;--muted:#a59a8e;--accent:#e2483d;--ok:#5cb87a;--line:#2d2723}
+@media (prefers-color-scheme: light){:root{--bg:#f7f2ea;--fg:#1d1916;--muted:#6f655b;--ok:#2f7d4a;--line:#ddd3c6}}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;background:var(--bg);color:var(--fg);font:16px/1.5 ui-sans-serif,system-ui,-apple-system,sans-serif;padding:16px}
+main{width:100%;max-width:440px;border:1px solid var(--line);border-radius:14px;padding:28px}
+h1{font-size:22px;margin:0 0 4px}p{color:var(--muted);margin:0 0 18px;font-size:14px}
+label{display:block;font-size:13px;color:var(--muted);margin:0 0 6px}
+input[type=password]{width:100%;padding:12px;border-radius:10px;border:1px solid var(--line);background:transparent;color:var(--fg);font-size:16px}
+.opt{display:flex;gap:8px;align-items:center;margin:14px 0 0;font-size:14px;color:var(--muted)}
+button{margin-top:14px;width:100%;padding:12px;border:1px solid var(--accent);border-radius:10px;background:var(--accent);color:#fff;font-weight:600;font-size:16px;cursor:pointer}
+button.alt{background:transparent;color:var(--fg);border-color:var(--line)}
+.err{color:var(--accent);font-size:14px;margin:12px 0 0}
+.report{border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin:0 0 18px;font-size:14px}
+.report b{color:var(--ok)}.report.bad b{color:var(--accent)}.report ul{margin:6px 0 0;padding-left:18px}
+</style></head><body><main>
+<h1>Fortune Phone Admin</h1><p>Download the people who signed up, or check that the Kalpa voice is ready. Needs your admin token.</p>
+${report ? `<div class="report${report.ok ? "" : " bad"}"><b>${report.ok ? "Voice check passed" : "Voice check needs attention"}</b><ul>${report.lines.map((l) => `<li>${esc(l)}</li>`).join("")}</ul></div>` : ""}
+<form method="post" action="${BASE}/admin">
+<label for="tk">Admin token</label>
+<input id="tk" name="token" type="password" autocomplete="off" required>
+<label class="opt"><input type="checkbox" name="scope" value="all"> Include people who said no to follow-up</label>
+<button type="submit" name="action" value="csv">Download CSV</button>
+<button type="submit" name="action" value="voice" class="alt">Test Kalpa voice + load phone prompts</button>
+${error ? `<div class="err" role="alert">${esc(error)}</div>` : ""}
+</form></main></body></html>`;
+
 /* ---------------- main ---------------- */
 export async function handleFortune(req, env, ctx, url, st) {
   const path = url.pathname;
@@ -172,6 +215,63 @@ export async function handleFortune(req, env, ctx, url, st) {
       const value = b64url(bytes);
       await st.put("fortune_login", await sha256hex(value), { expires: Date.now() + SESSION_HOURS * 3600e3 });
       return redirect(next, `${COOKIE}=${value}; Max-Age=${SESSION_HOURS * 3600}; ${cookieAttrs}`);
+    }
+    // Admin page: download contacts as CSV, and test Kalpa + pre-load the phone prompts.
+    // Needs the admin token (typed in, sent by POST, never in the URL). Same login throttle.
+    if (path === BASE + "/admin") {
+      if (req.method === "GET") return html(adminPage());
+      if (req.method !== "POST") return json({ error: "Method not allowed." }, 405);
+      const form = await req.formData().catch(() => null);
+      if (await throttled(st, ipKey)) return html(adminPage({ error: "Too many attempts. Try again in 15 minutes." }), 429);
+      if (admin.length < 24 || !(await same(String(form?.get("token") || ""), admin))) {
+        await recordFailure(st, ipKey);
+        return html(adminPage({ error: "That admin token didn't work." }), 401);
+      }
+      await st.del("fortune_throttle", ipKey);
+      const action = form.get("action");
+      if (action === "csv") {
+        const all = form.get("scope") === "all";
+        const rows = (await st.list("fortune_session"))
+          .filter((x) => x.confirmedAt && x.phone && (all || (x.followUp && x.permissionAt)))
+          .sort((a, b) => String(a.created).localeCompare(String(b.created)));
+        const stamp = new Date().toISOString().slice(0, 10);
+        return new Response(toCsv(rows), {
+          headers: {
+            "content-type": "text/csv; charset=utf-8",
+            "content-disposition": `attachment; filename="fortune-contacts-${all ? "all-" : ""}${stamp}.csv"`,
+            ...SEC,
+          },
+        });
+      }
+      if (action === "voice") {
+        const t0 = Date.now();
+        let report;
+        if (!kalpaConfigured(env)) report = { ok: false, lines: ["KALPA_API_KEY isn't set on the Worker yet."] };
+        else {
+          try {
+            await kalpaSpeak(env, "The future is calling.");
+            const sample = Date.now() - t0;
+            const prompts = await warmPrompts(env, st, url.origin);
+            const good = prompts.filter((p) => p.kalpa).length;
+            report = {
+              ok: good === prompts.length,
+              lines: [
+                `Kalpa key works. A short line took ${(sample / 1000).toFixed(1)} s.`,
+                `Phone prompts ready in the Kalpa voice: ${good} of ${prompts.length}.`,
+                ...prompts.filter((p) => !p.kalpa).map((p) => `Not ready (will use Twilio's voice): ${p.name}`),
+              ],
+            };
+          } catch (e) {
+            report = { ok: false, lines: [`Kalpa didn't work: ${e.message}`, "Check that KALPA_API_KEY is copied exactly, and KALPA_VOICE_ID (if set) is a real voice."] };
+          }
+        }
+        report.lines.push(
+          `Text readings: ${env.OPENAI_API_KEY || env.TAPP_BASE_URL ? "key is set" : "OPENAI_API_KEY is missing"}.`,
+          `Phone: ${env.TWILIO_AUTH_TOKEN ? "TWILIO_AUTH_TOKEN is set" : "TWILIO_AUTH_TOKEN not set yet"}.`,
+        );
+        return html(adminPage({ report }));
+      }
+      return html(adminPage({ error: "Choose an action." }), 400);
     }
     if (path === BASE + "/logout") {
       const v = cookieOf(req, COOKIE);

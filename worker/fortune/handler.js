@@ -14,7 +14,7 @@
 // so logout revokes immediately and sessions survive deploys. The phone (Twilio) routes are
 // live in phone.js and verify Twilio's signature instead of the viewer password.
 
-import { makeFortune, drawCards } from "./fortune.js";
+import { makeFortune, drawCards, openaiCheck } from "./fortune.js";
 import { kalpaSpeak, kalpaConfigured } from "./voice.js";
 import { handleTwilio, warmPrompts } from "./phone.js";
 
@@ -163,13 +163,13 @@ button.alt{background:transparent;color:var(--fg);border-color:var(--line)}
 .report b{color:var(--ok)}.report.bad b{color:var(--accent)}.report ul{margin:6px 0 0;padding-left:18px}
 </style></head><body><main>
 <h1>Fortune Phone Admin</h1><p>Download the people who signed up, or check that the Kalpa voice is ready. Needs your admin token.</p>
-${report ? `<div class="report${report.ok ? "" : " bad"}"><b>${report.ok ? "Voice check passed" : "Voice check needs attention"}</b><ul>${report.lines.map((l) => `<li>${esc(l)}</li>`).join("")}</ul></div>` : ""}
+${report ? `<div class="report${report.ok ? "" : " bad"}"><b>${report.ok ? "Everything checks out" : "Needs attention"}</b><ul>${report.lines.map((l) => `<li>${esc(l)}</li>`).join("")}</ul></div>` : ""}
 <form method="post" action="${BASE}/admin">
 <label for="tk">Admin token</label>
 <input id="tk" name="token" type="password" autocomplete="off" required>
 <label class="opt"><input type="checkbox" name="scope" value="all"> Include people who said no to follow-up</label>
 <button type="submit" name="action" value="csv">Download CSV</button>
-<button type="submit" name="action" value="voice" class="alt">Test Kalpa voice + load phone prompts</button>
+<button type="submit" name="action" value="voice" class="alt">Test OpenAI + Kalpa, load phone prompts</button>
 ${error ? `<div class="err" role="alert">${esc(error)}</div>` : ""}
 </form></main></body></html>`;
 
@@ -265,8 +265,15 @@ export async function handleFortune(req, env, ctx, url, st) {
             report = { ok: false, lines: [`Kalpa didn't work: ${e.message}`, "Check that KALPA_API_KEY is copied exactly, and KALPA_VOICE_ID (if set) is a real voice."] };
           }
         }
+        let ai;
+        try {
+          ai = env.TAPP_BASE_URL ? { ok: true, lines: ["Readings come from TAPP_BASE_URL."] } : await openaiCheck(env);
+        } catch (e) {
+          ai = { ok: false, lines: [`Couldn't reach OpenAI: ${e.message}`] };
+        }
+        report.ok = report.ok && ai.ok;
+        report.lines.push(...ai.lines);
         report.lines.push(
-          `Text readings: ${env.OPENAI_API_KEY || env.TAPP_BASE_URL ? "key is set" : "OPENAI_API_KEY is missing"}.`,
           `Phone: ${env.TWILIO_AUTH_TOKEN ? "TWILIO_AUTH_TOKEN is set" : "TWILIO_AUTH_TOKEN not set yet"}.`,
         );
         return html(adminPage({ report }));

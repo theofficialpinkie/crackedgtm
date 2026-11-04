@@ -17,7 +17,6 @@
 import { makeFortune, drawCards, openaiCheck } from "./fortune.js";
 import { kalpaSpeak, kalpaConfigured, listVoices } from "./voice.js";
 import { handleTwilio, warmPrompts } from "./phone.js";
-import { makeDuo, resolveVoices, duoTurnAudio } from "./duo.js";
 
 const BASE = "/fortune";
 const COOKIE = "fp_session";
@@ -361,22 +360,11 @@ export async function handleFortune(req, env, ctx, url, st) {
       if (route === "/fortune") {
         if (s.stage !== "confirmed") return json({ error: "Save confirmed contact details first." }, 409);
         s.question = text(data.question, "a question", 500);
-        // Optional voice choice: one reader, or a reader and a skeptic ("duo").
-        const duo = data.mode === "duo";
-        let picked = null;
-        if (kalpaConfigured(env) && typeof data.reader === "string" && data.reader) {
-          if (duo && (typeof data.skeptic !== "string" || data.skeptic === data.reader))
-            throw new Error("Pick two different voices.");
-          picked = await resolveVoices(env, duo ? [data.reader, data.skeptic] : [data.reader]);
-        }
         s.cards ||= drawCards();
         s.stage = "reading";
         await save();
         try {
-          s.fortune = duo && picked
-            ? await makeDuo(s, env, { teller: picked[0], skeptic: picked[1], hinglish: data.hinglish === true })
-            : await makeFortune(s, { env });
-          s.voice = picked?.[0]?.id || null;
+          s.fortune = await makeFortune(s, { env });
         } catch (error) {
           s.stage = "confirmed";
           await save();
@@ -390,19 +378,8 @@ export async function handleFortune(req, env, ctx, url, st) {
         if (s.stage !== "complete") return json({ error: "Get a fortune first." }, 409);
         if (!kalpaConfigured(env)) return json({ provider: "browser-demo" });
         let audio;
-        if (Array.isArray(s.fortune.turns)) {
-          const i = Number(data.turn ?? 0);
-          if (!Number.isInteger(i) || i < 0 || i >= s.fortune.turns.length) return json({ error: "No such line." }, 400);
-          try {
-            audio = await duoTurnAudio(env, st, s.id, s.fortune, i);
-          } catch (e) {
-            console.log("fortune: duo speech failed:", e.message);
-            throw new Error("Kalpa speech failed.");
-          }
-          return new Response(audio, { headers: { "content-type": "audio/wav", "x-turn-count": String(s.fortune.turns.length), ...SEC } });
-        }
         try {
-          audio = await kalpaSpeak(env, s.fortune.text, { long: true, voice: s.voice || undefined });
+          audio = await kalpaSpeak(env, s.fortune.text, { long: true });
         } catch (e) {
           console.log("fortune: Kalpa speech failed:", e.message);
           throw new Error("Kalpa speech failed.");

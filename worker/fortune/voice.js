@@ -12,8 +12,8 @@ export function kalpaConfigured(env) {
   return !!env.KALPA_API_KEY;
 }
 
-export async function kalpaSpeak(env, text, { long = false, voice: chosen } = {}) {
-  const voice = chosen || env.KALPA_VOICE_ID || DEFAULT_VOICE;
+export async function kalpaSpeak(env, text, { long = false } = {}) {
+  const voice = env.KALPA_VOICE_ID || DEFAULT_VOICE;
   const body = { text: String(text).slice(0, 8000) };
   if (env.KALPA_MODEL) body.model = env.KALPA_MODEL;
   // The default token budget (512) can cut off a full reading; give long text the maximum.

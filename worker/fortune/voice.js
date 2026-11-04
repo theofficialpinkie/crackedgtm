@@ -119,3 +119,20 @@ export async function loadAudio(st, kind, id) {
   }
   return out;
 }
+
+// Voice catalog for kalpa-tts-1 (GET /v1/voices?model=...), cached briefly per isolate.
+let voiceCache = { at: 0, list: null };
+export async function listVoices(env) {
+  if (voiceCache.list && Date.now() - voiceCache.at < 600000) return voiceCache.list;
+  const base = env.KALPA_BASE_URL || "https://api.kalpalabs.ai";
+  const model = env.KALPA_MODEL || "kalpa-tts-1";
+  const r = await fetch(`${base}/v1/voices?model=${encodeURIComponent(model)}`, {
+    headers: { Authorization: `Bearer ${env.KALPA_API_KEY}` },
+    signal: AbortSignal.timeout(10000),
+  });
+  if (!r.ok) throw new Error(`Kalpa voices ${r.status}`);
+  const data = await r.json();
+  const list = (data.data || []).map((v) => ({ ...v }));
+  voiceCache = { at: Date.now(), list };
+  return list;
+}

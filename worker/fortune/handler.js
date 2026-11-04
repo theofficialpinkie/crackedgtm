@@ -15,7 +15,7 @@
 // live in phone.js and verify Twilio's signature instead of the viewer password.
 
 import { makeFortune, drawCards, openaiCheck } from "./fortune.js";
-import { kalpaSpeak, kalpaConfigured } from "./voice.js";
+import { kalpaSpeak, kalpaConfigured, listVoices } from "./voice.js";
 import { handleTwilio, warmPrompts } from "./phone.js";
 
 const BASE = "/fortune";
@@ -312,6 +312,10 @@ export async function handleFortune(req, env, ctx, url, st) {
           .map(({ id, created, name, phone, question, fortune, permissionAt, mode, stage }) =>
             ({ id, created, name, phone, question, fortune, permissionAt, mode, status: stage }));
         return json({ contacts });
+      }
+      if (route === "/voices" && req.method === "GET") {
+        if (!kalpaConfigured(env)) return json({ voices: [] });
+        return json({ voices: await listVoices(env) });
       }
       if (req.method !== "POST") return json({ error: "POST required." }, 405);
       if (route === "/voice-check") {

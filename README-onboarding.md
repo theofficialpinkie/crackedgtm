@@ -29,3 +29,18 @@ Data lives in a Durable Object (SQLite) created automatically on first deploy. N
 
 ## Local dev
 Create `.dev.vars` with `ONBOARDING_PASSWORD=...` (and the API keys if you want live calls), then `npx wrangler dev`.
+
+# Fortune phone (crackedgtm.ai/fortune)
+
+Live, password-protected demo of the Kalpa × Copi fortune phone, ported from `theofficialpinkie/magic-eight-phone`. Brief at `/fortune/brief`. Code in `worker/fortune/`, front-end and brief in `fortune/`.
+
+Secrets (Cloudflare > Workers > dry-bird-b050 > Settings > Variables and secrets):
+
+| Name | What |
+|---|---|
+| `FORTUNE_PASSWORD` | What viewers type at `/fortune/login`. 10+ characters, different from the admin token. Nothing under /fortune is served until it's set. |
+| `FORTUNE_ADMIN_TOKEN` | 24+ random characters. Only `curl -H "Authorization: Bearer <token>" https://crackedgtm.ai/fortune/api/export` returns opted-in contacts. Never give it to viewers. |
+| `OPENAI_API_KEY` | Live readings. Optional var `OPENAI_MODEL` (default `gpt-4o-mini`). |
+| `KALPA_API_KEY`, `KALPA_VOICE_ID`, `KALPA_MODEL` | Optional voice. Text works without them. |
+
+Sessions last 12 hours; `/fortune/logout` revokes. Contacts and logins live in the same Durable Object as the onboarding tool (kinds `fortune_session`, `fortune_login`, `fortune_throttle`). Phone/Twilio routes are not ported yet; add them (signature-checked, outside the password) when the handset is tested.

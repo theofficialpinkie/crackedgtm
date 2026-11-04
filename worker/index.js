@@ -8,6 +8,7 @@
 // Optional var: CLAUDE_MODEL (defaults below)
 
 import { DurableObject } from "cloudflare:workers";
+import { handleFortune } from "./fortune/handler.js";
 
 const DEFAULT_MODEL = "claude-sonnet-5-5";           // judgment steps: patterns, ICP, translation, source planning
 const DEFAULT_FAST_MODEL = "claude-haiku-4-5-20251001"; // volume steps: scoring, reading source pages
@@ -362,6 +363,9 @@ export default {
     const url = new URL(req.url);
     const path = url.pathname;
     try {
+      // Fortune phone demo + brief (password-gated inside its own handler): crackedgtm.ai/fortune
+      if (path === "/fortune" || path.startsWith("/fortune/")) return await handleFortune(req, env, ctx, url, store(env));
+
       const cpSlug = path.replace(/^\/|\.html$|\/$/g, "");
       if (Object.hasOwn(CLIENT_PAGES, cpSlug)) return await clientPage(req, url, cpSlug, CLIENT_PAGES[cpSlug], env);
 

@@ -41,6 +41,13 @@ Secrets (Cloudflare > Workers > dry-bird-b050 > Settings > Variables and secrets
 | `FORTUNE_PASSWORD` | What viewers type at `/fortune/login`. 10+ characters, different from the admin token. Nothing under /fortune is served until it's set. |
 | `FORTUNE_ADMIN_TOKEN` | 24+ random characters. Only `curl -H "Authorization: Bearer <token>" https://crackedgtm.ai/fortune/api/export` returns opted-in contacts. Never give it to viewers. |
 | `OPENAI_API_KEY` | Live readings. Optional var `OPENAI_MODEL` (default `gpt-4o-mini`). |
-| `KALPA_API_KEY`, `KALPA_VOICE_ID`, `KALPA_MODEL` | Optional voice. Text works without them. |
+| `KALPA_API_KEY` | Kalpa voice for the web demo and every phone prompt. Get it at kalpalabs.ai/dashboard/keys. Optional: `KALPA_VOICE_ID` (default: Arjun), `KALPA_MODEL` (default: Kalpa's default). Text works without it. |
+| `TWILIO_AUTH_TOKEN` | The booth phone. From the Twilio console. Every webhook's signature is checked against it. |
 
-Sessions last 12 hours; `/fortune/logout` revokes. Contacts and logins live in the same Durable Object as the onboarding tool (kinds `fortune_session`, `fortune_login`, `fortune_throttle`). Phone/Twilio routes are not ported yet; add them (signature-checked, outside the password) when the handset is tested.
+Sessions last 12 hours; `/fortune/logout` revokes. Contacts, logins and phone audio live in the same Durable Object as the onboarding tool (kinds `fortune_session`, `fortune_login`, `fortune_throttle`, `fortune_prompt`, `fortune_media`).
+
+**Booth phone:** point the Twilio SIP domain's incoming-call webhook at `https://crackedgtm.ai/fortune/twilio/incoming` (HTTP POST). Prompts and the reading play in the Kalpa voice (8 kHz WAV), falling back to Twilio's voice if Kalpa errors. Fixed prompts are generated once and cached; warm them (and test the Kalpa key) with:
+
+```
+curl -X POST -H "Authorization: Bearer $FORTUNE_ADMIN_TOKEN" https://crackedgtm.ai/fortune/api/voice-check
+```

@@ -56,6 +56,7 @@ export class Store extends DurableObject {
   }
   delMany(kind, ids) { for (const id of ids) this.sql.exec("DELETE FROM docs WHERE kind = ? AND id = ?", kind, String(id)); return ids.length; }
   delKind(kind) { this.sql.exec("DELETE FROM docs WHERE kind = ?", kind); return true; }
+  delKindBefore(kind, before) { this.sql.exec("DELETE FROM docs WHERE kind = ? AND updated_at < ?", kind, before); return true; }
 }
 const store = env => env.STORE.get(env.STORE.idFromName("main"));
 

@@ -6,14 +6,17 @@
 //   FORTUNE_ADMIN_TOKEN   24+ chars; only this can call GET /fortune/api/export (Bearer)
 //   OPENAI_API_KEY        live readings (Erika Owl phone prompt + mytarotapp deck)
 // Optional: OPENAI_MODEL (default gpt-4o-mini), TAPP_BASE_URL (leave unset),
-//           KALPA_API_KEY, KALPA_VOICE_ID, KALPA_MODEL (voice; text works without them)
+//           KALPA_API_KEY (+ optional KALPA_VOICE_ID, KALPA_MODEL) for Kalpa voice; text works without it,
+//           TWILIO_AUTH_TOKEN for the booth phone (see phone.js).
 //
 // Everything under /fortune is password-gated server-side: pages, brief, app assets and APIs.
 // Login sessions are opaque random cookies; only their SHA-256 lives in the Durable Object,
 // so logout revokes immediately and sessions survive deploys. The phone (Twilio) routes are
-// not ported yet; they stay disabled until Kalpa and the handset are tested.
+// live in phone.js and verify Twilio's signature instead of the viewer password.
 
 import { makeFortune, drawCards } from "./fortune.js";
+import { kalpaSpeak, kalpaConfigured } from "./voice.js";
+import { handleTwilio, warmPrompts } from "./phone.js";
 
 const BASE = "/fortune";
 const COOKIE = "fp_session";
@@ -82,23 +85,6 @@ const newSession = () => ({
   followUp: false,
 });
 
-async function kalpa(env, speech) {
-  if (!env.KALPA_API_KEY) return null;
-  const voice = env.KALPA_VOICE_ID || "dda5319f-3b81-4124-b69e-9241eb510b77";
-  const r = await fetch(`https://api.kalpalabs.ai/v1/tts/${encodeURIComponent(voice)}`, {
-    method: "POST",
-    headers: { Authorization: `Bearer ${env.KALPA_API_KEY}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ text: speech, model: env.KALPA_MODEL || "kalpa-tts-1" }),
-    signal: AbortSignal.timeout(20000),
-  });
-  if (!r.ok) throw new Error("Kalpa speech request failed.");
-  const data = await r.json();
-  if (!data.audio?.data_b64) throw new Error("Kalpa returned no audio.");
-  const bin = atob(data.audio.data_b64);
-  if (bin.length > 10_000_000) throw new Error("Audio too large.");
-  return Uint8Array.from(bin, (c) => c.charCodeAt(0));
-}
-
 /* ---------------- login ---------------- */
 const loginPage = ({ error = "", next = BASE + "/" } = {}) => `<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow">
@@ -153,10 +139,13 @@ export async function handleFortune(req, env, ctx, url, st) {
         ok: true,
         passwordConfigured: !!env.FORTUNE_PASSWORD,
         readingConfigured: !!(env.OPENAI_API_KEY || env.TAPP_BASE_URL),
-        kalpaConfigured: !!env.KALPA_API_KEY,
-        phoneConfigured: false,
+        kalpaConfigured: kalpaConfigured(env),
+        phoneConfigured: !!env.TWILIO_AUTH_TOKEN,
         recordingEnabled: false,
       });
+
+    // The booth phone: Twilio can't log in, so these routes check Twilio's signature instead.
+    if (path.startsWith(BASE + "/twilio/")) return await handleTwilio(req, env, ctx, url, st);
 
     // Fail closed: nothing under /fortune is served until a valid password is configured.
     const pw = env.FORTUNE_PASSWORD || "";
@@ -191,7 +180,7 @@ export async function handleFortune(req, env, ctx, url, st) {
     }
 
     const adminExport =
-      path === BASE + "/api/export" && admin.length >= 24 &&
+      [BASE + "/api/export", BASE + "/api/voice-check"].includes(path) && admin.length >= 24 &&
       (await same(req.headers.get("authorization") || "", `Bearer ${admin}`));
     const viewer = await isViewer(req, st);
     if (!viewer && !adminExport) {
@@ -218,6 +207,19 @@ export async function handleFortune(req, env, ctx, url, st) {
         return json({ contacts });
       }
       if (req.method !== "POST") return json({ error: "POST required." }, 405);
+      if (route === "/voice-check") {
+        // Admin-only: confirms the Kalpa key works and pre-generates the phone prompts.
+        if (!adminExport) return json({ error: "Admin access required." }, 401);
+        if (!kalpaConfigured(env)) return json({ kalpa: false, error: "KALPA_API_KEY is not set." }, 503);
+        const t0 = Date.now();
+        try {
+          const wav = await kalpaSpeak(env, "The future is calling.");
+          const sample = { bytes: wav.length, ms: Date.now() - t0 };
+          return json({ kalpa: true, sample, prompts: await warmPrompts(env, st, url.origin) });
+        } catch (e) {
+          return json({ kalpa: false, error: e.message }, 502);
+        }
+      }
       if (route === "/session") {
         const s = newSession();
         await st.put("fortune_session", s.id, s);
@@ -263,8 +265,14 @@ export async function handleFortune(req, env, ctx, url, st) {
       }
       if (route === "/speech") {
         if (s.stage !== "complete") return json({ error: "Get a fortune first." }, 409);
-        const audio = await kalpa(env, s.fortune.text);
-        if (!audio) return json({ provider: "browser-demo" });
+        if (!kalpaConfigured(env)) return json({ provider: "browser-demo" });
+        let audio;
+        try {
+          audio = await kalpaSpeak(env, s.fortune.text, { long: true });
+        } catch (e) {
+          console.log("fortune: Kalpa speech failed:", e.message);
+          throw new Error("Kalpa speech failed.");
+        }
         return new Response(audio, { headers: { "content-type": "audio/wav", ...SEC } });
       }
       return json({ error: "Not found." }, 404);

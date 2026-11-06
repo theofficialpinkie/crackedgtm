@@ -9,7 +9,7 @@
   "assets": {
     "directory": ".",
     "binding": "ASSETS",
-    "run_worker_first": ["/onboarding", "/onboarding/*", "/superemployee", "/superemployee/*", "/kalpalabs", "/kalpalabs/", "/kalpalabs.html", "/api/*", "/fortune", "/fortune/*"]
+    "run_worker_first": ["/onboarding", "/onboarding/*", "/superemployee", "/superemployee/*", "/kalpalabs", "/kalpalabs/", "/kalpalabs.html", "/paysquadproposal", "/paysquadproposal/", "/paysquadproposal.html", "/api/*", "/fortune", "/fortune/*"]
   },
   "durable_objects": {
     "bindings": [{ "name": "STORE", "class_name": "Store" }]

@@ -377,6 +377,14 @@ footer a{color:var(--paper)}
 @media (max-width:1100px){.week{grid-template-columns:repeat(2,minmax(0,1fr))}.score{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:900px){.guard,.raise,.steps{grid-template-columns:1fr}}
 @media (max-width:600px){.week,.score{grid-template-columns:1fr}}
+
+.goal{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0;border:3px solid var(--ink);box-shadow:10px 10px 0 var(--red);background:var(--ink)}
+.goal div{background:var(--yellow);padding:28px;display:flex;flex-direction:column;gap:8px;border-right:3px solid var(--ink)}
+.goal div:last-child{border-right:none;background:#fff}
+.goal .k{font-family:'Bangers',cursive;font-size:22px;letter-spacing:2px;color:var(--red)}
+.goal b{font-family:'Archivo Black',sans-serif;font-weight:400;font-size:clamp(26px,2.8vw,36px);line-height:1.05;letter-spacing:-.02em}
+.goal span{font-size:17px;font-weight:600;line-height:1.4}
+@media (max-width:900px){.goal{grid-template-columns:1fr}.goal div{border-right:none;border-bottom:3px solid var(--ink)}}
 </style>
 </head>
 <body>
@@ -386,19 +394,17 @@ footer a{color:var(--paper)}
     <span class="cg">Cracked GTM</span><span class="x">×</span><span class="vi"><img src="assets/logos/visualintuition-icon.png" alt="" width="192" height="192"><span>Visual Intuition</span></span>
   </div>
   <h1>Sign your first 5 to 10 EM labs. <span class="red">Directly.</span></h1>
-  <p>A six-month plan to turn your inbound and your Monaco pipeline into signed EM annotation deals with neuroscience labs, before you bet on hardware.</p>
-  <div class="for-chips" aria-label="Focus"><span>Neuroscience labs with EM data</span><span>Direct sales</span><span>One motion</span><span>Recurring revenue</span></div>
-  <a class="btn btn-dark" href="#next">See next steps</a>
+  <p>A quick outline of how we'd work together over the next six months.</p>
+  <div class="for-chips" aria-label="Focus"><span>Neuroscience labs with EM data</span><span>Direct sales</span><span>More pipeline</span></div>
+  <a class="btn btn-dark" href="https://calendly.com/d/dtd7-vd3-fhw/discovery-call" target="_blank" rel="noopener">Let's Talk</a>
 </header>
 
 <section class="note" id="note" style="border-top:2px solid var(--ink)">
   <div class="col">
     <p class="hi">Hey Claire,</p>
-    <p>Great chatting this week. Here's everything we talked about in one place, so you can walk Ishaan through it and decide by Friday.</p>
-    <p>Our honest take: you have more demand than you think, and it's coming from too many directions at once. Academic inbound, a microscope partner, pathologists in Monaco, semiconductor, and a possible hardware pivot down the road.</p>
+    <p>Great chatting! Here's a quick outline of how we'd work together.</p>
+    <p>You've got real demand coming in already. The move now is to go all in on one thing and build the pipeline behind it.</p>
     <p class="pull">Pick one motion. Sign 5 to 10 EM labs yourself. <span class="red">Then decide what's next with real data.</span></p>
-    <p>Those first labs give you case studies you own, relationships no partner can take, and a revenue story investors actually want to hear. We'll sit inside your team and run it with you, every week.</p>
-    <p class="closer">Let's make Q1 the quarter Visual Intuition starts closing.</p>
     <div class="sigs"><span>Priyanka<small>Priyanka Sundhar</small></span><span>Khaled<small>Khaled Alameldin</small></span></div>
   </div>
 </section>
@@ -406,126 +412,71 @@ footer a{color:var(--paper)}
 <section class="today-sec" id="today">
   <div class="wrap">
     <div class="sec-head">
-      <span class="kicker">WHERE YOU ARE</span>
-      <h2>Real pull. <span class="red">Too many directions.</span></h2>
+      <span class="kicker">THE OBJECTIVE</span>
+      <h2>More pipeline. <span class="red">More revenue.</span></h2>
     </div>
-    <div class="today-grid">
+    <div class="goal">
+      <div><span class="k">01</span><b>Generate more pipeline</b><span>A steady flow of EM labs to talk to, not just what comes through your network.</span></div>
+      <div><span class="k">02</span><b>Get more market insights</b><span>Every call teaches us what labs actually want, which shapes your roadmap.</span></div>
+      <div><span class="k">03</span><b>Close more revenue</b><span>A tight sales process so more of those calls turn into signed labs.</span></div>
+    </div>
+    <div class="today-grid" style="margin-top:48px">
       <div class="today dark">
         <span class="k">WHAT'S WORKING</span>
         <ul>
           <li><span><b>Inbound from your academic network:</b> grant-funded projects in the $100K to $300K range</span></li>
-          <li><span><b>A microscope partner</b> in redlines to run your models on their hardware, with a revenue share on kits</span></li>
-          <li><span><b>Monaco outbound</b> is getting the warmest response from pathologists</span></li>
+          <li><span><b>A microscope partner</b> in redlines to run your models on their hardware</span></li>
           <li><span><b>The product works today</b> for pixel-precise annotation of EM datasets</span></li>
         </ul>
       </div>
       <div class="today">
-        <span class="k">WHAT'S IN THE WAY</span>
+        <span class="k">WHERE WE FOCUS</span>
         <ul>
-          <li><span><b>Nothing signed yet.</b> The inbound projects are one-off, not recurring</span></li>
-          <li><span><b>Too many motions:</b> labs, pathology, semiconductor, a partner channel and a hardware or CRO idea</span></li>
-          <li><span><b>A partner could end up owning</b> your customers, data and case studies</span></li>
-          <li><span><b>Team going from 3 to about 6,</b> while investors care more and more about revenue per employee</span></li>
+          <li><span><b>Neuroscience labs with EM datasets.</b> They have the pain and the grant money</span></li>
+          <li><span><b>Your existing annotation product,</b> sold directly by you</span></li>
+          <li><span><b>Discovery calls</b> that also show us what labs want next</span></li>
         </ul>
       </div>
     </div>
   </div>
 </section>
 
-<section class="monaco" id="focus" style="background:var(--band)">
+<section class="plan" id="plan" style="background:var(--band)">
   <div class="wrap">
     <div class="sec-head">
-      <span class="kicker">ONE MOTION</span>
-      <h2>Sell what works today. <span class="red">Tease what's next.</span></h2>
+      <span class="kicker">THE PLAN</span>
+      <h2>How the six months <span class="red">play out.</span></h2>
     </div>
-    <div class="mono-grid" style="grid-template-columns:1.25fr 1fr">
-      <div class="mono us">
-        <h3>Focus on</h3>
-        <ul>
-          <li><b>Neuroscience labs with EM datasets.</b> They have the pain now and the grant money to pay for it</li>
-          <li><b>Your existing annotation product,</b> sold directly by you</li>
-          <li><b>Closing the inbound you already have</b> before chasing anything new</li>
-          <li><b>Discovery on the end-to-end problem</b> (imaging, acquisition, analysis) so the hardware or CRO idea gets validated by real buyers, pitched as roadmap</li>
-        </ul>
-      </div>
-      <div class="mono them park">
-        <h3>Park for now</h3>
-        <p class="tagline">Not never. Just not this quarter.</p>
-        <ul>
-          <li><b>Semiconductor.</b> The Intel-style pitch is a long shot and a different buyer</li>
-          <li><b>Pathology.</b> The most receptive Monaco segment, so we keep a warm list for after labs are signed</li>
-          <li><b>Partner-led selling.</b> A great add-on, not the main motion</li>
-          <li><b>The hardware pivot.</b> Revisit once 5 to 10 labs tell you they want it</li>
-        </ul>
-      </div>
-    </div>
-    <div class="guard" aria-label="Partner guardrails">
-      <div><span class="k">PARTNER GUARDRAIL</span><b>Non-exclusive</b><span>The microscope deal should never stop you selling to any lab directly.</span></div>
-      <div><span class="k">PARTNER GUARDRAIL</span><b>Case study rights</b><span>You keep the right to market every win, including ones on their hardware.</span></div>
-      <div><span class="k">PARTNER GUARDRAIL</span><b>You own the lab</b><span>The customer relationship and contract sit with Visual Intuition, not the kit seller.</span></div>
-    </div>
-  </div>
-</section>
-
-<section class="plan" id="plan">
-  <div class="wrap">
-    <div class="sec-head">
-      <span class="kicker">THE SIX-MONTH PLAN</span>
-      <h2>Close the inbound, then build the pipeline, <span class="red">then make it recurring.</span></h2>
-    </div>
-    <div class="onboard"><span class="k">ONBOARDING IN ~48 HOURS</span><span>CRM access</span><i>→</i><span>Shared Slack</span><i>→</i><span>Your call recordings</span><i>→</i><span>A whiteboarding session to lock the plan</span></div>
     <div class="phases">
       <article class="phase">
-        <div class="phase-top"><span class="n">MONTH 1 · DECEMBER</span><h3>Audit and close</h3><span class="when">Turn inbound into signatures</span></div>
+        <div class="phase-top"><span class="n">MONTH 1 · DECEMBER</span><h3>Set up and start selling</h3></div>
         <ol>
-          <li><span><b>Sales audit:</b> every inbound deal, every recorded call, and where each one stalls</span></li>
-          <li><span><b>A deal plan for each $100K to $300K project:</b> who champions it, which grant pays, how the PO gets done, and when</span></li>
-          <li><span><b>A proposal and SOW template</b> for grant-funded projects, with add-ons built in from day one</span></li>
-          <li><span><b>Partner redline review</b> against the three guardrails above</span></li>
-          <li><span><b>Point Monaco at EM labs only,</b> with a researched list of labs sitting on EM datasets</span></li>
+          <li><span><b>In-person onboarding in Boston.</b> We come to you for the sales audit and a whiteboarding session</span></li>
+          <li><span><b>A tight sales process</b> plus lots of sales coaching, so you close more</span></li>
+          <li><span><b>Sales assets and case studies:</b> deck, one-pager, proposal template and your first case study</span></li>
+          <li><span><b>Your dream list.</b> Our internal tool builds a list of the labs to go after first, and outreach starts right away</span></li>
+          <li><span><b>Content interviews start,</b> so your first posts go live in December</span></li>
         </ol>
       </article>
       <article class="phase y">
-        <div class="phase-top"><span class="n">MONTHS 2 TO 3 · Q1 PUSH</span><h3>Pipeline</h3><span class="when">Go hard, like you said</span></div>
+        <div class="phase-top"><span class="n">MONTHS 2 TO 3 · Q1</span><h3>Build the pipeline</h3></div>
         <ol>
-          <li><span><b>Outbound and LinkedIn</b> to EM labs from your inbox and profile</span></li>
-          <li><span><b>Weekly content session</b> that turns your science into posts PIs actually read</span></li>
-          <li><span><b>Discovery calls</b> that also ask about the end-to-end workflow, so the roadmap writes itself</span></li>
-          <li><span><b>COSYNE in Montreal, March 11 to 16,</b> plus small lab dinners in Boston and Cambridge</span></li>
-          <li><span><b>Three-month check-in.</b> If it's not working, you can opt out here</span></li>
+          <li><span><b>Weekly content interviews</b> turned into posts on LinkedIn and X. This also helps GEO, so you show up when people ask AI tools about EM annotation</span></li>
+          <li><span><b>Show up in lab communities</b> where PIs and postdocs already hang out</span></li>
+          <li><span><b>Outbound to your dream list</b> of labs</span></li>
+          <li><span><b>Boston, in person:</b> croissant and hot cocoa deliveries to labs, custom gifts and a small lab dinner. Boston has the highest concentration of labs</span></li>
+          <li><span><b>COSYNE in Montreal,</b> March 11 to 16</span></li>
         </ol>
       </article>
       <article class="phase">
-        <div class="phase-top"><span class="n">MONTHS 4 TO 6</span><h3>Make it recurring</h3><span class="when">One-time to ongoing</span></div>
+        <div class="phase-top"><span class="n">MONTHS 4 TO 6</span><h3>Close and grow</h3></div>
         <ol>
-          <li><span><b>Add-ons that renew:</b> ongoing proofreading as new data comes in, new datasets and brain regions, models tuned to each lab's microscope</span></li>
-          <li><span><b>Case studies</b> from your first signed labs, with PI quotes</span></li>
-          <li><span><b>Lab-to-lab referrals.</b> PIs talk, so every happy lab should introduce the next one</span></li>
-          <li><span><b>Pathology test</b> only if the labs are signed and delivery is solid</span></li>
-          <li><span><b>A revenue story for the raise:</b> signed labs, recurring revenue, lean team</span></li>
+          <li><span><b>Case studies</b> from your first signed labs</span></li>
+          <li><span><b>Add-ons</b> that turn one-time projects into recurring revenue</span></li>
+          <li><span><b>Lab-to-lab referrals.</b> PIs talk, so every happy lab introduces the next one</span></li>
+          <li><span><b>Keep tightening</b> the sales process with each monthly audit</span></li>
         </ol>
       </article>
-    </div>
-    <div class="score" aria-label="What we track every week">
-      <div class="score-head">THE SCOREBOARD WE REVIEW WITH YOU EVERY WEEK</div>
-      <div><b>5 to 10</b><span>signed labs, the goal everything points at</span></div>
-      <div><b>$ signed</b><span>across inbound and outbound deals</span></div>
-      <div><b>% recurring</b><span>of revenue on add-ons or renewals</span></div>
-      <div><b>Labs in play</b><span>active conversations with a next step booked</span></div>
-    </div>
-  </div>
-</section>
-
-<section class="raise-sec" id="raise" style="background:var(--band)">
-  <div class="wrap">
-    <div class="sec-head">
-      <span class="kicker">HOW THIS FITS THE RAISE</span>
-      <h2>Follow the market, <span class="red">not the investors.</span></h2>
-    </div>
-    <div class="raise">
-      <div><span class="k">STAY LEAN</span><h3>Hire when pull demands it</h3><p>Investors now look at revenue per employee across the whole team. Signed labs on a team of 3 to 6 is a much stronger number than a big team with nothing signed.</p></div>
-      <div><span class="k">PICK THE ROUND LATER</span><h3>Let revenue settle the debate</h3><p>Some investors say raise $30 to 50M as a frontier lab, others say a $10 to 20M seed after your $3M pre-seed. Real lab revenue tells you which story is true.</p></div>
-      <div><span class="k">NON-DILUTIVE FIRST</span><h3>Grants before dilution</h3><p>Unless the hardware path needs heavy capital, chase grant funding first and keep more of the company.</p></div>
     </div>
   </div>
 </section>
@@ -537,13 +488,13 @@ footer a{color:var(--paper)}
       <h2>Two embedded operators, <span class="red">every week.</span></h2>
     </div>
     <div class="week">
-      <div class="y"><span class="k">ONCE, UP FRONT</span><h3>Sales audit</h3><p>Every deal, call and asset reviewed, with a fix list.</p></div>
+      <div class="y"><span class="k">MONTHLY</span><h3>Sales audit</h3><p>Your deals, calls and assets reviewed, with a fix list.</p></div>
       <div><span class="k">WEEKLY</span><h3>Sales coaching</h3><p>We review your calls, join demos and tighten the process.</p></div>
-      <div><span class="k">WEEKLY</span><h3>Content session</h3><p>One interview with you. We write the posts, you approve.</p></div>
-      <div><span class="k">WEEKLY</span><h3>Strategy call</h3><p>Scoreboard, priorities and what we're testing next.</p></div>
-      <div><span class="k">ALWAYS ON</span><h3>Outbound</h3><p>EM lab outbound, run inside Monaco so you keep one system of record.</p></div>
+      <div><span class="k">WEEKLY</span><h3>Content interview</h3><p>One chat with you. We write the posts, you approve.</p></div>
+      <div><span class="k">WEEKLY</span><h3>Strategy call</h3><p>Pattern recognition: what labs are telling us and what it means for you.</p></div>
+      <div><span class="k">ALWAYS ON</span><h3>Outbound</h3><p>Targeted outreach to your dream list of labs.</p></div>
       <div><span class="k">ALWAYS ON</span><h3>LinkedIn</h3><p>Your profile working for you, with posts and outreach to PIs.</p></div>
-      <div><span class="k">AS NEEDED</span><h3>Events</h3><p>Conferences and small lab dinners where your buyers already are.</p></div>
+      <div><span class="k">AS NEEDED</span><h3>Events</h3><p>Conferences, dinners and deliveries where your buyers already are.</p></div>
       <div class="y"><span class="k">ALWAYS</span><h3>You own it all</h3><p>Every relationship, list and asset stays with Visual Intuition.</p></div>
     </div>
   </div>
@@ -576,62 +527,29 @@ footer a{color:var(--paper)}
       <div class="tall"><img src="assets/logos/neatsy.png" alt="Neatsy" width="433" height="126"></div>
       <div class="tall"><img src="assets/logos/utr.png" alt="Universal Tennis (UTR)" width="503" height="126"></div>
     </div>
-  </div>
-</section>
-
-<section class="whyus" id="why">
-  <div class="wrap">
-    <div class="sec-head">
-      <span class="kicker">WHY US</span>
-      <h2>We've been the first GTM hire <span class="red">more than once.</span></h2>
-    </div>
-    <div class="why-grid">
-      <div class="why y"><span class="k">NEW CATEGORY</span><b>$1M</b><span>in under 8 months at UTR, selling software to clubs that ran everything on pen and paper</span></div>
-      <div class="why"><span class="k">BUYING GROUPS</span><b>$180K</b><span>enterprise deal closed with a CISO and Head of Data in the room</span></div>
-      <div class="why"><span class="k">EARLY TO IPO</span><b>#7</b><span>employee and first sales hire at Securitize, through its IPO</span></div>
-      <div class="why"><span class="k">ZERO TO ONE</span><b>$3M</b><span>closed revenue at Revamp (YC), from $0</span></div>
-    </div>
     <div class="duo">
       <div><img src="priyanka.jpg" alt="Sketch portrait of Priyanka Sundhar" width="230" height="230"><span><h3>Priyanka Sundhar</h3><p>Founding AE at Securitize (IPO), first sales hire at UTR</p></span></div>
       <div><img src="khaled.jpg" alt="Sketch portrait of Khaled Alameldin" width="230" height="230"><span><h3>Khaled Alameldin</h3><p>Took Revamp (YC) from $0 to $3M, running growth at 3 YC startups</p></span></div>
     </div>
-    <div class="ref"><span class="k">HEAR IT FROM A CLIENT</span><p>Khaled is introducing you to Kaushik, a current client, so you can ask him anything about working with us.</p></div>
   </div>
 </section>
 
-<section class="pricing" id="pricing" style="background:var(--band)">
+<section class="pricing" id="pricing">
   <div class="wrap">
     <div class="sec-head">
       <span class="kicker">PRICING</span>
-      <h2>Flat and simple. <span class="red">No surprises.</span></h2>
+      <h2>Flat and simple.</h2>
     </div>
     <div class="price-grid" style="grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:36px">
-      <div class="price y"><span class="k">EMBEDDED GROWTH TEAM</span><b>$10K<span style="font-size:.5em">/mo</span></b><h3>Six-month term, with the option to opt out after three months</h3><p>Everything in the plan above. Runs inside Monaco, no extra tools to buy.</p></div>
-      <div class="price"><span class="k">CONFERENCES</span><b style="font-size:clamp(44px,5vw,64px)">~$4K</b><h3>per conference, only when we go</h3><p>We plan it, fill your calendar with meetings and run the follow-up.</p></div>
+      <div class="price y"><span class="k">EMBEDDED GROWTH TEAM</span><b>$10K<span style="font-size:.5em">/mo</span></b><h3>Six-month term, with the option to opt out after three months</h3></div>
+      <div class="price"><span class="k">CONFERENCES</span><b style="font-size:clamp(44px,5vw,64px)">~$4K</b><h3>per conference, only when we go</h3></div>
     </div>
-    <p class="price-foot">Two senior operators for less than one full-time growth hire.</p>
-  </div>
-</section>
-
-<section class="next" id="next">
-  <div class="wrap">
-    <div class="sec-head">
-      <span class="kicker">NEXT STEPS</span>
-      <h2>Decide by Friday, <span class="red">start in December.</span></h2>
-    </div>
-    <div class="steps">
-      <div class="step"><span class="who">KHALED</span><p><b>Intro to Kaushik</b> so you can hear from a client directly.</p></div>
-      <div class="step"><span class="who">PRIYANKA</span><p><b>This page, our process overview</b> and a 10-minute check-in on Friday.</p></div>
-      <div class="step c"><span class="who">CLAIRE</span><p><b>Talk it through with Ishaan,</b> check the budget, and let us know by end of week.</p></div>
-      <div class="step"><span class="who">ALL OF US</span><p><b>Onboard in about 48 hours,</b> kick off in December, and go hard in Q1.</p></div>
-    </div>
-    <div class="deadline"><span>Decision: Friday, Nov 13</span><span>December cohort closes: Nov 18</span></div>
+    <p class="price-foot">December slots close November 18.</p>
   </div>
 </section>
 
 <section class="cta" id="book">
-  <h2>Let's put productive hours back into the hands of scientists.</h2>
-  <p>You keep building the model. We'll help you sign the labs.</p>
+  <h2>Let's make Q1 the quarter you start closing.</h2>
   <a class="btn btn-light" href="https://calendly.com/d/dtd7-vd3-fhw/discovery-call" target="_blank" rel="noopener">Book a call with us</a>
 </section>
 

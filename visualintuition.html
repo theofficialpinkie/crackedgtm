@@ -330,6 +330,53 @@ footer a{color:var(--paper)}
   .lockup .vi img{height:40px;width:40px}
   .lockup .vi span{letter-spacing:.2em}
 }
+
+.note .col .hi{font-family:'Archivo Black',sans-serif;font-size:clamp(26px,3vw,34px);letter-spacing:-.02em}
+.note .sigs span{display:flex;flex-direction:column;gap:6px}
+.note .sigs small{font-family:'Archivo',sans-serif;font-size:15px;font-weight:700;color:var(--muted)}
+.park{background:#fff}
+.mono.park h3{color:var(--muted)}
+.mono .tagline{margin:0;font-size:16px;font-weight:700;color:var(--muted)}
+.guard{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px;margin-top:40px}
+.guard div{padding:22px 24px;background:var(--ink);color:var(--paper);display:flex;flex-direction:column;gap:6px}
+.guard .k{font-family:'Bangers',cursive;font-size:20px;letter-spacing:2px;color:var(--yellow)}
+.guard b{font-family:'Archivo Black',sans-serif;font-weight:400;font-size:20px}
+.guard span{font-size:16px;font-weight:600;line-height:1.4;color:#ddd}
+.onboard{display:flex;align-items:center;flex-wrap:wrap;gap:14px;margin-bottom:36px;padding:18px 22px;background:#fff;border:3px solid var(--ink);box-shadow:6px 6px 0 var(--ink)}
+.onboard .k{font-family:'Bangers',cursive;font-size:22px;letter-spacing:2px;color:var(--red);margin-right:6px}
+.onboard span{font-weight:700;font-size:17px}
+.onboard i{font-style:normal;font-family:'Archivo Black',sans-serif;color:var(--red)}
+.score{margin-top:48px;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:3px;background:var(--ink);border:3px solid var(--ink);box-shadow:10px 10px 0 var(--red)}
+.score div{background:#fff;padding:22px 22px;display:flex;flex-direction:column;gap:6px}
+.score div:first-child{background:var(--yellow)}
+.score b{font-family:'Archivo Black',sans-serif;font-weight:400;font-size:clamp(30px,3.4vw,46px);line-height:1;letter-spacing:-.02em}
+.score span{font-size:16px;font-weight:700;line-height:1.35}
+.score-head{grid-column:1/-1;background:var(--ink)!important;color:var(--yellow);font-family:'Bangers',cursive;font-size:22px;letter-spacing:2px;padding:12px 22px!important}
+.raise{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px}
+.raise div{padding:26px;background:#fff;border:3px solid var(--ink);box-shadow:8px 8px 0 var(--red);display:flex;flex-direction:column;gap:10px}
+.raise .k{font-family:'Bangers',cursive;font-size:22px;letter-spacing:2px;color:var(--red)}
+.raise h3{margin:0;font-family:'Archivo Black',sans-serif;font-size:22px;line-height:1.15}
+.raise p{margin:0;font-size:17px;line-height:1.5;font-weight:500}
+.week{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:20px}
+.week div{padding:22px;background:#fff;border:3px solid var(--ink);box-shadow:6px 6px 0 var(--red);display:flex;flex-direction:column;gap:8px}
+.week div.y{background:var(--yellow);box-shadow:6px 6px 0 var(--ink)}
+.week .k{font-family:'Bangers',cursive;font-size:19px;letter-spacing:1.5px;color:var(--red)}
+.week h3{margin:0;font-family:'Archivo Black',sans-serif;font-size:20px;line-height:1.15}
+.week p{margin:0;font-size:16px;line-height:1.45;font-weight:600}
+.ref{margin-top:36px;display:flex;align-items:center;gap:22px;flex-wrap:wrap;padding:24px 28px;background:var(--yellow);border:3px solid var(--ink);box-shadow:8px 8px 0 var(--ink)}
+.ref .k{font-family:'Bangers',cursive;font-size:22px;letter-spacing:2px}
+.ref p{margin:0;flex:1;min-width:260px;font-size:19px;font-weight:600;line-height:1.45}
+.steps{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
+.step{padding:24px 26px;background:#fff;border:3px solid var(--ink);display:flex;gap:18px;align-items:flex-start}
+.step .who{flex-shrink:0;padding:4px 12px;background:var(--ink);color:var(--yellow);font-family:'Bangers',cursive;font-size:19px;letter-spacing:1.5px}
+.step.c .who{background:var(--red);color:#fff}
+.step p{margin:0;font-size:18px;font-weight:600;line-height:1.45}
+.step p b{font-family:'Archivo Black',sans-serif;font-weight:400}
+.deadline{margin:32px 0 0;display:flex;flex-wrap:wrap;gap:16px}
+.deadline span{padding:12px 20px;background:var(--red);color:#fff;border:3px solid var(--ink);box-shadow:5px 5px 0 var(--ink);font-family:'Archivo Black',sans-serif;font-size:18px}
+@media (max-width:1100px){.week{grid-template-columns:repeat(2,minmax(0,1fr))}.score{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:900px){.guard,.raise,.steps{grid-template-columns:1fr}}
+@media (max-width:600px){.week,.score{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -338,69 +385,167 @@ footer a{color:var(--paper)}
   <div class="lockup" aria-label="Cracked GTM and Visual Intuition">
     <span class="cg">Cracked GTM</span><span class="x">×</span><span class="vi"><img src="assets/logos/visualintuition-icon.png" alt="" width="192" height="192"><span>Visual Intuition</span></span>
   </div>
-  <h1>Get Visual Intuition into every lab still <span class="red">proofreading by hand.</span></h1>
-  <p>A 90-day go-to-market plan for <strong>Visual Intuition</strong>, built to run on top of the Monaco setup you're already testing. Written in the language your buyers actually speak.</p>
-  <div class="for-chips" aria-label="Target buyers"><span>Connectomics labs</span><span>Cell biology labs</span><span>Imaging cores</span><span>Next: medicine, QC, agriculture</span></div>
-  <a class="btn btn-dark" href="https://calendly.com/d/dtd7-vd3-fhw/discovery-call" target="_blank" rel="noopener">Let's Talk</a>
+  <h1>Sign your first 5 to 10 EM labs. <span class="red">Directly.</span></h1>
+  <p>A six-month plan to turn your inbound and your Monaco pipeline into signed EM annotation deals with neuroscience labs, before you bet on hardware.</p>
+  <div class="for-chips" aria-label="Focus"><span>Neuroscience labs with EM data</span><span>Direct sales</span><span>One motion</span><span>Recurring revenue</span></div>
+  <a class="btn btn-dark" href="#next">See next steps</a>
 </header>
 
-<section class="today-sec" id="today" style="background:var(--band);border-top:2px solid var(--ink)">
+<section class="note" id="note" style="border-top:2px solid var(--ink)">
+  <div class="col">
+    <p class="hi">Hey Claire,</p>
+    <p>Great chatting this week. Here's everything we talked about in one place, so you can walk Ishaan through it and decide by Friday.</p>
+    <p>Our honest take: you have more demand than you think, and it's coming from too many directions at once. Academic inbound, a microscope partner, pathologists in Monaco, semiconductor, and a possible hardware pivot down the road.</p>
+    <p class="pull">Pick one motion. Sign 5 to 10 EM labs yourself. <span class="red">Then decide what's next with real data.</span></p>
+    <p>Those first labs give you case studies you own, relationships no partner can take, and a revenue story investors actually want to hear. We'll sit inside your team and run it with you, every week.</p>
+    <p class="closer">Let's make Q1 the quarter Visual Intuition starts closing.</p>
+    <div class="sigs"><span>Priyanka<small>Priyanka Sundhar</small></span><span>Khaled<small>Khaled Alameldin</small></span></div>
+  </div>
+</section>
+
+<section class="today-sec" id="today">
   <div class="wrap">
     <div class="sec-head">
       <span class="kicker">WHERE YOU ARE</span>
-      <h2>The science is ahead of <span class="red">the story.</span></h2>
+      <h2>Real pull. <span class="red">Too many directions.</span></h2>
     </div>
     <div class="today-grid">
       <div class="today dark">
-        <span class="k">VISUAL INTUITION TODAY</span>
+        <span class="k">WHAT'S WORKING</span>
         <ul>
-          <li><span><b>$3.2M raised</b> this summer, out of Harvard Physics</span></li>
-          <li><span><b>Award-winning ICML 2026 paper</b> on behavioral cloning for scientific annotation</span></li>
-          <li><span><b>95.1% skeleton accuracy</b> tracing neurons in human cortex data, 89.4% on <i>C. elegans</i></span></li>
-          <li><span>Learns from how experts actually work: where they click, point and pause</span></li>
+          <li><span><b>Inbound from your academic network:</b> grant-funded projects in the $100K to $300K range</span></li>
+          <li><span><b>A microscope partner</b> in redlines to run your models on their hardware, with a revenue share on kits</span></li>
+          <li><span><b>Monaco outbound</b> is getting the warmest response from pathologists</span></li>
+          <li><span><b>The product works today</b> for pixel-precise annotation of EM datasets</span></li>
         </ul>
       </div>
       <div class="today">
-        <span class="k">GTM TODAY</span>
+        <span class="k">WHAT'S IN THE WAY</span>
         <ul>
-          <li><span><b>Little to no marketing yet.</b> visualintuition.ai is one page and two email addresses</span></li>
-          <li><span>First customers are academic neuroscience and biology labs</span></li>
-          <li><span><b>Testing Monaco</b> as the sales system</span></li>
-          <li><span>Founder came up through the lab, not through sales. That's an asset with scientists, if the process behind it is tight</span></li>
+          <li><span><b>Nothing signed yet.</b> The inbound projects are one-off, not recurring</span></li>
+          <li><span><b>Too many motions:</b> labs, pathology, semiconductor, a partner channel and a hardware or CRO idea</span></li>
+          <li><span><b>A partner could end up owning</b> your customers, data and case studies</span></li>
+          <li><span><b>Team going from 3 to about 6,</b> while investors care more and more about revenue per employee</span></li>
         </ul>
       </div>
     </div>
   </div>
 </section>
 
-<section class="monaco" id="monaco">
+<section class="monaco" id="focus" style="background:var(--band)">
   <div class="wrap">
     <div class="sec-head">
-      <span class="kicker">MONACO + CRACKED</span>
-      <h2>Keep Monaco. <span class="red">We'll make it work for scientists.</span></h2>
+      <span class="kicker">ONE MOTION</span>
+      <h2>Sell what works today. <span class="red">Tease what's next.</span></h2>
     </div>
-    <div class="mono-grid">
-      <div class="mono them">
-        <h3>What Monaco gives you</h3>
-        <ul>
-          <li>A CRM and system of record</li>
-          <li>A TAM builder and prospect database</li>
-          <li>AI sequencing, activity capture and call notes</li>
-          <li>A forward-deployed AE to set up the motion</li>
-        </ul>
-      </div>
+    <div class="mono-grid" style="grid-template-columns:1.25fr 1fr">
       <div class="mono us">
-        <h3>What we add on top</h3>
+        <h3>Focus on</h3>
         <ul>
-          <li><b>A buyer list from where scientists live:</b> NIH grants, connectomics and cell tracking papers, imaging core directories. Most PIs aren't in a B2B contact database</li>
-          <li><b>Copy that sounds like a scientist wrote it.</b> Straight to the problem, no fluff</li>
-          <li><b>Your voice on LinkedIn and X,</b> every week</li>
-          <li><b>Lab visits, seminars and conferences</b> in Cambridge and beyond</li>
-          <li><b>A sales process for academic budgets:</b> pilots, grant lines, POs</li>
+          <li><b>Neuroscience labs with EM datasets.</b> They have the pain now and the grant money to pay for it</li>
+          <li><b>Your existing annotation product,</b> sold directly by you</li>
+          <li><b>Closing the inbound you already have</b> before chasing anything new</li>
+          <li><b>Discovery on the end-to-end problem</b> (imaging, acquisition, analysis) so the hardware or CRO idea gets validated by real buyers, pitched as roadmap</li>
+        </ul>
+      </div>
+      <div class="mono them park">
+        <h3>Park for now</h3>
+        <p class="tagline">Not never. Just not this quarter.</p>
+        <ul>
+          <li><b>Semiconductor.</b> The Intel-style pitch is a long shot and a different buyer</li>
+          <li><b>Pathology.</b> The most receptive Monaco segment, so we keep a warm list for after labs are signed</li>
+          <li><b>Partner-led selling.</b> A great add-on, not the main motion</li>
+          <li><b>The hardware pivot.</b> Revisit once 5 to 10 labs tell you they want it</li>
         </ul>
       </div>
     </div>
-    <p class="mono-foot">We work inside Monaco so you keep one system of record. And if Monaco doesn't stick after the trial, the list, the copy and the process all move with you.</p>
+    <div class="guard" aria-label="Partner guardrails">
+      <div><span class="k">PARTNER GUARDRAIL</span><b>Non-exclusive</b><span>The microscope deal should never stop you selling to any lab directly.</span></div>
+      <div><span class="k">PARTNER GUARDRAIL</span><b>Case study rights</b><span>You keep the right to market every win, including ones on their hardware.</span></div>
+      <div><span class="k">PARTNER GUARDRAIL</span><b>You own the lab</b><span>The customer relationship and contract sit with Visual Intuition, not the kit seller.</span></div>
+    </div>
+  </div>
+</section>
+
+<section class="plan" id="plan">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="kicker">THE SIX-MONTH PLAN</span>
+      <h2>Close the inbound, then build the pipeline, <span class="red">then make it recurring.</span></h2>
+    </div>
+    <div class="onboard"><span class="k">ONBOARDING IN ~48 HOURS</span><span>CRM access</span><i>→</i><span>Shared Slack</span><i>→</i><span>Your call recordings</span><i>→</i><span>A whiteboarding session to lock the plan</span></div>
+    <div class="phases">
+      <article class="phase">
+        <div class="phase-top"><span class="n">MONTH 1 · DECEMBER</span><h3>Audit and close</h3><span class="when">Turn inbound into signatures</span></div>
+        <ol>
+          <li><span><b>Sales audit:</b> every inbound deal, every recorded call, and where each one stalls</span></li>
+          <li><span><b>A deal plan for each $100K to $300K project:</b> who champions it, which grant pays, how the PO gets done, and when</span></li>
+          <li><span><b>A proposal and SOW template</b> for grant-funded projects, with add-ons built in from day one</span></li>
+          <li><span><b>Partner redline review</b> against the three guardrails above</span></li>
+          <li><span><b>Point Monaco at EM labs only,</b> with a researched list of labs sitting on EM datasets</span></li>
+        </ol>
+      </article>
+      <article class="phase y">
+        <div class="phase-top"><span class="n">MONTHS 2 TO 3 · Q1 PUSH</span><h3>Pipeline</h3><span class="when">Go hard, like you said</span></div>
+        <ol>
+          <li><span><b>Outbound and LinkedIn</b> to EM labs from your inbox and profile</span></li>
+          <li><span><b>Weekly content session</b> that turns your science into posts PIs actually read</span></li>
+          <li><span><b>Discovery calls</b> that also ask about the end-to-end workflow, so the roadmap writes itself</span></li>
+          <li><span><b>COSYNE in Montreal, March 11 to 16,</b> plus small lab dinners in Boston and Cambridge</span></li>
+          <li><span><b>Three-month check-in.</b> If it's not working, you can opt out here</span></li>
+        </ol>
+      </article>
+      <article class="phase">
+        <div class="phase-top"><span class="n">MONTHS 4 TO 6</span><h3>Make it recurring</h3><span class="when">One-time to ongoing</span></div>
+        <ol>
+          <li><span><b>Add-ons that renew:</b> ongoing proofreading as new data comes in, new datasets and brain regions, models tuned to each lab's microscope</span></li>
+          <li><span><b>Case studies</b> from your first signed labs, with PI quotes</span></li>
+          <li><span><b>Lab-to-lab referrals.</b> PIs talk, so every happy lab should introduce the next one</span></li>
+          <li><span><b>Pathology test</b> only if the labs are signed and delivery is solid</span></li>
+          <li><span><b>A revenue story for the raise:</b> signed labs, recurring revenue, lean team</span></li>
+        </ol>
+      </article>
+    </div>
+    <div class="score" aria-label="What we track every week">
+      <div class="score-head">THE SCOREBOARD WE REVIEW WITH YOU EVERY WEEK</div>
+      <div><b>5 to 10</b><span>signed labs, the goal everything points at</span></div>
+      <div><b>$ signed</b><span>across inbound and outbound deals</span></div>
+      <div><b>% recurring</b><span>of revenue on add-ons or renewals</span></div>
+      <div><b>Labs in play</b><span>active conversations with a next step booked</span></div>
+    </div>
+  </div>
+</section>
+
+<section class="raise-sec" id="raise" style="background:var(--band)">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="kicker">HOW THIS FITS THE RAISE</span>
+      <h2>Follow the market, <span class="red">not the investors.</span></h2>
+    </div>
+    <div class="raise">
+      <div><span class="k">STAY LEAN</span><h3>Hire when pull demands it</h3><p>Investors now look at revenue per employee across the whole team. Signed labs on a team of 3 to 6 is a much stronger number than a big team with nothing signed.</p></div>
+      <div><span class="k">PICK THE ROUND LATER</span><h3>Let revenue settle the debate</h3><p>Some investors say raise $30 to 50M as a frontier lab, others say a $10 to 20M seed after your $3M pre-seed. Real lab revenue tells you which story is true.</p></div>
+      <div><span class="k">NON-DILUTIVE FIRST</span><h3>Grants before dilution</h3><p>Unless the hardware path needs heavy capital, chase grant funding first and keep more of the company.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="offering" id="offering">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="kicker">WHAT YOU GET</span>
+      <h2>Two embedded operators, <span class="red">every week.</span></h2>
+    </div>
+    <div class="week">
+      <div class="y"><span class="k">ONCE, UP FRONT</span><h3>Sales audit</h3><p>Every deal, call and asset reviewed, with a fix list.</p></div>
+      <div><span class="k">WEEKLY</span><h3>Sales coaching</h3><p>We review your calls, join demos and tighten the process.</p></div>
+      <div><span class="k">WEEKLY</span><h3>Content session</h3><p>One interview with you. We write the posts, you approve.</p></div>
+      <div><span class="k">WEEKLY</span><h3>Strategy call</h3><p>Scoreboard, priorities and what we're testing next.</p></div>
+      <div><span class="k">ALWAYS ON</span><h3>Outbound</h3><p>EM lab outbound, run inside Monaco so you keep one system of record.</p></div>
+      <div><span class="k">ALWAYS ON</span><h3>LinkedIn</h3><p>Your profile working for you, with posts and outreach to PIs.</p></div>
+      <div><span class="k">AS NEEDED</span><h3>Events</h3><p>Conferences and small lab dinners where your buyers already are.</p></div>
+      <div class="y"><span class="k">ALWAYS</span><h3>You own it all</h3><p>Every relationship, list and asset stays with Visual Intuition.</p></div>
+    </div>
   </div>
 </section>
 
@@ -450,165 +595,43 @@ footer a{color:var(--paper)}
       <div><img src="priyanka.jpg" alt="Sketch portrait of Priyanka Sundhar" width="230" height="230"><span><h3>Priyanka Sundhar</h3><p>Founding AE at Securitize (IPO), first sales hire at UTR</p></span></div>
       <div><img src="khaled.jpg" alt="Sketch portrait of Khaled Alameldin" width="230" height="230"><span><h3>Khaled Alameldin</h3><p>Took Revamp (YC) from $0 to $3M, running growth at 3 YC startups</p></span></div>
     </div>
+    <div class="ref"><span class="k">HEAR IT FROM A CLIENT</span><p>Khaled is introducing you to Kaushik, a current client, so you can ask him anything about working with us.</p></div>
   </div>
 </section>
 
-<section class="plan" id="plan" style="background:var(--band)">
-  <div class="wrap">
-    <div class="sec-head">
-      <span class="kicker">THE 90-DAY PLAN</span>
-      <h2>Built for how <span class="red">labs actually buy.</span></h2>
-    </div>
-    <div class="buyers" aria-label="Who we sell to in each lab">
-      <div><span class="k">FEELS THE PAIN</span><b>Postdocs and lab managers</b><span>The people tracing neurons and boxing cells at 11pm. They become your champions.</span></div>
-      <div><span class="k">SIGNS</span><b>The PI</b><span>Owns the grant budget. Cares about papers out faster and fewer person-years on annotation.</span></div>
-      <div><span class="k">MULTIPLIES</span><b>Imaging core directors</b><span>One core serves dozens of labs. Land the core and you land the building.</span></div>
-    </div>
-    <div class="phases">
-      <article class="phase">
-        <div class="phase-top"><span class="n">PHASE 01</span><h3>Foundation</h3><span class="when">Weeks 1 to 2</span></div>
-        <ol>
-          <li><span><b>ICP and buyer map</b> by sub-field: connectomics, cell tracking, then medical imaging</span></li>
-          <li><span><b>Build the list in Monaco</b> from NIH grants, recent papers and imaging core directories</span></li>
-          <li><span><b>Rewrite visualintuition.ai:</b> the problem, the ICML result, and one clear call to action</span></li>
-          <li><span><b>A one-pager</b> on the neuron-tracing results that a PI can forward to their lab</span></li>
-          <li><span><b>Set up Monaco properly:</b> stages, fields and sequences that fit a pilot-led motion</span></li>
-        </ol>
-      </article>
-      <article class="phase y">
-        <div class="phase-top"><span class="n">PHASE 02</span><h3>Pipeline</h3><span class="when">Weeks 3 to 6</span></div>
-        <ol>
-          <li><span><b>A pilot offer to lead with:</b> send us a sample of your data, see what it does. We scope it with you so the team can deliver it</span></li>
-          <li><span><b>Outbound from your inbox and LinkedIn,</b> run in Monaco, with a sequence per sub-field</span></li>
-          <li><span><b>Weekly posts in your voice.</b> The science, said plainly. Example hook: proofreading one fly brain took 33 person-years</span></li>
-          <li><span><b>Post-SfN follow-up.</b> SfN runs Nov 14 to 18. Connectomics and imaging poster authors become a warm list</span></li>
-          <li><span><b>Cambridge lab tour:</b> coffee, pastries and a live demo at Harvard, MIT and Broad labs and cores</span></li>
-        </ol>
-      </article>
-      <article class="phase">
-        <div class="phase-top"><span class="n">PHASE 03</span><h3>Convert</h3><span class="when">Weeks 7 to 12</span></div>
-        <ol>
-          <li><span><b>Pilot to paid playbook</b> for academic budgets: grant lines, core recharge, POs</span></li>
-          <li><span><b>Sales coaching.</b> We join demos and review calls with you</span></li>
-          <li><span><b>Two case studies</b> with real quotes from the labs</span></li>
-          <li><span><b>Scope the enterprise wedge</b> (medical imaging, QC, agriculture) so the next raise has a revenue story</span></li>
-          <li><span><b>Conference plan</b> for NeurIPS in December and the 2027 calendar</span></li>
-        </ol>
-      </article>
-    </div>
-    <div class="have">
-      <span class="k">WHAT YOU'LL HAVE AT DAY 90</span>
-      <ul>
-        <li>500+ researched lab targets<span>in Monaco, scored and segmented</span></li>
-        <li>A website that sells<span>plus a one-pager and pilot offer</span></li>
-        <li>12 weeks of founder posts<span>on LinkedIn and X</span></li>
-        <li>A repeatable sales process<span>from first email to signed pilot</span></li>
-        <li>Two case studies<span>from real labs</span></li>
-        <li>An enterprise plan<span>for medicine, QC and agriculture</span></li>
-      </ul>
-    </div>
-  </div>
-</section>
-
-<section class="offering" id="offering">
-  <div class="wrap">
-    <div class="sec-head">
-      <span class="kicker">OFFERING</span>
-    </div>
-    <div class="offer-grid">
-      <article class="offer">
-        <span class="n">01</span>
-        <h3>Founder content</h3>
-        <p>Weekly call with you. We write the X and LinkedIn posts, you approve.</p>
-        <div class="result"><b>2M+</b><span>social impressions for our clients</span></div>
-      </article>
-      <article class="offer">
-        <span class="n">02</span>
-        <h3>Events and lab visits</h3>
-        <p>Conferences, seminars, dinners and in-person lab visits in front of your buyers.</p>
-        <div class="result"><b>20+</b><span>events run for clients</span></div>
-      </article>
-      <article class="offer">
-        <span class="n">03</span>
-        <h3>Sales coaching</h3>
-        <p>We review your calls, join demos and set up a sales process.</p>
-        <div class="result"><b class="red">1.5x</b><span>conversions</span></div>
-      </article>
-      <article class="offer y">
-        <span class="n">04</span>
-        <h3>Outbound in Monaco</h3>
-        <p>Targeted outbound to labs, plus website, case study, deck and one-pager.</p>
-        <div class="result"><b>$1M+</b><span>pipeline generated in under 6 weeks</span></div>
-      </article>
-    </div>
-  </div>
-</section>
-
-<section class="proof" id="proof">
-  <div class="wrap">
-    <div class="sec-head">
-      <span class="kicker">PROOF</span>
-      <h2>What each piece of the offering looks like.</h2>
-    </div>
-    <div class="posts">
-      <article class="post">
-        <a class="post-frame" href="leeroo-assets/post-audrey.webp" target="_blank" rel="noopener"><img src="leeroo-assets/post-audrey.webp" alt="Audrey Djiya's LinkedIn post for Handled (YC S24)" width="546" height="1235" loading="lazy"></a>
-        <div class="post-copy">
-          <span class="k">FOUNDER CONTENT</span>
-          <h3>Founder posts people actually read.</h3>
-          <p>We interview founders each week and turn it into posts on X and LinkedIn. This one for Handled (YC S24) took off.</p>
-          <div class="post-chip"><b>15,000+ impressions</b><span>223 likes · 28 comments</span></div>
-          <a class="post-open" href="leeroo-assets/post-audrey.webp" target="_blank" rel="noopener">See the full post &rarr;</a>
-        </div>
-      </article>
-      <article class="post flip">
-        <a class="post-frame" href="leeroo-assets/post-croissant.webp" target="_blank" rel="noopener"><img src="leeroo-assets/post-croissant.webp" alt="Khaled's LinkedIn post about delivering croissants to SF brands" width="550" height="1135" loading="lazy"></a>
-        <div class="post-copy">
-          <span class="k">IN PERSON</span>
-          <h3>Croissants opened 9 of 10 doors.</h3>
-          <p>Boxes of croissants and a smile got us into the offices of the biggest brands in SF. Same idea works on a lab floor in Cambridge.</p>
-          <div class="post-chip"><b>40,000+ impressions</b><span>88 likes · 24 comments</span></div>
-          <a class="post-open" href="leeroo-assets/post-croissant.webp" target="_blank" rel="noopener">See the full post &rarr;</a>
-        </div>
-      </article>
-      <article class="post">
-        <div class="ob-card">
-          <div class="top"><span class="wm"><img src="assets/logos/waldium-mark.png" alt="" width="76" height="126">Waldium</span><span class="tag">ACQUIRED BY SALESFORCE</span></div>
-          <dl class="facts">
-            <div><dt>INDUSTRY</dt><dd>GEO, selling to founders</dd></div>
-            <div><dt>BACKED BY</dt><dd><img src="assets/logos/general-catalyst.png" alt="General Catalyst" width="760" height="103"></dd></div>
-          </dl>
-          <div class="did"><h4>WHAT I DID</h4><ol><li>Ran outbound myself from day one</li><li>Automated competitor posts into outbound</li><li>Booked 8 meetings in my first week</li></ol></div>
-          <div class="ob-stats"><div><b>8</b><span>meetings booked in week one</span></div><div><b>+38%</b><span>lift in outbound response rate</span></div></div>
-        </div>
-        <div class="post-copy">
-          <span class="k">OUTBOUND</span>
-          <h3>8 meetings booked in my first week.</h3>
-          <p>I ran outbound for Waldium myself. Every time a competitor posted, we turned it into targeted outbound, and response rates jumped 38%. For you, the signal is a new grant or a new paper that means a lab just got a mountain of images.</p>
-          <div class="post-chip"><b>8 meetings in week one</b><span>+38% outbound response rate lift</span></div>
-        </div>
-      </article>
-    </div>
-  </div>
-</section>
-
-<section class="pricing" id="pricing">
+<section class="pricing" id="pricing" style="background:var(--band)">
   <div class="wrap">
     <div class="sec-head">
       <span class="kicker">PRICING</span>
-      <h2>Simple. <span class="red">Two operators, one price.</span></h2>
+      <h2>Flat and simple. <span class="red">No surprises.</span></h2>
     </div>
-    <div class="price-grid" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:36px">
-      <div class="price y"><span class="k">FULL ENGAGEMENT</span><b>$10K<span style="font-size:.5em">/mo</span></b><h3>Everything in the 90-day plan</h3><p>Runs inside Monaco, no extra tools to buy.</p></div>
-      <div class="price"><span class="k">HOW WE WORK</span><h3>Two to three calls a week plus a shared Slack.</h3><p>One weekly content interview with you. Everything else we run, you approve.</p></div>
+    <div class="price-grid" style="grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:36px">
+      <div class="price y"><span class="k">EMBEDDED GROWTH TEAM</span><b>$10K<span style="font-size:.5em">/mo</span></b><h3>Six-month term, with the option to opt out after three months</h3><p>Everything in the plan above. Runs inside Monaco, no extra tools to buy.</p></div>
+      <div class="price"><span class="k">CONFERENCES</span><b style="font-size:clamp(44px,5vw,64px)">~$4K</b><h3>per conference, only when we go</h3><p>We plan it, fill your calendar with meetings and run the follow-up.</p></div>
     </div>
     <p class="price-foot">Two senior operators for less than one full-time growth hire.</p>
   </div>
 </section>
 
+<section class="next" id="next">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="kicker">NEXT STEPS</span>
+      <h2>Decide by Friday, <span class="red">start in December.</span></h2>
+    </div>
+    <div class="steps">
+      <div class="step"><span class="who">KHALED</span><p><b>Intro to Kaushik</b> so you can hear from a client directly.</p></div>
+      <div class="step"><span class="who">PRIYANKA</span><p><b>This page, our process overview</b> and a 10-minute check-in on Friday.</p></div>
+      <div class="step c"><span class="who">CLAIRE</span><p><b>Talk it through with Ishaan,</b> check the budget, and let us know by end of week.</p></div>
+      <div class="step"><span class="who">ALL OF US</span><p><b>Onboard in about 48 hours,</b> kick off in December, and go hard in Q1.</p></div>
+    </div>
+    <div class="deadline"><span>Decision: Friday, Nov 13</span><span>December cohort closes: Nov 18</span></div>
+  </div>
+</section>
+
 <section class="cta" id="book">
   <h2>Let's put productive hours back into the hands of scientists.</h2>
-  <p>You keep building the model. We'll build the pipeline.</p>
+  <p>You keep building the model. We'll help you sign the labs.</p>
   <a class="btn btn-light" href="https://calendly.com/d/dtd7-vd3-fhw/discovery-call" target="_blank" rel="noopener">Book a call with us</a>
 </section>
 

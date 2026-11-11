@@ -1,0 +1,622 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cracked GTM × Visual Intuition</title>
+<meta name="description" content="A go-to-market proposal for Visual Intuition from Cracked GTM.">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#FDFCF7">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;600;700&family=Bangers&family=Caveat:wght@600&family=Inter:wght@200&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#111111;--paper:#FDFCF7;--red:#D7191F;--yellow:#FFD60A;--band:#F4F2EA;--muted:#555555}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:'Archivo',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:var(--ink)}
+img{display:block;max-width:100%}
+.display{font-family:'Archivo Black',sans-serif}
+.comic{font-family:'Bangers',cursive;font-weight:400}
+.wrap{width:100%;max-width:1180px;margin:0 auto}
+section{border-bottom:2px solid var(--ink);padding:104px 24px}
+.hl{background:var(--yellow);padding:0 6px;box-decoration-break:clone;-webkit-box-decoration-break:clone}
+.red{color:var(--red)}
+.kicker{display:inline-block;align-self:flex-start;padding:5px 16px;background:var(--ink);color:var(--yellow);font-family:'Bangers',cursive;font-size:22px;letter-spacing:3px;transform:rotate(-2deg)}
+.sec-head{display:flex;flex-direction:column;gap:16px;margin-bottom:48px}
+.sec-head h2{margin:0;font-family:'Archivo Black',sans-serif;font-size:clamp(36px,4.6vw,60px);line-height:1;letter-spacing:-.035em}
+.tag{display:inline-block;padding:2px 10px;background:var(--red);color:#fff;font-family:'Bangers',cursive;font-size:17px;letter-spacing:1.5px;white-space:nowrap}
+
+/* hero */
+.hero{border-bottom:none;padding:72px 24px 80px;display:flex;flex-direction:column;align-items:center;gap:28px;text-align:center}
+.burst{position:relative;width:230px;height:230px}
+.burst svg{position:absolute;inset:0;width:100%;height:100%}
+.burst span{position:absolute;left:0;right:0;top:30%;font-family:'Bangers',cursive;font-size:31px;line-height:.95;letter-spacing:2px;color:#fff;transform:rotate(-9deg);text-shadow:3px 3px 0 var(--ink)}
+.hero h1{margin:8px 0 0;max-width:1060px;font-family:'Archivo Black',sans-serif;font-size:clamp(48px,7vw,92px);line-height:.96;letter-spacing:-.035em}
+.hero p{margin:0;max-width:820px;font-size:clamp(20px,2.2vw,26px);line-height:1.4;font-weight:500}
+.hero p strong{font-weight:700}
+.hero-proof{display:flex;flex-wrap:wrap;justify-content:center;gap:14px;margin-top:6px}
+.hero-proof span{padding:10px 18px;background:#fff;border:2px solid var(--ink);box-shadow:4px 4px 0 var(--ink);font-weight:700;font-size:17px}
+.hero-proof span b{font-family:'Archivo Black',sans-serif;font-weight:400;color:var(--red)}
+.btn{display:inline-flex;align-items:center;justify-content:center;min-height:60px;padding:0 34px;font-family:'Archivo Black',sans-serif;font-size:18px;text-decoration:none;border:3px solid var(--ink);transition:transform .12s ease,box-shadow .12s ease}
+.btn:hover{transform:translate(-2px,-2px)}
+.btn-dark{background:var(--ink);color:var(--paper);box-shadow:6px 6px 0 var(--red)}
+.btn-dark:hover{box-shadow:8px 8px 0 var(--red);color:var(--paper)}
+.btn-light{background:var(--paper);color:var(--ink);box-shadow:8px 8px 0 var(--ink);min-height:68px;padding:0 44px;font-size:21px}
+.btn-light:hover{box-shadow:10px 10px 0 var(--ink);color:var(--ink)}
+
+/* logo wall */
+.logos{border-top:2px solid var(--ink);background:var(--band);padding:72px 24px 88px}
+.logos-head{display:flex;justify-content:space-between;align-items:flex-end;gap:24px;flex-wrap:wrap;margin-bottom:36px}
+.logos-head h2{margin:12px 0 0;font-family:'Archivo Black',sans-serif;font-size:clamp(32px,4vw,52px);line-height:1;letter-spacing:-.035em}
+.backed{display:flex;align-items:center;gap:14px}
+.backed span{font-family:'Bangers',cursive;font-size:22px;letter-spacing:2px;color:var(--muted)}
+.backed img{height:34px;width:auto}
+.logo-wall{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:3px;background:var(--ink);border:3px solid var(--ink);box-shadow:12px 12px 0 var(--red)}
+.logo-wall div{min-height:150px;padding:22px 18px;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px}
+.logo-wall img{max-width:200px;max-height:44px;width:auto;height:auto;object-fit:contain}
+.logo-wall .tall img{max-height:58px}
+.logo-wall .word{font-family:Arial,sans-serif;font-size:34px;font-weight:700;letter-spacing:-1px}
+.logo-wall .wm{display:flex;align-items:center;gap:10px}
+.logo-wall .wm img{height:38px;width:auto}
+
+/* team */
+.team-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:36px}
+.person{padding:32px;background:#fff;border:3px solid var(--ink);box-shadow:10px 10px 0 var(--red);display:flex;flex-direction:column;gap:22px}
+.person-top{display:flex;align-items:center;gap:22px}
+.person-top img{width:120px;height:120px;flex-shrink:0;object-fit:cover;border:3px solid var(--ink);mix-blend-mode:multiply}
+.person h3{margin:0;font-family:'Archivo Black',sans-serif;font-size:30px;letter-spacing:-.015em}
+.person .role{margin:6px 0 0;font-size:17px;font-weight:600;color:var(--muted)}
+.big-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.big-stats div{display:flex;flex-direction:column;gap:4px}
+.big-stats b{font-family:'Archivo Black',sans-serif;font-weight:400;font-size:clamp(26px,2.6vw,34px);line-height:1.05;color:var(--red);white-space:nowrap}
+.big-stats span{font-size:16px;font-weight:600;line-height:1.35}
+.person ul{margin:0;padding:0 0 0 20px;font-size:17px;line-height:1.5;color:#333}
+.team-foot{margin:48px auto 0;max-width:820px;font-size:22px;line-height:1.5;text-align:center;font-weight:600}
+
+/* note */
+.note{display:flex;justify-content:center;padding:104px 24px 112px;background:var(--band)}
+.note .col{width:100%;max-width:760px;display:flex;flex-direction:column;gap:24px;font-size:22px;line-height:1.6}
+.note p{margin:0}
+.pull{margin:16px 0!important;font-family:'Archivo Black',sans-serif;font-size:clamp(30px,3.6vw,42px);line-height:1.12;letter-spacing:-.025em}
+.closer{margin-top:16px!important;font-family:'Archivo Black',sans-serif;font-size:clamp(28px,3vw,36px);line-height:1.15;letter-spacing:-.028em}
+.sigs{display:flex;gap:48px;margin-top:4px;font-family:'Caveat',cursive;font-size:48px;line-height:1}
+
+/* offering */
+.offer-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:24px}
+.offer{padding:28px;background:#fff;border:3px solid var(--ink);box-shadow:8px 8px 0 var(--red);display:flex;flex-direction:column;gap:12px}
+.offer.y{background:var(--yellow)}
+.offer .n{font-family:'Bangers',cursive;font-size:26px;letter-spacing:2px;color:var(--red)}
+.offer h3{margin:0;font-family:'Archivo Black',sans-serif;font-size:23px;line-height:1.15}
+.offer p{margin:0;font-size:17px;line-height:1.5}
+.offer .result{margin-top:auto;padding-top:16px;border-top:3px solid var(--ink);display:flex;flex-direction:column;gap:4px}
+.offer .result b{font-family:'Archivo Black',sans-serif;font-weight:400;font-size:clamp(36px,3.6vw,48px);line-height:1;letter-spacing:-.02em}
+.offer .result span{font-size:16px;font-weight:700;line-height:1.35}
+.chips{display:flex;flex-wrap:wrap;gap:12px;margin-top:36px;font-size:17px;font-weight:700;align-items:center}
+.chips em{font-style:normal;font-family:'Bangers',cursive;font-size:22px;letter-spacing:2px;color:var(--muted);margin-right:4px}
+.chips span{padding:10px 16px;background:#fff;border:2px solid var(--ink);box-shadow:3px 3px 0 var(--ink)}
+
+/* proof: posts */
+.proof{background:var(--yellow)}
+.posts{display:flex;flex-direction:column;gap:72px}
+.post{display:grid;grid-template-columns:600px 1fr;gap:56px;align-items:center}
+.post.flip{grid-template-columns:1fr 600px}
+.post.flip .post-frame{order:2}
+.post-frame{display:block;width:fit-content;max-width:100%;justify-self:center;background:#fff;border:4px solid var(--ink);box-shadow:14px 14px 0 var(--ink)}
+.post-frame img{width:auto;max-width:100%;height:auto}
+.post-copy{display:flex;flex-direction:column;align-items:flex-start;gap:20px}
+.post-copy .k{font-family:'Bangers',cursive;font-size:24px;letter-spacing:2px;padding:4px 14px;background:var(--ink);color:var(--yellow);transform:rotate(-2deg)}
+.post-copy h3{margin:0;font-family:'Archivo Black',sans-serif;font-size:clamp(30px,3.4vw,46px);line-height:1.05;letter-spacing:-.03em}
+.post-copy p{margin:0;font-size:20px;line-height:1.5;font-weight:600;max-width:440px}
+.post-chip{padding:12px 22px;background:var(--red);color:#fff;border:4px solid var(--ink);box-shadow:7px 7px 0 var(--ink);display:flex;flex-direction:column;gap:2px;transform:rotate(2deg)}
+.post-chip b{font-family:'Archivo Black',sans-serif;font-weight:400;font-size:clamp(24px,2.6vw,34px);white-space:nowrap}
+.post-chip span{font-size:16px;font-weight:700;white-space:nowrap}
+.post-open{font-weight:700;font-size:16px}
+
+/* press */
+.press-grid{display:grid;grid-template-columns:1.15fr 1fr;gap:56px;align-items:center}
+.press-grid > img{width:100%;max-width:645px;height:auto;border:4px solid var(--ink);box-shadow:12px 12px 0 var(--red)}
+.press-copy{display:flex;flex-direction:column;gap:22px}
+.press-copy h2{margin:0;font-family:'Archivo Black',sans-serif;font-size:clamp(32px,3.6vw,48px);line-height:1.02;letter-spacing:-.03em}
+.press-copy p{margin:0;font-size:20px;line-height:1.5;font-weight:600}
+.press-copy .stamp{align-self:flex-start;padding:12px 24px;background:var(--red);color:#fff;border:4px solid var(--ink);box-shadow:8px 8px 0 var(--ink);font-family:'Archivo Black',sans-serif;font-size:24px;transform:rotate(-3deg)}
+.press-copy .fine{font-size:16px;color:var(--muted)}
+
+/* case studies */
+.cases{display:flex;flex-direction:column;gap:56px}
+.case{background:#fff;border:3px solid var(--ink);box-shadow:12px 12px 0 var(--red);display:grid;grid-template-columns:1.1fr 1fr}
+.case-left{padding:40px 44px;display:flex;flex-direction:column;gap:24px}
+.case-name{display:flex;align-items:center;flex-wrap:wrap;gap:18px}
+.case-name h3{margin:0;font-family:'Archivo Black',sans-serif;font-size:clamp(40px,4.6vw,64px);line-height:.95;letter-spacing:-.035em}
+.badge{display:inline-flex;align-items:center;gap:12px;padding:8px 18px;background:#fff;border:3px solid var(--ink);box-shadow:5px 5px 0 var(--red);transform:rotate(-2deg);font-family:'Archivo Black',sans-serif;font-size:18px;white-space:nowrap}
+.badge img{height:58px;width:auto;margin:-8px 0}
+.facts{border-top:3px solid var(--ink);border-bottom:3px solid var(--ink);padding:16px 0;display:flex;flex-direction:column;gap:12px}
+.facts div{display:flex;align-items:center;gap:16px}
+.facts dt{width:118px;flex-shrink:0;font-family:'Bangers',cursive;font-size:21px;letter-spacing:1.5px;color:var(--red)}
+.facts dd{margin:0;font-family:'Archivo Black',sans-serif;font-size:18px;line-height:1.3;display:flex;align-items:center;flex-wrap:wrap;gap:14px}
+.facts dd img{height:28px;width:auto}
+.facts dl{margin:0}
+.did h4{margin:0 0 10px;font-family:'Bangers',cursive;font-weight:400;font-size:21px;letter-spacing:1.5px;color:var(--red)}
+.did ol{margin:0;padding:0;list-style:none;counter-reset:d;display:flex;flex-direction:column;gap:8px}
+.did li{counter-increment:d;display:flex;gap:14px;font-size:18px;font-weight:600;line-height:1.35}
+.did li::before{content:counter(d,decimal-leading-zero);font-family:'Bangers',cursive;font-weight:400;font-size:20px;letter-spacing:1px;color:var(--red)}
+.closed{font-family:'Archivo Black',sans-serif;font-size:18px;line-height:1.4}
+.case-right{padding:40px 44px;background:var(--band);border-left:3px solid var(--ink);display:flex;flex-direction:column;justify-content:center;gap:20px}
+.res{padding:20px 26px;background:#fff;border:3px solid var(--ink);box-shadow:6px 6px 0 var(--red);display:flex;flex-direction:column;gap:4px}
+.res.hero-res{background:var(--yellow);box-shadow:8px 8px 0 var(--ink)}
+.res b{font-family:'Archivo Black',sans-serif;font-weight:400;font-size:clamp(30px,3.2vw,44px);line-height:1;letter-spacing:-.03em;white-space:nowrap}
+.res.hero-res b{font-size:clamp(48px,5.4vw,80px)}
+.track .res.hero-res b{font-size:clamp(30px,3.2vw,44px)}
+.res .red-n{color:var(--red)}
+.res span{font-size:16px;font-weight:700}
+.res-pair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+.quote{margin:0;padding:22px 26px;background:var(--ink);color:var(--paper);display:flex;flex-direction:column;gap:10px}
+.quote p{margin:0;font-family:'Archivo Black',sans-serif;font-size:18px;line-height:1.35}
+.quote cite{font-style:normal;font-size:15px;font-weight:700;color:var(--yellow)}
+.case-link{align-self:flex-start;font-weight:700;font-size:16px}
+.track-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:36px}
+.track{background:#fff;border:3px solid var(--ink);box-shadow:10px 10px 0 var(--ink);padding:36px;display:flex;flex-direction:column;gap:20px}
+.track-logo{height:52px;width:auto;align-self:flex-start}
+.track h3{margin:0;font-family:'Archivo Black',sans-serif;font-size:26px;line-height:1.1;letter-spacing:-.02em}
+.track .callout{padding:14px 18px;border:3px solid var(--ink);box-shadow:6px 6px 0 #0052FF;display:flex;align-items:center;gap:16px;flex-wrap:wrap;font-family:'Archivo Black',sans-serif;font-size:16px;line-height:1.35}
+.track .callout img{height:24px;width:auto}
+.track .story{padding:16px 20px;background:var(--ink);color:var(--paper);font-family:'Archivo Black',sans-serif;font-size:16px;line-height:1.4}
+.track .story b{display:block;font-family:'Bangers',cursive;font-weight:400;font-size:19px;letter-spacing:1.5px;color:var(--yellow);margin-bottom:4px}
+.more-label{margin:56px 0 18px;font-family:'Bangers',cursive;font-weight:400;font-size:24px;letter-spacing:3px;color:var(--muted)}
+.mini-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:18px}
+.mini-grid div{min-height:96px;padding:12px;display:flex;align-items:center;justify-content:center;background:#fff;border:3px solid var(--ink);box-shadow:5px 5px 0 var(--red)}
+.mini-grid img{max-height:34px;max-width:150px;width:auto;height:auto}
+
+/* cta */
+.cta{background:var(--red);color:#fff;padding:120px 24px;display:flex;flex-direction:column;align-items:center;gap:32px;text-align:center}
+.cta h2{margin:0;max-width:1000px;font-family:'Archivo Black',sans-serif;font-size:clamp(48px,6vw,84px);line-height:.98;letter-spacing:-.035em;text-shadow:6px 6px 0 var(--ink)}
+.cta p{margin:0;max-width:640px;font-size:22px;line-height:1.5;font-weight:600}
+
+footer{background:var(--ink);color:var(--paper);padding:36px 80px;display:flex;align-items:center;justify-content:space-between;gap:24px;font-size:15px}
+footer a{color:var(--paper)}
+
+@media (max-width:1100px){
+  .offer-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .mini-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media (max-width:900px){
+  .logo-wall{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .team-grid,.track-grid,.press-grid{grid-template-columns:1fr}
+  .case{grid-template-columns:1fr}
+  .case-right{border-left:none;border-top:3px solid var(--ink)}
+  .post,.post.flip{grid-template-columns:1fr;gap:28px}
+  .post.flip .post-frame{order:0}
+}
+@media (max-width:820px){
+  section{padding:72px 20px}
+  .hero{padding:48px 20px 64px}
+  .burst{width:180px;height:180px}
+  .burst span{font-size:24px}
+  .logos{padding:56px 20px 64px}
+  .logo-wall div{min-height:120px;padding:16px 10px}
+  .logo-wall img{max-width:130px;max-height:34px}
+  .logo-wall .word{font-size:26px}
+  .tag{font-size:14px}
+  .person{padding:24px}
+  .person-top img{width:96px;height:96px}
+  .note .col{font-size:19px}
+  .offer-grid{grid-template-columns:1fr}
+  .case-left,.case-right{padding:28px 24px}
+  .facts div{flex-direction:column;align-items:flex-start;gap:6px}
+  .res-pair{grid-template-columns:1fr 1fr}
+  .track{padding:26px}
+  .mini-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .cta{padding:88px 20px}
+  .cta p{font-size:19px}
+  footer{flex-direction:column;padding:32px 20px;text-align:center}
+}
+@media (max-width:420px){
+  .big-stats{grid-template-columns:1fr}
+  .res-pair{grid-template-columns:1fr}
+}
+
+/* paysquad proposal */
+.ecom-strip{display:flex;flex-wrap:wrap;align-items:center;gap:18px;margin-top:-20px;padding:20px 24px;background:var(--yellow);border:3px solid var(--ink);box-shadow:8px 8px 0 var(--ink)}
+.ecom-strip .k{font-family:'Bangers',cursive;font-size:22px;letter-spacing:2px;margin-right:auto}
+.ecom-strip div{display:flex;align-items:center;gap:12px;padding:10px 16px;background:#fff;border:3px solid var(--ink)}
+.ecom-strip img{height:28px;width:auto}
+.ecom-strip div span{font-family:'Bangers',cursive;font-size:17px;letter-spacing:1.5px;color:#fff;background:var(--red);padding:1px 8px}
+.lockup{display:flex;align-items:center;justify-content:center;gap:22px;flex-wrap:wrap}
+.lockup .cg{font-family:'Archivo Black',sans-serif;font-size:clamp(26px,3vw,36px);letter-spacing:-.02em}
+.lockup .x{font-family:'Bangers',cursive;font-size:44px;color:var(--red);line-height:1}
+.lockup .ps{display:flex;align-items:center;padding:14px 22px;background:#fff;border:3px solid var(--ink);box-shadow:6px 6px 0 var(--red);transform:rotate(-2deg)}
+.lockup .ps img{height:40px;width:auto}
+.for-chips{display:flex;flex-wrap:wrap;justify-content:center;gap:14px}
+.for-chips span{padding:10px 18px;background:#fff;border:2px solid var(--ink);box-shadow:4px 4px 0 var(--red);font-family:'Archivo Black',sans-serif;font-size:17px}
+.why-grid{display:grid;grid-template-columns:1.3fr 1fr 1fr 1fr;gap:24px}
+.ecom-logos{margin-top:auto;padding-top:14px;border-top:3px solid var(--ink);display:flex;flex-wrap:wrap;align-items:center;gap:10px 18px}
+.ecom-logos img{height:22px;width:auto}
+.why{padding:26px;background:#fff;border:3px solid var(--ink);box-shadow:8px 8px 0 var(--red);display:flex;flex-direction:column;gap:10px}
+.why.y{background:var(--yellow);box-shadow:8px 8px 0 var(--ink)}
+.why .k{font-family:'Bangers',cursive;font-size:22px;letter-spacing:2px;color:var(--red)}
+.why.y .k{color:var(--ink)}
+.why b{font-family:'Archivo Black',sans-serif;font-weight:400;font-size:clamp(40px,4.4vw,56px);line-height:1;letter-spacing:-.03em}
+.why span{font-size:17px;font-weight:600;line-height:1.4}
+.duo{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px;margin-top:32px}
+.duo div{display:flex;align-items:center;gap:18px;padding:16px 20px;background:#fff;border:3px solid var(--ink)}
+.duo img{width:84px;height:84px;flex-shrink:0;object-fit:cover;border:3px solid var(--ink);mix-blend-mode:multiply}
+.duo h3{margin:0;font-family:'Archivo Black',sans-serif;font-size:22px}
+.duo p{margin:4px 0 0;font-size:16px;font-weight:600;color:var(--muted);line-height:1.35}
+.backers{font-family:'Archivo Black',sans-serif;font-size:18px;line-height:1.4}
+.ob-card{width:100%;max-width:560px;justify-self:center;background:#fff;border:4px solid var(--ink);box-shadow:14px 14px 0 var(--ink);padding:36px;display:flex;flex-direction:column;gap:22px}
+.ob-card .top{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}
+.ob-card .wm{display:flex;align-items:center;gap:10px;font-family:Arial,sans-serif;font-size:38px;font-weight:700;letter-spacing:-1px}
+.ob-card .wm img{height:44px;width:auto}
+.ob-stats{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.ob-stats div{padding:16px 18px;border:3px solid var(--ink);display:flex;flex-direction:column;gap:4px}
+.ob-stats div:first-child{background:var(--yellow)}
+.ob-stats div:last-child{background:var(--ink);color:var(--paper)}
+.ob-stats b{font-family:'Archivo Black',sans-serif;font-weight:400;font-size:clamp(28px,3vw,38px);line-height:1;letter-spacing:-.02em}
+.ob-stats div:last-child b{color:var(--yellow)}
+.ob-stats span{font-size:15px;font-weight:700}
+.price-grid{display:grid;grid-template-columns:1fr auto 1fr;gap:28px;align-items:center}
+.price{padding:40px;background:#fff;border:4px solid var(--ink);box-shadow:10px 10px 0 var(--ink);display:flex;flex-direction:column;gap:10px}
+.price.y{background:var(--yellow);box-shadow:10px 10px 0 var(--red)}
+.price .k{font-family:'Bangers',cursive;font-size:24px;letter-spacing:2px;color:var(--red)}
+.price.y .k{color:var(--ink)}
+.price b{font-family:'Archivo Black',sans-serif;font-weight:400;font-size:clamp(56px,7vw,92px);line-height:1;letter-spacing:-.04em}
+.price h3{margin:0;font-family:'Archivo Black',sans-serif;font-size:24px}
+.price p{margin:0;font-size:18px;font-weight:600;line-height:1.4;color:#333}
+.arrow{width:64px;height:40px;background:var(--red);border:3px solid var(--ink);clip-path:polygon(0 30%,60% 30%,60% 0,100% 50%,60% 100%,60% 70%,0 70%)}
+.price-foot{margin:36px 0 0;font-size:20px;font-weight:600;color:var(--muted)}
+@media (max-width:1100px){.why-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:820px){
+  .why-grid,.duo{grid-template-columns:1fr}
+  .price-grid{grid-template-columns:1fr !important}
+  .arrow{justify-self:center;transform:rotate(90deg)}
+  .price{padding:28px}
+  .ob-card{padding:24px}
+  .lockup .ps img{height:30px}
+}
+@media (max-width:420px){.ob-stats{grid-template-columns:1fr}}
+
+/* visual intuition proposal */
+.lockup .vi{display:flex;align-items:center;gap:14px;padding:12px 24px 12px 14px;background:#000;border:3px solid var(--ink);box-shadow:6px 6px 0 var(--red);transform:rotate(-2deg)}
+.lockup .vi img{height:52px;width:52px}
+.lockup .vi span{font-family:'Inter',sans-serif;font-weight:200;font-size:clamp(17px,2vw,24px);letter-spacing:.3em;color:#fff;white-space:nowrap}
+.today-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:36px}
+.today{padding:34px;background:#fff;border:3px solid var(--ink);box-shadow:10px 10px 0 var(--red);display:flex;flex-direction:column;gap:18px}
+.today.dark{background:#000;color:#fff;box-shadow:10px 10px 0 var(--ink)}
+.today h3{margin:0;font-family:'Archivo Black',sans-serif;font-size:28px;letter-spacing:-.02em}
+.today .k{font-family:'Bangers',cursive;font-size:22px;letter-spacing:2px;color:var(--red)}
+.today.dark .k{color:var(--yellow)}
+.today ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:14px}
+.today li{display:flex;gap:14px;font-size:18px;font-weight:600;line-height:1.4}
+.today li::before{content:"";flex-shrink:0;width:12px;height:12px;margin-top:6px;background:var(--red);border:2px solid var(--ink)}
+.today.dark li::before{background:#4C7DFF;border-color:#fff;border-radius:50%}
+.today li b{font-family:'Archivo Black',sans-serif;font-weight:400}
+.mono-grid{display:grid;grid-template-columns:1fr 1.25fr;gap:36px;align-items:stretch}
+.mono{padding:34px;border:3px solid var(--ink);display:flex;flex-direction:column;gap:18px}
+.mono.them{background:#fff;box-shadow:8px 8px 0 var(--ink)}
+.mono.us{background:var(--yellow);box-shadow:10px 10px 0 var(--red)}
+.mono h3{margin:0;font-family:'Archivo Black',sans-serif;font-size:26px;line-height:1.1;letter-spacing:-.02em}
+.mono ul{margin:0;padding:0 0 0 22px;display:flex;flex-direction:column;gap:12px;font-size:18px;line-height:1.4;font-weight:600}
+.mono ul b{font-family:'Archivo Black',sans-serif;font-weight:400}
+.mono-foot{margin:36px 0 0;max-width:900px;font-size:20px;line-height:1.5;font-weight:600}
+.phases{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:28px}
+.phase{background:#fff;border:3px solid var(--ink);box-shadow:10px 10px 0 var(--red);display:flex;flex-direction:column}
+.phase.y{background:var(--yellow);box-shadow:10px 10px 0 var(--ink)}
+.phase-top{padding:24px 28px;border-bottom:3px solid var(--ink);display:flex;flex-direction:column;gap:6px}
+.phase-top .n{font-family:'Bangers',cursive;font-size:24px;letter-spacing:2px;color:var(--red)}
+.phase-top h3{margin:0;font-family:'Archivo Black',sans-serif;font-size:30px;letter-spacing:-.02em}
+.phase-top .when{font-size:16px;font-weight:700;color:var(--muted)}
+.phase ol{margin:0;padding:24px 28px 28px;list-style:none;counter-reset:p;display:flex;flex-direction:column;gap:14px}
+.phase li{counter-increment:p;display:flex;gap:12px;font-size:17px;font-weight:600;line-height:1.4}
+.phase li::before{content:counter(p,decimal-leading-zero);font-family:'Bangers',cursive;font-size:19px;letter-spacing:1px;color:var(--red);flex-shrink:0}
+.phase li b{font-family:'Archivo Black',sans-serif;font-weight:400}
+.buyers{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:3px;background:var(--ink);border:3px solid var(--ink);margin-bottom:48px}
+.buyers div{background:#fff;padding:22px 24px;display:flex;flex-direction:column;gap:6px}
+.buyers .k{font-family:'Bangers',cursive;font-size:20px;letter-spacing:2px;color:var(--red)}
+.buyers b{font-family:'Archivo Black',sans-serif;font-weight:400;font-size:22px}
+.buyers span{font-size:16px;font-weight:600;line-height:1.4;color:#333}
+.have{margin-top:56px;padding:32px 36px;background:var(--ink);color:var(--paper);display:flex;flex-direction:column;gap:20px}
+.have .k{font-family:'Bangers',cursive;font-size:24px;letter-spacing:2px;color:var(--yellow)}
+.have ul{margin:0;padding:0;list-style:none;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px 28px}
+.have li{font-family:'Archivo Black',sans-serif;font-size:18px;line-height:1.3}
+.have li span{display:block;font-family:'Archivo',sans-serif;font-weight:600;font-size:15px;color:#bbb;margin-top:4px}
+@media (max-width:1100px){.phases{grid-template-columns:1fr}.have ul{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:900px){.today-grid,.mono-grid,.buyers{grid-template-columns:1fr}}
+@media (max-width:820px){
+  .today,.mono{padding:24px}
+  .have{padding:24px}
+  .have ul{grid-template-columns:1fr}
+  .lockup .vi img{height:40px;width:40px}
+  .lockup .vi span{letter-spacing:.2em}
+}
+</style>
+</head>
+<body>
+
+<header class="hero" id="top">
+  <div class="lockup" aria-label="Cracked GTM and Visual Intuition">
+    <span class="cg">Cracked GTM</span><span class="x">×</span><span class="vi"><img src="assets/logos/visualintuition-icon.png" alt="" width="192" height="192"><span>Visual Intuition</span></span>
+  </div>
+  <h1>Get Visual Intuition into every lab still <span class="red">proofreading by hand.</span></h1>
+  <p>A 90-day go-to-market plan for <strong>Visual Intuition</strong>, built to run on top of the Monaco setup you're already testing. Written in the language your buyers actually speak.</p>
+  <div class="for-chips" aria-label="Target buyers"><span>Connectomics labs</span><span>Cell biology labs</span><span>Imaging cores</span><span>Next: medicine, QC, agriculture</span></div>
+  <a class="btn btn-dark" href="https://calendly.com/d/dtd7-vd3-fhw/discovery-call" target="_blank" rel="noopener">Let's Talk</a>
+</header>
+
+<section class="today-sec" id="today" style="background:var(--band);border-top:2px solid var(--ink)">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="kicker">WHERE YOU ARE</span>
+      <h2>The science is ahead of <span class="red">the story.</span></h2>
+    </div>
+    <div class="today-grid">
+      <div class="today dark">
+        <span class="k">VISUAL INTUITION TODAY</span>
+        <ul>
+          <li><span><b>$3.2M raised</b> this summer, out of Harvard Physics</span></li>
+          <li><span><b>Award-winning ICML 2026 paper</b> on behavioral cloning for scientific annotation</span></li>
+          <li><span><b>95.1% skeleton accuracy</b> tracing neurons in human cortex data, 89.4% on <i>C. elegans</i></span></li>
+          <li><span>Learns from how experts actually work: where they click, point and pause</span></li>
+        </ul>
+      </div>
+      <div class="today">
+        <span class="k">GTM TODAY</span>
+        <ul>
+          <li><span><b>Little to no marketing yet.</b> visualintuition.ai is one page and two email addresses</span></li>
+          <li><span>First customers are academic neuroscience and biology labs</span></li>
+          <li><span><b>Testing Monaco</b> as the sales system</span></li>
+          <li><span>Founder came up through the lab, not through sales. That's an asset with scientists, if the process behind it is tight</span></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="monaco" id="monaco">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="kicker">MONACO + CRACKED</span>
+      <h2>Keep Monaco. <span class="red">We'll make it work for scientists.</span></h2>
+    </div>
+    <div class="mono-grid">
+      <div class="mono them">
+        <h3>What Monaco gives you</h3>
+        <ul>
+          <li>A CRM and system of record</li>
+          <li>A TAM builder and prospect database</li>
+          <li>AI sequencing, activity capture and call notes</li>
+          <li>A forward-deployed AE to set up the motion</li>
+        </ul>
+      </div>
+      <div class="mono us">
+        <h3>What we add on top</h3>
+        <ul>
+          <li><b>A buyer list from where scientists live:</b> NIH grants, connectomics and cell tracking papers, imaging core directories. Most PIs aren't in a B2B contact database</li>
+          <li><b>Copy that sounds like a scientist wrote it.</b> Straight to the problem, no fluff</li>
+          <li><b>Your voice on LinkedIn and X,</b> every week</li>
+          <li><b>Lab visits, seminars and conferences</b> in Cambridge and beyond</li>
+          <li><b>A sales process for academic budgets:</b> pilots, grant lines, POs</li>
+        </ul>
+      </div>
+    </div>
+    <p class="mono-foot">We work inside Monaco so you keep one system of record. And if Monaco doesn't stick after the trial, the list, the copy and the process all move with you.</p>
+  </div>
+</section>
+
+<section class="logos" aria-labelledby="logos-title" style="border-top:none">
+  <div class="wrap">
+    <div class="logos-head">
+      <div>
+        <span class="kicker">EARLY STAGE OPERATORS</span>
+        <h2 id="logos-title">Behind GTM at <span class="red">10+ startups.</span></h2>
+      </div>
+      <div class="backed"><span>MOST BACKED BY</span><img src="assets/logos/ycombinator.png" alt="Y Combinator" width="520" height="96"></div>
+    </div>
+    <div class="logo-wall">
+      <div><img src="assets/logos/securitize.png" alt="Securitize" width="627" height="102"><span class="tag">IPO</span></div>
+      <div><img src="assets/logos/world-bank.png" alt="World Bank" width="617" height="124"></div>
+      <div class="tall"><img src="assets/logos/ai-collective.png" alt="The AI Collective" width="260" height="126"></div>
+      <div><span class="wm"><img src="assets/logos/waldium-mark.png" alt="" width="76" height="126"><span class="word">Waldium</span></span><span class="tag">ACQUIRED BY SALESFORCE</span></div>
+      <div><img src="assets/logos/revamp.png" alt="Revamp" width="627" height="80"><span class="tag">$0 TO $3M</span></div>
+      <div><img src="assets/logos/justai.png" alt="JustAI" width="410" height="100"><span class="tag">SERIES A</span></div>
+      <div><img src="assets/logos/blueberry.png" alt="Blueberry" width="627" height="107"></div>
+      <div><img src="assets/logos/handled.png" alt="Handled" width="583" height="98"></div>
+      <div><img src="assets/logos/wildcard.png" alt="Wildcard" width="430" height="82"></div>
+      <div class="tall"><img src="assets/logos/gigit.png" alt="Gigit" width="369" height="126"></div>
+      <div class="tall"><img src="assets/logos/hue.png" alt="Hue" width="171" height="126"></div>
+      <div><span class="word">Scout</span></div>
+      <div><img src="assets/logos/proprise.png" alt="PropRise" width="627" height="114"></div>
+      <div><img src="assets/logos/nuanced.png" alt="Nuanced" width="407" height="66"></div>
+      <div class="tall"><img src="assets/logos/neatsy.png" alt="Neatsy" width="433" height="126"></div>
+      <div class="tall"><img src="assets/logos/utr.png" alt="Universal Tennis (UTR)" width="503" height="126"></div>
+    </div>
+  </div>
+</section>
+
+<section class="whyus" id="why">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="kicker">WHY US</span>
+      <h2>We've been the first GTM hire <span class="red">more than once.</span></h2>
+    </div>
+    <div class="why-grid">
+      <div class="why y"><span class="k">NEW CATEGORY</span><b>$1M</b><span>in under 8 months at UTR, selling software to clubs that ran everything on pen and paper</span></div>
+      <div class="why"><span class="k">BUYING GROUPS</span><b>$180K</b><span>enterprise deal closed with a CISO and Head of Data in the room</span></div>
+      <div class="why"><span class="k">EARLY TO IPO</span><b>#7</b><span>employee and first sales hire at Securitize, through its IPO</span></div>
+      <div class="why"><span class="k">ZERO TO ONE</span><b>$3M</b><span>closed revenue at Revamp (YC), from $0</span></div>
+    </div>
+    <div class="duo">
+      <div><img src="priyanka.jpg" alt="Sketch portrait of Priyanka Sundhar" width="230" height="230"><span><h3>Priyanka Sundhar</h3><p>Founding AE at Securitize (IPO), first sales hire at UTR</p></span></div>
+      <div><img src="khaled.jpg" alt="Sketch portrait of Khaled Alameldin" width="230" height="230"><span><h3>Khaled Alameldin</h3><p>Took Revamp (YC) from $0 to $3M, running growth at 3 YC startups</p></span></div>
+    </div>
+  </div>
+</section>
+
+<section class="plan" id="plan" style="background:var(--band)">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="kicker">THE 90-DAY PLAN</span>
+      <h2>Built for how <span class="red">labs actually buy.</span></h2>
+    </div>
+    <div class="buyers" aria-label="Who we sell to in each lab">
+      <div><span class="k">FEELS THE PAIN</span><b>Postdocs and lab managers</b><span>The people tracing neurons and boxing cells at 11pm. They become your champions.</span></div>
+      <div><span class="k">SIGNS</span><b>The PI</b><span>Owns the grant budget. Cares about papers out faster and fewer person-years on annotation.</span></div>
+      <div><span class="k">MULTIPLIES</span><b>Imaging core directors</b><span>One core serves dozens of labs. Land the core and you land the building.</span></div>
+    </div>
+    <div class="phases">
+      <article class="phase">
+        <div class="phase-top"><span class="n">PHASE 01</span><h3>Foundation</h3><span class="when">Weeks 1 to 2</span></div>
+        <ol>
+          <li><span><b>ICP and buyer map</b> by sub-field: connectomics, cell tracking, then medical imaging</span></li>
+          <li><span><b>Build the list in Monaco</b> from NIH grants, recent papers and imaging core directories</span></li>
+          <li><span><b>Rewrite visualintuition.ai:</b> the problem, the ICML result, and one clear call to action</span></li>
+          <li><span><b>A one-pager</b> on the neuron-tracing results that a PI can forward to their lab</span></li>
+          <li><span><b>Set up Monaco properly:</b> stages, fields and sequences that fit a pilot-led motion</span></li>
+        </ol>
+      </article>
+      <article class="phase y">
+        <div class="phase-top"><span class="n">PHASE 02</span><h3>Pipeline</h3><span class="when">Weeks 3 to 6</span></div>
+        <ol>
+          <li><span><b>A pilot offer to lead with:</b> send us a sample of your data, see what it does. We scope it with you so the team can deliver it</span></li>
+          <li><span><b>Outbound from your inbox and LinkedIn,</b> run in Monaco, with a sequence per sub-field</span></li>
+          <li><span><b>Weekly posts in your voice.</b> The science, said plainly. Example hook: proofreading one fly brain took 33 person-years</span></li>
+          <li><span><b>Post-SfN follow-up.</b> SfN runs Nov 14 to 18. Connectomics and imaging poster authors become a warm list</span></li>
+          <li><span><b>Cambridge lab tour:</b> coffee, pastries and a live demo at Harvard, MIT and Broad labs and cores</span></li>
+        </ol>
+      </article>
+      <article class="phase">
+        <div class="phase-top"><span class="n">PHASE 03</span><h3>Convert</h3><span class="when">Weeks 7 to 12</span></div>
+        <ol>
+          <li><span><b>Pilot to paid playbook</b> for academic budgets: grant lines, core recharge, POs</span></li>
+          <li><span><b>Sales coaching.</b> We join demos and review calls with you</span></li>
+          <li><span><b>Two case studies</b> with real quotes from the labs</span></li>
+          <li><span><b>Scope the enterprise wedge</b> (medical imaging, QC, agriculture) so the next raise has a revenue story</span></li>
+          <li><span><b>Conference plan</b> for NeurIPS in December and the 2027 calendar</span></li>
+        </ol>
+      </article>
+    </div>
+    <div class="have">
+      <span class="k">WHAT YOU'LL HAVE AT DAY 90</span>
+      <ul>
+        <li>500+ researched lab targets<span>in Monaco, scored and segmented</span></li>
+        <li>A website that sells<span>plus a one-pager and pilot offer</span></li>
+        <li>12 weeks of founder posts<span>on LinkedIn and X</span></li>
+        <li>A repeatable sales process<span>from first email to signed pilot</span></li>
+        <li>Two case studies<span>from real labs</span></li>
+        <li>An enterprise plan<span>for medicine, QC and agriculture</span></li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="offering" id="offering">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="kicker">OFFERING</span>
+    </div>
+    <div class="offer-grid">
+      <article class="offer">
+        <span class="n">01</span>
+        <h3>Founder content</h3>
+        <p>Weekly call with you. We write the X and LinkedIn posts, you approve.</p>
+        <div class="result"><b>2M+</b><span>social impressions for our clients</span></div>
+      </article>
+      <article class="offer">
+        <span class="n">02</span>
+        <h3>Events and lab visits</h3>
+        <p>Conferences, seminars, dinners and in-person lab visits in front of your buyers.</p>
+        <div class="result"><b>20+</b><span>events run for clients</span></div>
+      </article>
+      <article class="offer">
+        <span class="n">03</span>
+        <h3>Sales coaching</h3>
+        <p>We review your calls, join demos and set up a sales process.</p>
+        <div class="result"><b class="red">1.5x</b><span>conversions</span></div>
+      </article>
+      <article class="offer y">
+        <span class="n">04</span>
+        <h3>Outbound in Monaco</h3>
+        <p>Targeted outbound to labs, plus website, case study, deck and one-pager.</p>
+        <div class="result"><b>$1M+</b><span>pipeline generated in under 6 weeks</span></div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section class="proof" id="proof">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="kicker">PROOF</span>
+      <h2>What each piece of the offering looks like.</h2>
+    </div>
+    <div class="posts">
+      <article class="post">
+        <a class="post-frame" href="leeroo-assets/post-audrey.webp" target="_blank" rel="noopener"><img src="leeroo-assets/post-audrey.webp" alt="Audrey Djiya's LinkedIn post for Handled (YC S24)" width="546" height="1235" loading="lazy"></a>
+        <div class="post-copy">
+          <span class="k">FOUNDER CONTENT</span>
+          <h3>Founder posts people actually read.</h3>
+          <p>We interview founders each week and turn it into posts on X and LinkedIn. This one for Handled (YC S24) took off.</p>
+          <div class="post-chip"><b>15,000+ impressions</b><span>223 likes · 28 comments</span></div>
+          <a class="post-open" href="leeroo-assets/post-audrey.webp" target="_blank" rel="noopener">See the full post &rarr;</a>
+        </div>
+      </article>
+      <article class="post flip">
+        <a class="post-frame" href="leeroo-assets/post-croissant.webp" target="_blank" rel="noopener"><img src="leeroo-assets/post-croissant.webp" alt="Khaled's LinkedIn post about delivering croissants to SF brands" width="550" height="1135" loading="lazy"></a>
+        <div class="post-copy">
+          <span class="k">IN PERSON</span>
+          <h3>Croissants opened 9 of 10 doors.</h3>
+          <p>Boxes of croissants and a smile got us into the offices of the biggest brands in SF. Same idea works on a lab floor in Cambridge.</p>
+          <div class="post-chip"><b>40,000+ impressions</b><span>88 likes · 24 comments</span></div>
+          <a class="post-open" href="leeroo-assets/post-croissant.webp" target="_blank" rel="noopener">See the full post &rarr;</a>
+        </div>
+      </article>
+      <article class="post">
+        <div class="ob-card">
+          <div class="top"><span class="wm"><img src="assets/logos/waldium-mark.png" alt="" width="76" height="126">Waldium</span><span class="tag">ACQUIRED BY SALESFORCE</span></div>
+          <dl class="facts">
+            <div><dt>INDUSTRY</dt><dd>GEO, selling to founders</dd></div>
+            <div><dt>BACKED BY</dt><dd><img src="assets/logos/general-catalyst.png" alt="General Catalyst" width="760" height="103"></dd></div>
+          </dl>
+          <div class="did"><h4>WHAT I DID</h4><ol><li>Ran outbound myself from day one</li><li>Automated competitor posts into outbound</li><li>Booked 8 meetings in my first week</li></ol></div>
+          <div class="ob-stats"><div><b>8</b><span>meetings booked in week one</span></div><div><b>+38%</b><span>lift in outbound response rate</span></div></div>
+        </div>
+        <div class="post-copy">
+          <span class="k">OUTBOUND</span>
+          <h3>8 meetings booked in my first week.</h3>
+          <p>I ran outbound for Waldium myself. Every time a competitor posted, we turned it into targeted outbound, and response rates jumped 38%. For you, the signal is a new grant or a new paper that means a lab just got a mountain of images.</p>
+          <div class="post-chip"><b>8 meetings in week one</b><span>+38% outbound response rate lift</span></div>
+        </div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section class="pricing" id="pricing">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="kicker">PRICING</span>
+      <h2>Simple. <span class="red">Two operators, one price.</span></h2>
+    </div>
+    <div class="price-grid" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:36px">
+      <div class="price y"><span class="k">FULL ENGAGEMENT</span><b>$10K<span style="font-size:.5em">/mo</span></b><h3>Everything in the 90-day plan</h3><p>Runs inside Monaco, no extra tools to buy.</p></div>
+      <div class="price"><span class="k">HOW WE WORK</span><h3>Two to three calls a week plus a shared Slack.</h3><p>One weekly content interview with you. Everything else we run, you approve.</p></div>
+    </div>
+    <p class="price-foot">Two senior operators for less than one full-time growth hire.</p>
+  </div>
+</section>
+
+<section class="cta" id="book">
+  <h2>Let's put productive hours back into the hands of scientists.</h2>
+  <p>You keep building the model. We'll build the pipeline.</p>
+  <a class="btn btn-light" href="https://calendly.com/d/dtd7-vd3-fhw/discovery-call" target="_blank" rel="noopener">Book a call with us</a>
+</section>
+
+<footer>
+  <span class="display" style="font-size:19px">Cracked GTM × Visual Intuition</span>
+  <span>crackedgtm.ai</span>
+  <span>San Francisco</span>
+</footer>
+
+</body>
+</html>

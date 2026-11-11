@@ -314,6 +314,7 @@ const seLogin = (error, status, email = "") => new Response(SE_LOGIN_HTML(error,
 const CLIENT_PAGES = {
   kalpalabs: { name: "Kalpa Labs", hash: "d508d4710076587c8912acd3cd3a6e7f8d5fe76a26b96eb9f76883bf703eda04" },
   paysquadproposal: { name: "PaySquad", hash: "a7bdc28a1e41573ddf506d27208982cb474ca0c3e0a59f4484cb49a51ad64b34" },
+  visualintuition: { name: "Visual Intuition", hash: "e4579011b9d2c870bbe789869620f4992e37115b33db5bdd00fe4ebae1b6f748" },
 };
 const sha256hex = async s => [...new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s)))].map(b => b.toString(16).padStart(2, "0")).join("");
 const cpCookie = slug => "cp_" + slug;

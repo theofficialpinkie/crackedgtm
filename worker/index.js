@@ -317,6 +317,7 @@ const CLIENT_PAGES = {
   visualintuition: { name: "Visual Intuition", hash: "e4579011b9d2c870bbe789869620f4992e37115b33db5bdd00fe4ebae1b6f748" },
   docura: { name: "Docura Health", hash: "83999478f082159c2916ba9623abfbb12ead58038b6fd3385332520cda458c11" },
   docuraplan: { name: "Docura Health", hash: "ef6694f084d896dd2514dd1206278f0b0d794762f805cb2aa25653f99c54493d" },
+  autumn: { name: "Autumn", hash: "defae04158b9c17d7b4a5f7bd72bd712dc1d10b0ddc1fbcc07bb76bb1d27b75f" },
 };
 const sha256hex = async s => [...new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s)))].map(b => b.toString(16).padStart(2, "0")).join("");
 const cpCookie = slug => "cp_" + slug;
